@@ -1,0 +1,142 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\WebsiteController; // <--- PENTING: Import Controller
+use App\Http\Controllers\Client\DashboardController;
+use App\Http\Controllers\Client\ProductController;
+
+Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('client.websites');
+    }
+    return redirect()->route('login');
+});
+
+Auth::routes();
+
+// Group Middleware: User harus login dulu
+Route::middleware(['auth'])->group(function () {
+    
+    // Halaman List Website
+    Route::get('/select-website', [WebsiteController::class, 'index'])->name('client.websites');
+    
+    // Aksi Buat Website
+    Route::post('/websites', [WebsiteController::class, 'store'])->name('client.websites.store');
+
+    // 3. Dashboard Admin Toko (CMS)
+    Route::prefix('manage/{website}')->group(function () {
+        
+        // Dashboard Utama
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('client.dashboard');
+
+        // Nanti kita tambah route lain disini (Produk, Order, dll)
+        // ... di dalam group manage/{website} ...
+
+        // Dashboard Utama
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('client.dashboard');
+
+        // --- FITUR PRODUK ---
+        Route::get('/products', [ProductController::class, 'index'])->name('client.products.index');
+        Route::get('/products/create', [ProductController::class, 'create'])->name('client.products.create');
+
+        Route::post('/products', [ProductController::class, 'store'])->name('client.products.store');
+    // Nanti kita tambah route POST store, edit, delete disini
+
+        // ... route produk yang sudah ada ...
+
+    // --- FITUR KATEGORI ---
+        Route::get('/categories', [App\Http\Controllers\Client\CategoryController::class, 'index'])->name('client.categories.index');
+        Route::post('/categories', [App\Http\Controllers\Client\CategoryController::class, 'store'])->name('client.categories.store');
+        Route::delete('/categories/{category}', [App\Http\Controllers\Client\CategoryController::class, 'destroy'])->name('client.categories.destroy');
+
+
+        // ... rute produk create & store yang sudah ada ...
+
+        // --- TAMBAHKAN INI UNTUK EDIT & DELETE ---
+        
+        // 1. Tampilkan Form Edit
+        Route::get('/products/{product}/edit', [App\Http\Controllers\Client\ProductController::class, 'edit'])->name('client.products.edit');
+        
+        // 2. Proses Update Data (PUT)
+        Route::put('/products/{product}', [App\Http\Controllers\Client\ProductController::class, 'update'])->name('client.products.update');
+        
+        // 3. Proses Hapus Data (DELETE)
+        Route::delete('/products/{product}', [App\Http\Controllers\Client\ProductController::class, 'destroy'])->name('client.products.destroy');
+
+        // ... route produk & kategori ...
+
+        // --- FITUR WEBSITE BUILDER ---
+        Route::get('/builder', [App\Http\Controllers\Client\BuilderController::class, 'index'])->name('client.builder.index');
+        Route::put('/builder', [App\Http\Controllers\Client\BuilderController::class, 'update'])->name('client.builder.update');
+        // ... route builder & produk ...
+
+    // --- FITUR ORDER (PENJUALAN) ---
+        Route::get('/orders', [App\Http\Controllers\Client\OrderController::class, 'index'])->name('client.orders.index');
+        Route::get('/orders/{order}', [App\Http\Controllers\Client\OrderController::class, 'show'])->name('client.orders.show');
+        Route::put('/orders/{order}', [App\Http\Controllers\Client\OrderController::class, 'update'])->name('client.orders.update');
+
+        // ... route order dll ...
+
+        // --- PENGATURAN TOKO ---
+        Route::get('/settings', [App\Http\Controllers\Client\SettingController::class, 'index'])->name('client.settings.index');
+        Route::put('/settings', [App\Http\Controllers\Client\SettingController::class, 'update'])->name('client.settings.update');
+
+        // ... route settings ...
+
+        // --- FITUR PELANGGAN ---
+        Route::get('/customers', [App\Http\Controllers\Client\CustomerController::class, 'index'])->name('client.customers.index');
+
+        // ... route customers ...
+
+        // --- FITUR LAPORAN ---
+        Route::get('/reports', [App\Http\Controllers\Client\ReportController::class, 'index'])->name('client.reports.index');
+
+        // ... route produk/kategori ...
+
+        // --- FITUR BLOG ---
+        Route::get('/posts', [App\Http\Controllers\Client\PostController::class, 'index'])->name('client.posts.index');
+        Route::get('/posts/create', [App\Http\Controllers\Client\PostController::class, 'create'])->name('client.posts.create');
+        Route::post('/posts', [App\Http\Controllers\Client\PostController::class, 'store'])->name('client.posts.store');
+        Route::delete('/posts/{post}', [App\Http\Controllers\Client\PostController::class, 'destroy'])->name('client.posts.destroy');
+        // ... route posts lainnya ...
+        Route::get('/posts/{post}/edit', [App\Http\Controllers\Client\PostController::class, 'edit'])->name('client.posts.edit');
+        Route::put('/posts/{post}', [App\Http\Controllers\Client\PostController::class, 'update'])->name('client.posts.update');
+
+        // --- FITUR TEMPLATE ---
+        Route::get('/templates', [App\Http\Controllers\Client\TemplateController::class, 'index'])->name('client.templates.index');
+        Route::put('/templates', [App\Http\Controllers\Client\TemplateController::class, 'update'])->name('client.templates.update');
+    });
+
+});
+
+// --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
+
+// Cara Akses: http://127.0.0.1:8000/s/{subdomain}
+// Contoh: http://127.0.0.1:8000/s/tokoelektronik
+Route::get('/s/{subdomain}', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
+
+// ... di bawah route store.home ...
+
+// Tambah ke Keranjang
+Route::post('/s/{subdomain}/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
+
+// Lihat Keranjang
+Route::get('/s/{subdomain}/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
+// ... route cart sebelumnya ...
+
+// Update Qty
+Route::patch('/s/{subdomain}/cart/update', [App\Http\Controllers\CheckoutController::class, 'updateCart'])->name('store.cart.update');
+
+// Hapus Item
+Route::delete('/s/{subdomain}/cart/remove/{id}', [App\Http\Controllers\CheckoutController::class, 'removeFromCart'])->name('store.cart.remove');
+
+// ... di group Storefront ...
+
+// Proses Checkout (Simpan ke DB)
+Route::post('/s/{subdomain}/checkout', [App\Http\Controllers\CheckoutController::class, 'processCheckout'])->name('store.checkout');
+
+// Di bagian Storefront (Paling Bawah)
+Route::get('/s/{subdomain}/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('store.blog');
+Route::get('/s/{subdomain}/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('store.blog.show');
+
