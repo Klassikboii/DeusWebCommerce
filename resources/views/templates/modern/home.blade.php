@@ -6,12 +6,37 @@
     <title>{{ $website->site_name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+    <meta name="description" content="{{ $website->meta_description ?? 'Selamat datang di ' . $website->site_name }}">
+    <meta name="keywords" content="{{ $website->meta_keywords }}">
     
+    <meta property="og:title" content="{{ $website->meta_title ?? $website->site_name }}">
+    <meta property="og:description" content="{{ $website->meta_description }}">
+    <meta property="og:image" content="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}">
+    
+    @if($website->favicon)
+        <link rel="icon" type="image/x-icon" href="{{ asset('storage/' . $website->favicon) }}">
+    @endif
     <style>
+
+        body { 
+            font-family: var(--font-main); 
+            font-size: {{ $website->base_font_size }}px; /* Ukuran dasar dari DB */
+        }
         /* Variabel Warna (Nanti ini yang akan diedit oleh Website Builder) */
         :root {
             --primary-color: {{ $website->primary_color ?? '#0d6efd' }}; 
             --secondary-color: {{ $website->secondary_color ?? '#6c757d' }};
+            --font-main: '{{ $website->font_family ?? 'Inter' }}', sans-serif;
+            --ratio-product: {{ $website->product_image_ratio ?? '1/1' }};
+            --hero-bg-color: {{ $website->hero_bg_color ?? '#333333' }};
+        }
+        .product-img, .card-img-top {
+            width: 100%;
+            aspect-ratio: var(--ratio-product); /* Fitur CSS modern magic! */
+            object-fit: cover;
+            height: auto !important; /* Reset height statis lama */
         }
         
         .bg-primary-custom { background-color: var(--primary-color) !important; }
@@ -42,42 +67,86 @@
         /* ------------------------------------------ */
         
         .hero-section {
-            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://source.unsplash.com/1600x900/?store,shop');
+        background-color: var(--hero-bg-color); /* Fallback Color */
+        
+        @if($website->hero_image)
+            /* Kalau ada gambar, tumpuk dengan gradient */
+            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('{{ asset("storage/".$website->hero_image) }}');
             background-size: cover;
             background-position: center;
-            color: white;
-            padding: 100px 0;
-        }
+        @else
+            /* Kalau tidak ada gambar, kosongkan image (jadi pakai background-color saja) */
+            background-image: none;
+        @endif
+        
+        color: white; /* Pastikan teks putih di banner modern */
+    }
         .product-card { transition: transform 0.2s; }
         .product-card:hover { transform: translateY(-5px); shadow: 0 10px 20px rgba(0,0,0,0.1); }
         .product-img { height: 200px; object-fit: cover; width: 100%; }
+
+        /* CSS RESPONSIVE TAMBAHAN */
+        @media (max-width: 768px) {
+            /* Saat di HP, kecilkan font judul banner */
+            .display-4, .display-6 {
+                font-size: 2rem !important; /* Paksa jadi lebih kecil */
+            }
+            .lead {
+                font-size: 1rem !important;
+            }
+            /* Padding banner dikurangi biar gak terlalu tinggi */
+            .hero-section, .hero-section-simple {
+                padding: 60px 0 !important;
+            }
+        }
     </style>
 </head>
 <body>
+    
 
-    <nav class="navbar navbar-expand-lg bg-white shadow-sm sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
         <div class="container">
-            <a class="navbar-brand fw-bold text-primary-custom" href="#">
-                <i class="bi bi-shop me-1"></i> {{ $website->site_name }}
+            
+            <a class="navbar-brand fw-bold" href="#">
+                <img src="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}" 
+                     id="logo-img-preview" 
+                     style="height: 40px; {{ $website->logo ? '' : 'display:none;' }}" 
+                     alt="Logo">
+                
+                <span id="site-name-text" style="{{ $website->logo ? 'display:none;' : '' }}">
+                    {{ $website->site_name }}
+                </span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="#">Beranda</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#products">Produk</a></li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('store.blog', $website->subdomain) }}">Blog</a>
-                    </li>
-                    
-                    <li class="nav-item"><a class="nav-link" href="#">Kontak</a></li>
-                </ul>
 
-                <a href="{{ route('store.cart', $website->subdomain) }}" class="btn btn-secondary-custom ms-2 rounded-pill px-4">
-                    <i class="bi bi-cart"></i> Cart ({{ count(session('cart', [])) }})
-                </a>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto gap-2 align-items-center">
+                    
+                    @php
+                        // Logika: Ambil JSON dari DB, kalau kosong pakai default
+                        $navMenus = $website->navigation_menu 
+                                    ? json_decode($website->navigation_menu, true) 
+                                    : [
+                                        ['label' => 'Beranda', 'url' => '#'],
+                                        ['label' => 'Produk', 'url' => '#products']
+                                      ];
+                    @endphp
+
+                    @foreach($navMenus as $menu)
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ $menu['url'] }}">{{ $menu['label'] }}</a>
+                    </li>
+                    @endforeach
+
+                    <li class="nav-item ms-2">
+                        <a class="btn btn-primary-custom rounded-pill px-4" href="{{ route('store.cart', $website->subdomain) }}">
+                            <i class="bi bi-cart"></i> Cart ({{ count(session('cart', [])) }})
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -89,9 +158,9 @@
             </div>
         </div>
     @endif
-    <header class="hero-section text-center">
-        <div class="container">
-            <h1 class="display-4 fw-bold mb-3" id="hero-title-text">
+    <header class="hero-section text-center" id="hero-section-bg">
+        <div class="container margin-top-5 padding-y-5" style="padding: 80px 0;">
+            <h1 class="display-4 fw-bold mb-3 " id="hero-title-text">
                 {{ $website->hero_title ?? 'Selamat Datang di ' . $website->site_name }}
             </h1>
             

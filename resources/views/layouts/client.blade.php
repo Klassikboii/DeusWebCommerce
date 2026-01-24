@@ -119,10 +119,16 @@
             class="nav-link {{ request()->routeIs('client.templates.*') ? 'active' : '' }}">
                 <i class="bi bi-layout-text-window-reverse"></i> Template
             </a>
-            <a href="#" class="nav-link">
-                <i class="bi bi-palette"></i> Tampilan
+            <a href="{{ route('client.appearance.index', $website->id) }}" 
+            class="nav-link {{ request()->routeIs('client.appearance.*') ? 'active' : '' }}">
+                <i class="bi bi-menu-button-wide"></i> Menu / Navigasi
+            </a> 
+            <a href="{{ route('client.seo.index', $website->id) }}" 
+            class="nav-link {{ request()->routeIs('client.seo.*') ? 'active' : '' }}">
+                <i class="bi bi-search"></i> SEO & Meta
             </a>
-            <a href="#" class="nav-link">
+            <a href="{{ route('client.domains.index', $website->id) }}" 
+            class="nav-link {{ request()->routeIs('client.domains.*') ? 'active' : '' }}">
                 <i class="bi bi-globe"></i> Domain
             </a>
 

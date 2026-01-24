@@ -106,7 +106,22 @@ Route::middleware(['auth'])->group(function () {
         // --- FITUR TEMPLATE ---
         Route::get('/templates', [App\Http\Controllers\Client\TemplateController::class, 'index'])->name('client.templates.index');
         Route::put('/templates', [App\Http\Controllers\Client\TemplateController::class, 'update'])->name('client.templates.update');
-    });
+
+            // --- FITUR DOMAIN ---
+        Route::get('/domain', [App\Http\Controllers\Client\DomainController::class, 'index'])->name('client.domains.index');
+        Route::post('/domain', [App\Http\Controllers\Client\DomainController::class, 'update'])->name('client.domains.update');
+        Route::delete('/domain', [App\Http\Controllers\Client\DomainController::class, 'destroy'])->name('client.domains.destroy');
+
+            // --- FITUR SEO ---
+        Route::get('/seo', [App\Http\Controllers\Client\SeoController::class, 'index'])->name('client.seo.index');
+        Route::put('/seo', [App\Http\Controllers\Client\SeoController::class, 'update'])->name('client.seo.update');
+
+        // ... route seo ...
+
+        // --- FITUR MENU / NAVIGASI (Appearance) ---
+        Route::get('/appearance', [App\Http\Controllers\Client\AppearanceController::class, 'index'])->name('client.appearance.index');
+        Route::put('/appearance', [App\Http\Controllers\Client\AppearanceController::class, 'update'])->name('client.appearance.update');
+        });
 
 });
 

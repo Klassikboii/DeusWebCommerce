@@ -23,23 +23,61 @@ class BuilderController extends Controller
         if ($website->user_id !== auth()->id()) abort(403);
 
         $request->validate([
-            'primary_color' => 'required|string|max:7',
-            'secondary_color' => 'required|string|max:7',
-            // Validasi Teks (Boleh kosong/nullable)
-            'hero_title' => 'nullable|string|max:100',
-            'hero_subtitle' => 'nullable|string|max:255',
-            'hero_btn_text' => 'nullable|string|max:50',
+            // ... validasi lama ...
+            'hero_bg_color' => 'required', // Validasi baru
         ]);
 
-        $website->update([
+        $data = [
             'primary_color' => $request->primary_color,
             'secondary_color' => $request->secondary_color,
-            // Simpan Teks Baru
-            'hero_title' => $request->hero_title,
-            'hero_subtitle' => $request->hero_subtitle,
-            'hero_btn_text' => $request->hero_btn_text,
-        ]);
+            'hero_bg_color' => $request->hero_bg_color, // Simpan warna banner
+            // ... data text lainnya ...
+            'font_family' => $request->font_family,
+            'base_font_size' => $request->base_font_size,
+            'product_image_ratio' => $request->product_image_ratio,
+        ];
 
-        return redirect()->back()->with('success', 'Desain & Konten berhasil disimpan!');
+        // --- LOGIKA HAPUS / RESET GAMBAR (BARU) ---
+        
+        // 1. Reset Logo
+        if ($request->boolean('remove_logo')) {
+            if ($website->logo && \Storage::disk('public')->exists($website->logo)) {
+                \Storage::disk('public')->delete($website->logo);
+            }
+            $data['logo'] = null; // Set null di database
+        }
+
+        // 2. Reset Favicon
+        if ($request->boolean('remove_favicon')) {
+            if ($website->favicon && \Storage::disk('public')->exists($website->favicon)) {
+                \Storage::disk('public')->delete($website->favicon);
+            }
+            $data['favicon'] = null;
+        }
+
+        // 3. Reset Banner Image
+        if ($request->boolean('remove_hero_image')) {
+            if ($website->hero_image && \Storage::disk('public')->exists($website->hero_image)) {
+                \Storage::disk('public')->delete($website->hero_image);
+            }
+            $data['hero_image'] = null;
+        }
+
+        // --- LOGIKA UPLOAD BARU (YANG LAMA) ---
+        // (Pastikan logika upload tetap ada di bawah logika hapus)
+        
+        if ($request->hasFile('logo')) {
+            $data['logo'] = $request->file('logo')->store('assets/' . $website->id, 'public');
+        }
+        if ($request->hasFile('favicon')) {
+            $data['favicon'] = $request->file('favicon')->store('assets/' . $website->id, 'public');
+        }
+        if ($request->hasFile('hero_image')) {
+            $data['hero_image'] = $request->file('hero_image')->store('assets/' . $website->id, 'public');
+        }
+
+        $website->update($data);
+
+        return redirect()->back()->with('success', 'Desain berhasil diperbarui!');
     }
 }
