@@ -7,9 +7,19 @@ use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProductController;
 
 Route::get('/', function () {
+    // 1. Cek apakah user login?
     if (Auth::check()) {
-        return redirect()->route('client.websites');
+        
+        // 2. Cek apakah dia ADMIN?
+        if (auth()->user()->role === 'admin') {
+            return redirect()->route('admin.dashboard'); // Arahkan ke Kantor Pusat
+        }
+
+        // 3. Jika bukan admin, berarti CLIENT
+        return redirect()->route('client.websites'); // Arahkan ke Toko
     }
+
+    // 4. Jika belum login, ke halaman Login
     return redirect()->route('login');
 });
 
@@ -155,3 +165,21 @@ Route::post('/s/{subdomain}/checkout', [App\Http\Controllers\CheckoutController:
 Route::get('/s/{subdomain}/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('store.blog');
 Route::get('/s/{subdomain}/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('store.blog.show');
 
+// --- GRUP ROUTE SUPER ADMIN ---
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth', 'admin']) // <--- INI PAGARNYA
+    ->group(function () {
+        
+        // Dashboard Pusat
+        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+        
+        // Nanti kita tambah route Paket & User disini...
+        // ... di dalam Route::prefix('admin')->group(...) ...
+
+        // Dashboard
+        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
+        // Manajemen Paket (Resource Route ringkas)
+        Route::resource('packages', App\Http\Controllers\Admin\PackageController::class)->only(['index', 'edit', 'update']);
+    });

@@ -41,4 +41,12 @@ class Website extends Model
     {
         return $this->hasMany(Post::class);
     }
+
+    // ... di dalam class Website ...
+
+    public function activeSubscription()
+    {
+        // Ambil langganan terakhir yang statusnya active
+        return $this->hasOne(Subscription::class)->where('status', 'active')->latest();
+    }
 }

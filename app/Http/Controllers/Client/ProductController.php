@@ -32,6 +32,17 @@ class ProductController extends Controller
     }
     public function store(Request $request, Website $website)
     {
+        $subscription = $website->activeSubscription;
+        
+        // Jika tidak ada paket (error system), atau paketnya bukan unlimited
+        if ($subscription) {
+            $limit = $subscription->package->max_products;
+            $currentCount = $website->products()->count();
+
+            if ($currentCount >= $limit) {
+                return redirect()->back()->with('error', "Ups! Anda telah mencapai batas maksimal {$limit} produk untuk paket ini. Silakan upgrade paket.");
+            }
+        }
         // 1. Validasi Input
         $request->validate([
             'name' => 'required|string|max:255',

@@ -14,7 +14,13 @@
 
     <form action="{{ route('client.products.store', $website->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
-        
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-body p-4">
                 <h6 class="fw-bold mb-3 text-primary">Informasi Dasar</h6>
