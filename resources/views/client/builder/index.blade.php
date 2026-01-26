@@ -94,7 +94,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Deskripsi</label>
-                            <textarea name="hero_subtitle" id="inputHeroSubtitle" class="form-control" rows="3">{{ $website->hero_subtitle }}</textarea>
+                            <textarea type="text" name="hero_subtitle" id="inputHeroSubtitle" class="form-control" row="3" value="{{ $website->hero_subtitle }}">{{ $website->hero_subtitle }}</textarea>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Teks Tombol</label>

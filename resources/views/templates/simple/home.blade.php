@@ -14,8 +14,10 @@
     <meta property="og:title" content="{{ $website->meta_title ?? $website->site_name }}">
     <meta property="og:description" content="{{ $website->meta_description }}">
     <meta property="og:image" content="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}">
-    @if($website->favicon)
-        <link rel="icon" type="image/x-icon" href="{{ asset('storage/' . $website->favicon) }}">
+    @if($website->favicon && Storage::disk('public')->exists($website->favicon))
+        <link rel="icon" href="{{ asset('storage/'.$website->favicon) }}?v={{ time() }}">
+    @else
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
     @endif
     <style>
         

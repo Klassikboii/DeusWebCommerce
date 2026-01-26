@@ -22,8 +22,18 @@ class CategoryController extends Controller
     // Simpan Kategori Baru
     public function store(Request $request, Website $website)
     {
+        if ($website->user_id !== auth()->id()) abort(403);
+
         $request->validate([
-            'name' => 'required|unique:categories,name|max:50',
+            'name' => [
+                'required', 
+                'string', 
+                'max:255',
+                // VALIDASI BARU: Cek unik hanya jika website_id-nya sama
+                Rule::unique('categories')->where(function ($query) use ($website) {
+                    return $query->where('website_id', $website->id);
+                }),
+            ],
         ]);
 
         $website->categories()->create([
@@ -45,4 +55,41 @@ class CategoryController extends Controller
         $category->delete();
         return redirect()->back()->with('success', 'Kategori dihapus');
     }
+
+    // MENAMPILKAN FORM EDIT
+    public function edit(Website $website, Category $category)
+    {
+        if ($website->user_id !== auth()->id()) abort(403);
+        
+        return view('client.categories.edit', compact('website', 'category'));
+    }
+
+    // MENYIMPAN PERUBAHAN
+    public function update(Request $request, Website $website, Category $category)
+    {
+        if ($website->user_id !== auth()->id()) abort(403);
+
+        $request->validate([
+            'name' => [
+                'required', 
+                'string', 
+                'max:255',
+                // Validasi Unik (Abaikan nama kategori ini sendiri)
+                \Illuminate\Validation\Rule::unique('categories')
+                    ->where(function ($query) use ($website) {
+                        return $query->where('website_id', $website->id);
+                    })
+                    ->ignore($category->id),
+            ],
+        ]);
+
+        $category->update([
+            'name' => $request->name,
+            // Jika ada kolom lain seperti slug/deskripsi, tambahkan disini
+        ]);
+
+        return redirect()->route('client.categories.index', $website->id)
+                         ->with('success', 'Kategori berhasil diperbarui!');
+    }
 }
+

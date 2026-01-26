@@ -15,8 +15,10 @@
     <meta property="og:description" content="{{ $website->meta_description }}">
     <meta property="og:image" content="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}">
     
-    @if($website->favicon)
-        <link rel="icon" type="image/x-icon" href="{{ asset('storage/' . $website->favicon) }}">
+    @if($website->favicon && Storage::disk('public')->exists($website->favicon))
+        <link rel="icon" href="{{ asset('storage/'.$website->favicon) }}?v={{ time() }}">
+    @else
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
     @endif
     <style>
 
@@ -156,6 +158,13 @@
                 <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
     <header class="hero-section text-center" id="hero-section-bg">

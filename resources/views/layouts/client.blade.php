@@ -131,6 +131,7 @@
             class="nav-link {{ request()->routeIs('client.domains.*') ? 'active' : '' }}">
                 <i class="bi bi-globe"></i> Domain
             </a>
+        
 
             <div class="nav-group-label">Produk & Konten</div>
             <a href="{{ route('client.products.index', $website->id) }}" 
@@ -164,6 +165,10 @@
             <a href="{{ route('client.settings.index', $website->id) }}" 
             class="nav-link {{ request()->routeIs('client.settings.*') ? 'active' : '' }}">
                 <i class="bi bi-gear"></i> Settings
+            </a>
+            <a href="{{ route('client.billing.index', $website->id) }}" 
+            class="nav-link {{ request()->routeIs('client.billing.*') ? 'active' : '' }}">
+                <i class="bi bi-credit-card"></i> Langganan (Billing)
             </a>
             
             <div class="mt-4 px-3">

@@ -30,7 +30,9 @@
             <div class="card border-0 shadow-sm bg-warning text-dark h-100">
                 <div class="card-body">
                     <h5 class="opacity-75">Pendapatan</h5>
-                    <h1 class="display-4 fw-bold mb-0">Rp 0</h1>
+                    <h1 class="display-4 fw-bold mb-0">
+                        Rp {{ number_format($totalRevenue, 0, ',', '.') }}
+                    </h1>
                 </div>
             </div>
         </div>

@@ -31,13 +31,14 @@
                 <i class="bi bi-box-seam"></i> Paket Harga
             </a>
 
-            <a href="#" class="nav-link">
+            <a href="{{ route('admin.websites.index') }}" class="nav-link {{ request()->routeIs('admin.websites.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i> Users & Website
             </a>
 
-            <a href="#" class="nav-link">
+            <a href="{{ route('admin.transactions.index') }}" class="nav-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="bi bi-cash-stack"></i> Transaksi
             </a>
+            
         </nav>
 
         <div class="p-3 border-top border-secondary">
@@ -50,6 +51,7 @@
                     <div class="text-white-50" style="font-size: 11px;">Super Admin</div>
                 </div>
             </div>
+            <a href="{{ route('profile.edit') }}" class="btn btn-outline-light btn-sm w-100 mb-2">Edit Profil</a>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button class="btn btn-danger btn-sm w-100">Logout</button>
@@ -60,6 +62,6 @@
     <div class="admin-content">
         @yield('content')
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

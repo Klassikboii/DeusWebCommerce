@@ -22,11 +22,29 @@
                 <i class="bi bi-shop"></i> WebCommerce Platform
             </a>
             <div class="d-flex align-items-center gap-3">
-                <span class="text-secondary small">Selamat datang, <strong>{{ Auth::user()->name }}</strong></span>
-                <form action="{{ route('logout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
-                </form>
+                <span class="text-muted d-none d-md-block">Selamat datang, <strong>{{ Auth::user()->name }}</strong></span>
+                
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1"></i> Akun
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li>
+                            <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                <i class="bi bi-gear me-2"></i> Pengaturan Akun
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="dropdown-item text-danger">
+                                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -80,6 +98,13 @@
 
         @if(session('success'))
             <div class="alert alert-success mb-4">{{ session('success') }}</div>
+        @endif
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         @endif
 
         <div class="row g-4">

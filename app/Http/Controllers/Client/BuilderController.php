@@ -31,6 +31,12 @@ class BuilderController extends Controller
             'primary_color' => $request->primary_color,
             'secondary_color' => $request->secondary_color,
             'hero_bg_color' => $request->hero_bg_color, // Simpan warna banner
+
+            // --- UPDATE BAGIAN TEKS ---
+            'hero_title' => $request->hero_title,
+            'hero_subtitle' => $request->hero_subtitle,
+            'hero_btn_text' => $request->hero_btn_text,
+            // --------------------------
             // ... data text lainnya ...
             'font_family' => $request->font_family,
             'base_font_size' => $request->base_font_size,

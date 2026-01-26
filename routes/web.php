@@ -6,27 +6,33 @@ use App\Http\Controllers\WebsiteController; // <--- PENTING: Import Controller
 use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProductController;
 
-Route::get('/', function () {
-    // 1. Cek apakah user login?
-    if (Auth::check()) {
+// Route::get('/', function () {
+//     // 1. Cek apakah user login?
+//     if (Auth::check()) {
         
-        // 2. Cek apakah dia ADMIN?
-        if (auth()->user()->role === 'admin') {
-            return redirect()->route('admin.dashboard'); // Arahkan ke Kantor Pusat
-        }
+//         // 2. Cek apakah dia ADMIN?
+//         if (auth()->user()->role === 'admin') {
+//             return redirect()->route('admin.dashboard'); // Arahkan ke Kantor Pusat
+//         }
 
-        // 3. Jika bukan admin, berarti CLIENT
-        return redirect()->route('client.websites'); // Arahkan ke Toko
-    }
+//         // 3. Jika bukan admin, berarti CLIENT
+//         return redirect()->route('client.websites'); // Arahkan ke Toko
+//     }
 
-    // 4. Jika belum login, ke halaman Login
-    return redirect()->route('login');
-});
+//     // 4. Jika belum login, ke halaman Login
+//     return redirect()->route('login');
+// });
+
+Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('landing');
 
 Auth::routes();
 
 // Group Middleware: User harus login dulu
 Route::middleware(['auth'])->group(function () {
+
+    // --- FITUR PROFILE (BARU) ---
+    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     
     // Halaman List Website
     Route::get('/select-website', [WebsiteController::class, 'index'])->name('client.websites');
@@ -131,6 +137,10 @@ Route::middleware(['auth'])->group(function () {
         // --- FITUR MENU / NAVIGASI (Appearance) ---
         Route::get('/appearance', [App\Http\Controllers\Client\AppearanceController::class, 'index'])->name('client.appearance.index');
         Route::put('/appearance', [App\Http\Controllers\Client\AppearanceController::class, 'update'])->name('client.appearance.update');
+
+                // --- FITUR BILLING ---
+        Route::get('/billing', [App\Http\Controllers\Client\BillingController::class, 'index'])->name('client.billing.index');
+        Route::post('/billing', [App\Http\Controllers\Client\BillingController::class, 'store'])->name('client.billing.store');
         });
 
 });
@@ -182,4 +192,15 @@ Route::prefix('admin')
 
         // Manajemen Paket (Resource Route ringkas)
         Route::resource('packages', App\Http\Controllers\Admin\PackageController::class)->only(['index', 'edit', 'update']);
+
+        // ... di dalam grup admin ...
+    
+        // Manajemen Transaksi
+        Route::get('/transactions', [App\Http\Controllers\Admin\TransactionController::class, 'index'])->name('transactions.index');
+        Route::put('/transactions/{transaction}', [App\Http\Controllers\Admin\TransactionController::class, 'update'])->name('transactions.update');
+        // ... route transaksi ...
+    
+        // Manajemen Website
+        Route::get('/websites', [App\Http\Controllers\Admin\WebsiteController::class, 'index'])->name('websites.index');
+        Route::delete('/websites/{website}', [App\Http\Controllers\Admin\WebsiteController::class, 'destroy'])->name('websites.destroy');
     });
