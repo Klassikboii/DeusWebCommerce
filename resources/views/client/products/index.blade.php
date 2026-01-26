@@ -7,11 +7,24 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-1">Produk</h4>
-            <p class="text-muted m-0">Kelola katalog barang dagangan Anda.</p>
+            <p class="text-muted small mb-0">Kelola katalog barang dagangan Anda.</p>
         </div>
-        <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i> Tambah Produk
-        </a>
+        
+        <div class="d-flex gap-2 align-items-center">
+            <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2">
+                Slot: {{ $currentCount }} / {{ $limit }}
+            </div>
+
+            @if($isLimitReached)
+                <button class="btn btn-secondary" disabled>
+                    <i class="bi bi-lock-fill me-1"></i> Penuh
+                </button>
+            @else
+                <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1"></i> Tambah Produk
+                </a>
+            @endif
+        </div>
     </div>
 
     @if(session('success'))

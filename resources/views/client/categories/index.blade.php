@@ -43,6 +43,11 @@
                             </span>
                         </td>
                         <td class="pe-4 text-end">
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{{ route('client.categories.edit', [$website->id, $category->id]) }}" class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-pencil"></i> 
+                                </a>
+                            
                             <form action="{{ route('client.categories.destroy', [$website->id, $category->id]) }}" method="POST" onsubmit="return confirm('Hapus kategori ini?')">
                                 @csrf
                                 @method('DELETE')
@@ -50,6 +55,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
+                            </div>
                         </td>
                     </tr>
                     @empty

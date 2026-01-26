@@ -65,6 +65,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/categories', [App\Http\Controllers\Client\CategoryController::class, 'index'])->name('client.categories.index');
         Route::post('/categories', [App\Http\Controllers\Client\CategoryController::class, 'store'])->name('client.categories.store');
         Route::delete('/categories/{category}', [App\Http\Controllers\Client\CategoryController::class, 'destroy'])->name('client.categories.destroy');
+        Route::get('/categories/{category}/edit', [App\Http\Controllers\Client\CategoryController::class, 'edit'])->name('client.categories.edit');
+        Route::put('/categories/{category}', [App\Http\Controllers\Client\CategoryController::class, 'update'])->name('client.categories.update');
+        
 
 
         // ... rute produk create & store yang sudah ada ...

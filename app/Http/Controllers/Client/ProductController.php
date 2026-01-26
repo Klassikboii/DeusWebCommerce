@@ -11,37 +11,73 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
-    public function index(Website $website)
+    private function getLimit($website)
     {
-        // KEAMANAN: Pastikan website milik user yang login
-        if ($website->user_id !== auth()->id()) {
-            abort(403);
+        $subscription = $website->activeSubscription;
+        if ($subscription) {
+            return $subscription->package->max_products;
+        }
+        // Fallback ke Free jika expired/null
+        $free = \App\Models\Package::where('price', 0)->first();
+        return $free ? $free->max_products : 2;
+    }
+    public function index(Request $request, Website $website)
+    {
+        if ($website->user_id !== auth()->id()) abort(403);
+
+        $query = $website->products();
+        
+        // (Kode pencarian/search yang lama biarkan saja)
+        if ($request->search) {
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
-        // Ambil produk milik website ini saja, urutkan dari yang terbaru
-        $products = $website->products()->with('category')->latest()->paginate(10);
+        $products = $query->latest()->paginate(10);
 
-        return view('client.products.index', compact('website', 'products'));
+        // --- TAMBAHAN BARU: HITUNG LIMIT ---
+        $currentCount = $website->products()->count();
+        $limit = $this->getLimit($website);
+        $isLimitReached = $currentCount >= $limit;
+        // -----------------------------------
+
+        return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached'));
     }
     
     public function create(Website $website)
     {
-         // Ambil kategori untuk dropdown pilihan
-         $categories = $website->categories;
-         return view('client.products.create', compact('website', 'categories'));
+        if ($website->user_id !== auth()->id()) abort(403);
+
+        // --- CEGAT DI PINTU DEPAN (Redirect sebelum ngisi form) ---
+        $limit = $this->getLimit($website);
+        if ($website->products()->count() >= $limit) {
+            return redirect()->route('client.products.index', $website->id)
+                             ->with('error', "Limit produk tercapai ({$limit} item). Silakan upgrade paket.");
+        }
+        // ----------------------------------------------------------
+
+        $categories = $website->categories;
+        return view('client.products.create', compact('website', 'categories'));
     }
     public function store(Request $request, Website $website)
     {
+        // --- 1. TENTUKAN BATAS LIMIT ---
+        $limit = 0;
         $subscription = $website->activeSubscription;
-        
-        // Jika tidak ada paket (error system), atau paketnya bukan unlimited
-        if ($subscription) {
-            $limit = $subscription->package->max_products;
-            $currentCount = $website->products()->count();
 
-            if ($currentCount >= $limit) {
-                return redirect()->back()->with('error', "Ups! Anda telah mencapai batas maksimal {$limit} produk untuk paket ini. Silakan upgrade paket.");
-            }
+        if ($subscription) {
+            // Skenario A: Punya paket aktif (Pro/Business/Starter)
+            $limit = $subscription->package->max_products;
+        } else {
+            // Skenario B: Tidak punya paket / Expired -> JATUH KE PAKET FREE
+            $freePackage = \App\Models\Package::where('price', 0)->first();
+            $limit = $freePackage ? $freePackage->max_products : 2; // Default angka 2 jika DB gagal
+        }
+
+        // --- 2. CEK JUMLAH PRODUK VS LIMIT ---
+        $currentCount = $website->products()->count();
+        
+        if ($currentCount >= $limit) {
+            return redirect()->back()->with('error', "Ups! Batas produk tercapai ({$limit} item). Paket Anda mungkin telah berakhir. Silakan upgrade.");
         }
         // 1. Validasi Input
         $request->validate([
@@ -126,6 +162,7 @@ class ProductController extends Controller
         }
 
         $product->update($data);
+        
 
         return redirect()->route('client.products.index', $website->id)
                          ->with('success', 'Produk berhasil diperbarui');
