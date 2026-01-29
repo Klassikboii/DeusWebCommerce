@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Website;
+use App\Models\Website; 
 use Illuminate\Http\Request;
 
 class StorefrontController extends Controller
