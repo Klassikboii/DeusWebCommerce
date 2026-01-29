@@ -26,7 +26,7 @@ class OrderController extends Controller
         if ($order->website_id !== $website->id) abort(403);
 
         // Load detail item produknya
-        $order->load('items');
+        $order->load('items.product', 'histories');
         
         return view('client.orders.show', compact('website', 'order'));
     }
@@ -34,12 +34,31 @@ class OrderController extends Controller
     // 3. Update Status Order (Terima/Kirim/Batal)
     public function update(Request $request, Website $website, Order $order)
     {
-        if ($order->website_id !== $website->id) abort(403);
-        
-        $request->validate(['status' => 'required|in:pending,processing,shipped,completed,cancelled']);
+        if ($website->user_id !== auth()->id()) abort(403);
 
-        $order->update(['status' => $request->status]);
+        $request->validate([
+            'status' => 'required|in:pending,processing,shipped,completed,cancelled',
+            // Resi wajib diisi HANYA jika status diubah jadi 'shipped'
+            'tracking_number' => 'required_if:status,shipped',
+            'courier_name' => 'required_if:status,shipped',
+        ]);
 
-        return redirect()->back()->with('success', 'Status pesanan diperbarui menjadi ' . ucfirst($request->status));
+        // 1. Update Order Utama
+        $order->update([
+            'status' => $request->status,
+            'courier_name' => $request->courier_name,
+            'tracking_number' => $request->tracking_number,
+        ]);
+
+        // 2. Simpan History / Catatan
+        // Kita juga bisa tambahkan input 'note' di form view nanti
+        \App\Models\OrderHistory::create([
+            'order_id' => $order->id,
+            'status' => $request->status,
+            'note' => $request->note ?? 'Status diperbarui menjadi ' . $request->status, // Default message
+        ]);
+
+        return redirect()->back()->with('success', 'Status diperbarui!');
+    
     }
 }

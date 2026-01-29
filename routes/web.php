@@ -6,24 +6,24 @@ use App\Http\Controllers\WebsiteController; // <--- PENTING: Import Controller
 use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProductController;
 
-// Route::get('/', function () {
-//     // 1. Cek apakah user login?
-//     if (Auth::check()) {
+Route::get('/', function () {
+    // 1. Cek apakah user login?
+    if (Auth::check()) {
         
-//         // 2. Cek apakah dia ADMIN?
-//         if (auth()->user()->role === 'admin') {
-//             return redirect()->route('admin.dashboard'); // Arahkan ke Kantor Pusat
-//         }
+        // 2. Cek apakah dia ADMIN?
+        if (auth()->user()->role === 'admin') {
+            return redirect()->route('admin.dashboard'); // Arahkan ke Kantor Pusat
+        }
 
-//         // 3. Jika bukan admin, berarti CLIENT
-//         return redirect()->route('client.websites'); // Arahkan ke Toko
-//     }
+        // 3. Jika bukan admin, berarti CLIENT
+        return redirect()->route('client.websites'); // Arahkan ke Toko
+    }
 
-//     // 4. Jika belum login, ke halaman Login
-//     return redirect()->route('login');
-// });
+    // 4. Jika belum login, ke halaman Login
+    return redirect()->route('login');
+});
 
-Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('landing');
+// Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('landing');
 
 Auth::routes();
 
@@ -41,11 +41,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/websites', [WebsiteController::class, 'store'])->name('client.websites.store');
 
     // 3. Dashboard Admin Toko (CMS)
-    Route::prefix('manage/{website}')->group(function () {
+    Route::prefix('manage/{website}')
+    ->middleware(['auth', App\Http\Middleware\CheckSubscription::class])
+    ->group(function () {
         
-        // Dashboard Utama
-        Route::get('/dashboard', [DashboardController::class, 'index'])->name('client.dashboard');
-
         // Nanti kita tambah route lain disini (Produk, Order, dll)
         // ... di dalam group manage/{website} ...
 

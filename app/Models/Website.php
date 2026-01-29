@@ -8,6 +8,10 @@ class Website extends Model
 {
     // Agar kita bisa isi semua kolom secara massal (mass assignment)
     protected $guarded = ['id'];
+    protected $casts = [
+        'sections' => 'array', // <--- TAMBAHKAN INI
+        // casts lain jika ada...
+    ];
 
     // Relasi: Website milik satu User
     public function user()
@@ -47,6 +51,10 @@ class Website extends Model
     public function activeSubscription()
     {
         // Ambil langganan terakhir yang statusnya active
-        return $this->hasOne(Subscription::class)->where('status', 'active')->latest();
+        return $this->hasOne(Subscription::class)
+        ->where('status', 'active')->where(function($q) {
+                    $q->whereNull('ends_at')
+                      ->orWhere('ends_at', '>', now());
+                })->latest();
     }
 }

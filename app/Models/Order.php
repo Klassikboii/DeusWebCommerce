@@ -19,4 +19,9 @@ class Order extends Model
     {
         return $this->belongsTo(Website::class);
     }
+    public function histories()
+    {
+        return $this->hasMany(OrderHistory::class)->latest(); 
+        // ->latest() agar saat dipanggil, urutannya dari yang terbaru (atas) ke terlama (bawah)
+    }
 }

@@ -9,10 +9,10 @@
         <div class="alert alert-success mb-4">{{ session('success') }}</div>
     @endif
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-danger border-danger shadow-sm py-4 mb-4 text-center">
+            <div class="fs-1 mb-2">⛔</div>
+            <h4 class="fw-bold">AKSES DITUTUP</h4>
+            <p class="mb-0 fs-5">{{ session('error') }}</p>
         </div>
     @endif
 

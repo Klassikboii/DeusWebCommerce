@@ -32,13 +32,27 @@ class WebsiteController extends Controller
             'subdomain.alpha_dash' => 'Domain hanya boleh huruf, angka, dan strip (-).',
         ]);
 
-        Website::create([
+        $website = Website::create([
             'user_id' => Auth::id(),
             'site_name' => $request->site_name,
             'subdomain' => Str::slug($request->subdomain), // Pastikan format URL aman
             'template_id' => 1, // Default template ID 1 dulu
             'status' => 'draft'
         ]);
+        // --- LOGIKA BARU: AUTO SUBSCRIBE TRIAL ---
+        $trialPackage = \App\Models\Package::where('name', 'Free Trial 14 Hari')->first();
+        
+        if ($trialPackage) {
+            \App\Models\Subscription::create([
+                'website_id' => $website->id,
+                'package_id' => $trialPackage->id,
+                'status' => 'active',
+                'starts_at' => now(),
+                // Otomatis mati 14 hari lagi
+                'ends_at' => now()->addDays($trialPackage->duration_days), 
+            ]);
+            return redirect()->route('client.websites')->with('success', 'Website berhasil dibuat dengan Free Trial 14 Hari!');
+        }
 
         return redirect()->back()->with('success', 'Website berhasil dibuat!');
     }
