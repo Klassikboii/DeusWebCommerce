@@ -35,5 +35,6 @@ class StorefrontController extends Controller
         // Cari post berdasarkan slug
         $post = $website->posts()->where('slug', $slug)->firstOrFail();
         return view('templates.modern.blog.show', compact('website', 'post'));
+        //slug update
 }
 }
