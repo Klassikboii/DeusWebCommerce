@@ -10,6 +10,10 @@ class StorefrontController extends Controller
     public function index(Request $request)
     {
         $website = $request->attributes->get('website');
+
+        if (!$website) {
+            return redirect()->route('login');
+        }
         $products = $website->products()->with('category')->latest()->get();
 
         // LOGIKA BARU: Ambil nama template dari database

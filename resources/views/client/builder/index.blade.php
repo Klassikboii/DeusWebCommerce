@@ -300,18 +300,14 @@
                     </div>
                 </div>
 @php
-            // LOGIKA URL MANUAL (Sama seperti Dashboard)
-            $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : '';
-            $protocol = 'http://'; // Localhost pakai http
-
-            if ($website->custom_domain) {
-                // Jika pakai domain sendiri (elecjos.com)
-                $previewUrl = $protocol . $website->custom_domain . $port;
-            } else {
-                // Jika pakai subdomain bawaan (elecjos.localhost)
-                $previewUrl = $protocol . $website->subdomain . '.localhost' . $port;
-            }
-        @endphp
+    $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : '';
+    
+    if ($website->custom_domain) {
+        $previewUrl = 'http://' . $website->custom_domain . $port;
+    } else {
+        $previewUrl = 'http://' . $website->subdomain . '.localhost' . $port;
+    }
+@endphp
                 <div class="p-3 border-top bg-light">
                     {{-- Kita ubah jadi type="button" agar form tidak auto-submit --}}
                     <button type="button" onclick="handleSave()" class="btn btn-primary w-100 fw-bold">

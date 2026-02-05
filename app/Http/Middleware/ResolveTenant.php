@@ -10,54 +10,37 @@ use Symfony\Component\HttpFoundation\Response;
 class ResolveTenant
 {
     public function handle(Request $request, Closure $next): Response
-{
-    $host = $request->getHost();
-    
-    // --- 1. BYPASS DOMAIN UTAMA & IP LOKAL ---
-    // Daftar host yang TIDAK BOLEH dianggap sebagai toko
-    $ignoredHosts = [
-        'localhost',
-        '127.0.0.1',
-        parse_url(env('APP_URL'), PHP_URL_HOST), // Ambil domain dari .env
-    ];
+    {
+        $host = $request->getHost();
 
-    // Jika yang diakses adalah admin/localhost, langsung lewatkan!
-    if (in_array($host, $ignoredHosts)) {
-        return $next($request);
-    }
+        // 1. Bypass untuk Admin Panel (127.0.0.1 atau localhost)
+        if ($host === '127.0.0.1' || $host === 'localhost') {
+            return $next($request);
+        }
 
-    // ... (Lanjut ke logika pencarian website di bawah ini) ...
-    
-    $appUrl = env('APP_URL');
-    // Bersihkan port
-    $host = preg_replace('/:\d+$/', '', $host);
-    $appUrl = preg_replace('/:\d+$/', '', $appUrl);
-    
-    $website = null;
+        $website = null;
 
-    // KASUS 1: Subdomain
-    if (str_ends_with($host, $appUrl)) {
-        $subdomain = str_replace('.' . $appUrl, '', $host);
-        if ($subdomain !== $host && $subdomain !== 'www') {
+        // 2. LOGIKA BARU: Cek Subdomain Localhost
+        // Apakah host diakhiri dengan '.localhost'?
+        if (str_ends_with($host, '.localhost')) {
+            // Ambil nama depannya. Contoh: 'sepatubudi.localhost' -> 'sepatubudi'
+            $subdomain = str_replace('.localhost', '', $host);
             $website = Website::where('subdomain', $subdomain)->first();
         }
-    } 
-    // KASUS 2: Custom Domain
-    else {
-        $website = Website::where('custom_domain', $host)->first();
+        // 3. Cek Custom Domain (Logic lama)
+        else {
+            $website = Website::where('custom_domain', $host)->first();
+        }
+
+        if (!$website) {
+            abort(404, 'Toko tidak ditemukan.');
+        }
+
+        $request->attributes->add(['website' => $website]);
+        
+        $response = $next($request);
+        $response->headers->remove('X-Frame-Options');
+
+        return $response;
     }
-
-    // Jika Website tidak ditemukan, tampilkan 404
-    if (!$website) {
-        abort(404, 'Toko tidak ditemukan.');
-    }
-
-    $request->attributes->add(['website' => $website]);
-    
-    // Hapus header X-Frame-Options agar editor jalan
-    $response = $next($request);
-    $response->headers->remove('X-Frame-Options');
-
-    return $response;
-}
 }
