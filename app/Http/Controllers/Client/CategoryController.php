@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
+
 class CategoryController extends Controller
 {
     // Tampilkan Halaman List Kategori
@@ -22,7 +23,7 @@ class CategoryController extends Controller
     // Simpan Kategori Baru
     public function store(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('create', $website);
 
         $request->validate([
             'name' => [
@@ -48,9 +49,7 @@ class CategoryController extends Controller
     public function destroy(Website $website, Category $category)
     {
         // Keamanan: Pastikan kategori ini milik website yang sedang aktif
-        if ($category->website_id !== $website->id) {
-            abort(403);
-        }
+       $this->authorize('delete', $website);
 
         $category->delete();
         return redirect()->back()->with('success', 'Kategori dihapus');
@@ -59,7 +58,7 @@ class CategoryController extends Controller
     // MENAMPILKAN FORM EDIT
     public function edit(Website $website, Category $category)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('update', $website);
         
         return view('client.categories.edit', compact('website', 'category'));
     }
@@ -67,7 +66,7 @@ class CategoryController extends Controller
     // MENYIMPAN PERUBAHAN
     public function update(Request $request, Website $website, Category $category)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+       $this->authorize( 'update', $website);
 
         $request->validate([
             'name' => [

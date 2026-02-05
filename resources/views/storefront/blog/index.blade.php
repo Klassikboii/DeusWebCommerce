@@ -1,12 +1,7 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog & Artikel - {{ $website->site_name }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
+@extends('layouts.' . ($website->active_template ?? 'simple'))
+
+@section('content')
+<style>
         :root {
             --primary-color: {{ $website->primary_color ?? '#0d6efd' }};
             --secondary-color: {{ $website->secondary_color ?? '#6c757d' }};
@@ -15,9 +10,6 @@
         .btn-primary-custom { background-color: var(--primary-color); border-color: var(--primary-color); color: white; }
         .card-img-top { height: 200px; object-fit: cover; }
     </style>
-</head>
-<body class="bg-light">
-
     <nav class="navbar navbar-expand-lg bg-white shadow-sm mb-5">
         <div class="container">
             <a class="navbar-brand fw-bold text-primary-custom" href="{{ route('store.home', $website->subdomain) }}">
@@ -78,6 +70,4 @@
     <footer class="text-center py-4 text-muted small">
         &copy; {{ date('Y') }} {{ $website->site_name }}.
     </footer>
-
-</body>
-</html>
+@endsection

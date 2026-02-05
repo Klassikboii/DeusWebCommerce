@@ -5,39 +5,56 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Package;
+use Illuminate\Support\Facades\Hash;
 
 class PlatformSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. UBAH USER PERTAMA JADI SUPER ADMIN
-        // Asumsi user ID 1 adalah akun Anda yang sedang dipakai login sekarang
-        $admin = User::find(1);
-        if($admin) {
-            $admin->update(['role' => 'admin']);
-            $this->command->info('User ID 1 berhasil menjadi Admin!');
+        // 1. Buat Paket Langganan (SaaS)
+        $packages = [
+            [
+                'name' => 'Free Starter',
+                'slug' => 'free',
+                'price' => 0,
+                'duration_days' => 30,
+                'description' => 'Paket gratis untuk pemula.',
+                'features' => json_encode(['Max 5 Produk', 'Subdomain Only', 'Basic Support']),
+            ],
+            [
+                'name' => 'Pro Business',
+                'slug' => 'pro',
+                'price' => 150000,
+                'duration_days' => 30,
+                'description' => 'Untuk bisnis yang berkembang.',
+                'features' => json_encode(['Unlimited Produk', 'Custom Domain', 'Priority Support']),
+            ]
+        ];
+
+        foreach ($packages as $pkg) {
+            Package::updateOrCreate(['slug' => $pkg['slug']], $pkg);
         }
 
-        // 2. BUAT PAKET 'FREE' (GRATIS SELAMANYA / TRIAL)
-        Package::create([
-            'name' => 'Starter (Free)',
-            'price' => 0,
-            'duration_days' => 30,
-            'max_products' => 5, // Dikit aja biar mereka upgrade
-            'can_custom_domain' => false,
-            'remove_branding' => false,
-        ]);
+        // 2. Buat Super Admin
+        User::updateOrCreate(
+            ['email' => 'admin@webcommerce.id'],
+            [
+                'name' => 'Reynard (Owner)',
+                'password' => Hash::make('password'),
+                'role' => 'admin', // Pastikan kolom role ada di tabel users
+            ]
+        );
 
-        // 3. BUAT PAKET 'PRO'
-        Package::create([
-            'name' => 'Pro Business',
-            'price' => 99000,
-            'duration_days' => 30,
-            'max_products' => 100, // Lebih lega
-            'can_custom_domain' => true, // Fitur premium
-            'remove_branding' => true,
-        ]);
+        // 3. Buat Klien Contoh (John Doe)
+        User::updateOrCreate(
+            ['email' => 'klien@gmail.com'],
+            [
+                'name' => 'John Doe',
+                'password' => Hash::make('password'),
+                'role' => 'client',
+            ]
+        );
         
-        $this->command->info('Paket langganan berhasil dibuat!');
+        $this->command->info('Platform Seeder Selesai: Admin & Paket dibuat.');
     }
 }

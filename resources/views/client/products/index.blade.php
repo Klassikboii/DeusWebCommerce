@@ -3,6 +3,7 @@
 @section('title', 'Semua Produk')
 
 @section('content')
+
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -96,16 +97,17 @@
                             </td>
                             <td class="pe-4 text-end">
                                 <div class="btn-group">
-                                    <a href="{{ route('client.products.edit', [$website->id, $product->id]) }}" class="btn btn-sm btn-light border" title="Edit">
+                                    <button onclick="window.location.href='{{ route('client.products.edit', [$website->id, $product->id]) }}'" class="btn btn-sm btn-light border" title="Edit">
                                         <i class="bi bi-pencil"></i>
-                                    </a>
+                                    </button>
 
                                     <form action="{{ route('client.products.destroy', [$website->id, $product->id]) }}" 
                                         method="POST" 
                                         class="d-inline" 
                                         onsubmit="return confirm('Yakin ingin menghapus produk ini? Data tidak bisa dikembalikan.')">
                                         @csrf
-                                        @method('DELETE') <button type="submit" class="btn btn-sm btn-light border text-danger" title="Hapus">
+                                        @method('DELETE') 
+                                        <button type="submit" class="btn btn-sm btn-light border text-danger" title="Hapus">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>

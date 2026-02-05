@@ -23,7 +23,7 @@ class ProductController extends Controller
     }
     public function index(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
 
         $query = $website->products();
         
@@ -45,7 +45,7 @@ class ProductController extends Controller
     
     public function create(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('create', $website);
 
         // --- CEGAT DI PINTU DEPAN (Redirect sebelum ngisi form) ---
         $limit = $this->getLimit($website);
@@ -86,7 +86,7 @@ class ProductController extends Controller
             'sku' => 'nullable|string|max:50',
             'stock' => 'nullable|integer|min:0',
             // Validasi Gambar: Harus gambar, max 2MB (2048 KB)
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'category_id' => 'nullable|exists:categories,id',
         ]);
 
@@ -137,7 +137,7 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'sku' => 'nullable|string|max:50',
             'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'category_id' => 'nullable|exists:categories,id',
         ]);
 

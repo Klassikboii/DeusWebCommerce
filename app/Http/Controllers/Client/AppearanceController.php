@@ -10,7 +10,7 @@ class AppearanceController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
 
         // Menu Default jika database masih kosong
         $defaultMenu = [
@@ -27,7 +27,7 @@ class AppearanceController extends Controller
 
     public function update(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('update', $website);
 
         // Validasi input array
         $request->validate([

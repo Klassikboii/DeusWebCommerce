@@ -10,7 +10,7 @@ class TemplateController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
         
         // Data Dummy Template yang tersedia
         $templates = [
@@ -33,7 +33,7 @@ class TemplateController extends Controller
 
     public function update(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('update', $website);
 
         $request->validate(['template_id' => 'required|string']);
 

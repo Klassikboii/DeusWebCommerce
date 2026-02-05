@@ -12,7 +12,7 @@ class ReportController extends Controller
 {
     public function index(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
 
         // Filter Bulan (Default: Bulan Ini)
         $month = $request->get('month', date('m'));

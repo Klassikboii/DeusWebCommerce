@@ -75,7 +75,11 @@
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="bg-light rounded p-1 me-3" style="width: 50px; height: 50px;">
+                                            @if($item->product_image)
+                                            <img src="{{ asset('storage/'.$item->product_image) }}" width="40" class="rounded">
+                                            @else
                                             <i class="bi bi-box-seam text-secondary fs-4 d-flex align-items-center justify-content-center h-100"></i>
+                                            @endif
                                         </div>
                                         <div>
                                             <div class="fw-bold">{{ $item->product_name }}</div>
@@ -115,18 +119,46 @@
                 <h6 class="fw-bold mb-0">Informasi Pengiriman</h6>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <small class="text-muted text-uppercase fw-bold">Nama Penerima</small>
-                        <p class="fw-bold mb-0">{{ $order->customer_name }}</p>
-                        <p class="mb-0">{{ $order->customer_email }}</p>
-                        <p class="mb-0">{{ $order->customer_whatsapp ?? '-' }}</p>
+                <h6 class="fw-bold text-muted mb-3">INFO PELANGGAN</h6>
+                    <div class=" row-md-6">
+                        <div class="mb-3">
+                            <label class="small text-muted d-block">Nama</label>
+                            <strong>{{ $order->customer_name }}</strong>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="small text-muted d-block">WhatsApp</label>
+                            <strong>{{ $order->customer_whatsapp }}</strong>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <small class="text-muted text-uppercase fw-bold">Alamat Tujuan</small>
-                        <p class="mb-0">{{ $order->customer_address }}</p>
+                    <div class=" row-md-6">
+                        <div class="mb-3">
+                            <label class="small text-muted d-block">Alamat Kirim</label>
+                            <p class="mb-0">{{ $order->customer_address }}</p>
+                        </div>
                     </div>
-                </div>
+
+                    <hr>
+
+                    {{-- TOMBOL HUBUNGI CUSTOMER --}}
+                    @php
+                        // Format Nomor WA (Ganti 08 jadi 628)
+                        $waNumber = $order->customer_whatsapp;
+                        if(str_starts_with($waNumber, '0')) {
+                            $waNumber = '62' . substr($waNumber, 1);
+                        }
+                        
+                        // Pesan Otomatis
+                        $message = "Halo kak {$order->customer_name}, saya admin dari {$website->site_name}. Terimakasih sudah memesan (Invoice: {$order->order_number}). Apakah pesanan ini mau diproses sekarang?";
+                        $waLink = "https://wa.me/{$waNumber}?text=" . urlencode($message);
+                    @endphp
+
+                    <a href="{{ $waLink }}" target="_blank" class="btn btn-success w-100 text-white fw-bold mb-2">
+                        <i class="bi bi-whatsapp me-1"></i> Hubungi Customer
+                    </a>
+                    <small class="text-muted d-block text-center" style="font-size: 11px;">
+                        Klik untuk membuka WhatsApp Web dengan pesan otomatis.
+                    </small>
             </div>
         </div>
     </div>

@@ -1,3 +1,5 @@
+//Ini adalah kode sidebar client.blade.php 
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -74,6 +76,7 @@
             color: #9ca3af;
             font-weight: 700;
         }
+     
 
         /* Main Content Styling */
         .main-content {
@@ -288,27 +291,52 @@
         </nav>
         </div>
 
-    <header class="top-navbar navbar-expand-lg navbar-light bg-light border-bottom px-3" id="header">
+   <header class="top-navbar navbar-expand-lg navbar-light bg-light border-bottom px-4" id="header">
     
         <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-outline-secondary btn-sm" id="sidebarToggle">
-                <i class="bi bi-list fs-5"></i>
+            <button class="btn btn-light border btn-sm shadow-sm" id="sidebarToggle" style="width: 32px; height: 32px; padding: 0;">
+                <i class="bi bi-list fs-6"></i>
             </button>
 
-            <div>
-                <h6 class="m-0 fw-bold">{{ $website->site_name }}</h6>
-                <small class="text-muted text-uppercase" style="font-size: 11px;">
-                    {{ $website->subdomain }}.webcommerce.id
+            <div class="d-flex flex-column justify-content-center" style="line-height: 1.2;">
+                <h6 class="m-0 fw-bold text-dark">{{ $website->site_name }}</h6>
+                <small class="text-muted text-uppercase" style="font-size: 10px; letter-spacing: 0.5px;">
+                    {{ $website->custom_domain ?? $website->subdomain . ".webcommerce.id"}}
                 </small>
             </div>
         </div>
 
         <div class="d-flex align-items-center gap-3">
-            <span class="text-secondary small d-none d-md-block">Halo, {{ Auth::user()->name }}</span>
-            <div class="vr d-none d-md-block"></div>
-            <form action="{{ route('logout') }}" method="POST">
+            
+            <div class="d-none d-md-flex align-items-center gap-2 text-secondary">
+                <div class="bg-secondary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <i class="bi bi-person-fill"></i>
+                </div>
+                <small class="fw-medium">{{ Auth::user()->name }}</small>
+            </div>
+
+            <div class="vr d-none d-md-block mx-1" style="height: 20px;"></div>
+            @php
+    // Deteksi URL admin (localhost:8000) secara manual
+    $adminUrl = env('APP_URL'); 
+    
+    // Tambah port 8000 jika di local (karena env biasanya cuma localhost tanpa port)
+    if (request()->server('SERVER_PORT') == '8000' && !str_contains($adminUrl, ':8000')) {
+        $adminUrl .= ':8000';
+    }
+    
+    // Pastikan ada http
+    if (!str_starts_with($adminUrl, 'http')) {
+        $adminUrl = 'http://' . $adminUrl;
+    }
+@endphp
+            
+            <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 d-flex align-items-center">
                 @csrf
-                <button type="submit" class="btn btn-sm text-danger fw-bold">Logout</button>
+                <button type="submit" class="btn btn-sm btn-light text-danger fw-bold border-0 d-flex align-items-center gap-2 px-2">
+                    <i class="bi bi-box-arrow-right"></i> 
+                    <span>Logout</span>
+                </button>
             </form>
         </div>
 

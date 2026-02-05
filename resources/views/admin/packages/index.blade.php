@@ -1,9 +1,16 @@
 @extends('layouts.admin')
 
 @section('content')
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h3 class="fw-bold">Paket Langganan</h3>
-    </div>
+    {{-- TOMBOL TAMBAH --}}
+    <a href="{{ route('admin.packages.create') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Tambah Paket Baru
+    </a>
+</div>
+
+
 
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>

@@ -13,20 +13,20 @@ class PostController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
         $posts = $website->posts()->latest()->paginate(10);
         return view('client.posts.index', compact('website', 'posts'));
     }
 
     public function create(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('create', $website);
         return view('client.posts.create', compact('website'));
     }
 
     public function store(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('create', $website);
 
         $request->validate([
             'title' => 'required|string|max:255',

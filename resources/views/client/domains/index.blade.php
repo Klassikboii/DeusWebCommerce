@@ -38,7 +38,7 @@
                         name="custom_domain" 
                         class="form-control @error('custom_domain') is-invalid @enderror" 
                         placeholder="Contoh: www.tokoelektronik.com" 
-                        value="{{ old('custom_domain') }}" 
+                        value="{{ $website->custom_domain }}"" 
                         required>
                     
                     @error('custom_domain')

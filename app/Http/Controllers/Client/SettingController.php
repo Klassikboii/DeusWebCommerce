@@ -11,14 +11,14 @@ class SettingController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
         
         return view('client.settings.index', compact('website'));
     }
 
     public function update(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('update', $website);
 
         $request->validate([
             'site_name' => 'required|string|max:50',

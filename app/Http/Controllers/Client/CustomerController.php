@@ -11,7 +11,7 @@ class CustomerController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
 
         // LOGIKA: Ambil data order, kelompokkan berdasarkan No WA yang sama.
         // Kita hitung juga berapa kali dia order dan total belanjanya.

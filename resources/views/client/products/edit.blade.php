@@ -56,6 +56,11 @@
                     @endif
                     <input type="file" name="image" class="form-control">
                     <div class="form-text small">Biarkan kosong jika tidak ingin mengubah gambar.</div>
+                    <small class="d-block text-muted mb-2" style="font-size: 11px;">
+                                Format: PNG, JPG, WEBP. Maks: 2MB.<br>
+                              
+                            </small>
+                    
                 </div>
             </div>
         </div>
@@ -69,7 +74,7 @@
                         <input type="number" name="price" class="form-control" value="{{ old('price', $product->price) }}" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Stok</label>
+                        <label class="form-label" id="stok_barang">Stok</label>
                         <input type="number" name="stock" class="form-control" value="{{ old('stock', $product->stock) }}">
                     </div>
                     <div class="col-md-4 mb-3">

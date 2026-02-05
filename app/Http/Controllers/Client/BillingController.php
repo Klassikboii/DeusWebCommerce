@@ -12,7 +12,7 @@ class BillingController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
 
         // Ambil paket yang sedang aktif
         $currentSubscription = $website->activeSubscription;
@@ -31,7 +31,7 @@ class BillingController extends Controller
 
     public function store(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
 
         $request->validate([
             'package_id' => 'required|exists:packages,id',

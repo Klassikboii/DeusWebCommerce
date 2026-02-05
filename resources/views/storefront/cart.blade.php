@@ -14,7 +14,7 @@
             <h2 class="fw-bold mt-2">Keranjang & Checkout</h2>
         </div>
 
-        @if(session('cart') && (count($cart) > 0))
+        @if(count($cart) > 0)
         <div class="row">
             <div class="col-md-7">
                 <div class="card border-0 shadow-sm mb-4">
@@ -29,8 +29,11 @@
                             </thead>
                             <tbody>
                                 @php $total = 0; @endphp
-                                @foreach(session('cart') as $id => $details)
-                                    @php $total += $details['price'] * $details['qty']; @endphp
+                                
+                                {{-- FIX: Loop variabel $cart --}}
+                                @foreach($cart as $id => $details)
+                                    @php $total += $details['price'] * $details['quantity']; @endphp {{-- Perhatikan 'quantity', bukan 'qty' --}}
+                                    
                                     <tr>
                                         <td class="ps-4 py-3">
                                             <div class="d-flex align-items-center gap-3">
@@ -49,20 +52,24 @@
                                             </div>
                                         </td>
 
+                                       {{-- Update Qty Form --}}
                                         <td class="align-middle text-center" style="width: 140px;">
-                                            <form action="{{ route('store.cart.update', $website->subdomain) }}" method="POST" class="d-flex align-items-center gap-2 justify-content-center">
+                                             <form action="{{ route('store.cart.update', $website->subdomain) }}" method="POST" class="d-flex align-items-center gap-2 justify-content-center">
                                                 @csrf
                                                 @method('PATCH')
                                                 <input type="hidden" name="id" value="{{ $id }}">
                                                 
-                                                <input type="number" name="qty" value="{{ $details['qty'] }}" 
+                                                {{-- FIX: Value pakai $details['quantity'] --}}
+                                                <input type="number" name="qty" value="{{ $details['quantity'] }}" 
                                                     class="form-control form-control-sm text-center" 
                                                     style="width: 60px;" min="1"
-                                                    onchange="this.form.submit()"> </form>
+                                                    onchange="this.form.submit()"> 
+                                            </form>
                                         </td>
-
+                                        
+                                        {{-- Subtotal --}}
                                         <td class="pe-4 align-middle text-end fw-bold">
-                                            Rp {{ number_format($details['price'] * $details['qty']) }}
+                                            Rp {{ number_format($details['price'] * $details['quantity']) }}
                                         </td>
                                     </tr>
                                 @endforeach

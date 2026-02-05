@@ -8,6 +8,14 @@ class Website extends Model
 {
     // Agar kita bisa isi semua kolom secara massal (mass assignment)
     protected $guarded = ['id'];
+
+    protected $fillable = [
+        'user_id', 'subdomain', 'site_name', 
+        'primary_color', 'secondary_color', 
+        'active_template', 'sections',
+        'meta_title', 'meta_description', 'meta_keywords',
+        'custom_domain' // <--- TAMBAHKAN INI
+    ];
     protected $casts = [
         'sections' => 'array', // <--- TAMBAHKAN INI
         // casts lain jika ada...

@@ -12,16 +12,25 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Hitung Total User (Klien)
         $totalUsers = User::where('role', 'client')->count();
-        
-        // 2. Hitung Total Website
         $totalWebsites = Website::count();
-
-        // 3. HITUNG DUIT (REVENUE)
-        // Ambil semua transaksi yang statusnya 'approved', lalu jumlahkan kolom 'amount'
-        $totalRevenue = Transaction::where('status', 'approved')->sum('amount');
         
-        return view('admin.dashboard', compact('totalUsers', 'totalWebsites', 'totalRevenue'));
+        // Asumsi Anda punya model Transaction
+        // Total uang masuk (status approved)
+        $totalRevenue = \App\Models\Transaction::where('status', 'approved')->sum('amount');
+        
+        // 1. Cek berapa yang statusnya 'pending' (Butuh aksi Anda segera!)
+        $pendingTransactions = \App\Models\Transaction::where('status', 'pending')->count();
+
+        // 2. Ambil 5 Transaksi Terakhir
+        $latestTransactions = \App\Models\Transaction::with('user')->latest()->take(5)->get();
+
+        // 3. Ambil 5 Website Terbaru
+        $latestWebsites = Website::with('user')->latest()->take(5)->get();
+
+        return view('admin.dashboard', compact(
+            'totalUsers', 'totalWebsites', 'totalRevenue', 
+            'pendingTransactions', 'latestTransactions', 'latestWebsites'
+        ));
     }
 }

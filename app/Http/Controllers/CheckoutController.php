@@ -11,119 +11,187 @@ use Illuminate\Support\Str;
 
 class CheckoutController extends Controller
 {
-    // Fungsi Menambah Produk ke Session Cart
-    public function addToCart(Request $request, $subdomain, $productId)
+    // 1. ADD TO CART (Perbaikan: Pakai 'quantity')
+    public function addToCart(Request $request, $id)
     {
-        $product = Product::findOrFail($productId);
-        
-        // Ambil cart lama dari session (atau array kosong jika belum ada)
-        $cart = session()->get('cart', []);
+        $website = $request->attributes->get('website');
+        $product = Product::where('website_id', $website->id)
+                          ->where('id', $id)
+                          ->firstOrFail();
 
-        // Jika produk sudah ada, tambah jumlahnya
-        if(isset($cart[$productId])) {
-            $cart[$productId]['qty']++;
+        $cartKey = 'cart_' . $website->id;
+        $cart = session()->get($cartKey, []);
+
+        // --- CEK APAKAH PRODUK SUDAH ADA? ---
+        if (isset($cart[$id])) {
+            
+            // FIX: Self-Healing (Perbaikan Otomatis Data Lama)
+            // Jika di dalam session adanya 'qty' (lama), kita migrasi ke 'quantity' (baru)
+            if (!isset($cart[$id]['quantity']) && isset($cart[$id]['qty'])) {
+                $cart[$id]['quantity'] = $cart[$id]['qty']; // Pindahkan nilai
+                unset($cart[$id]['qty']); // Hapus key lama
+            }
+            
+            // Jaga-jaga jika benar-benar kosong
+            if (!isset($cart[$id]['quantity'])) {
+                $cart[$id]['quantity'] = 0;
+            }
+
+            // Sekarang aman untuk di-increment
+            $cart[$id]['quantity']++; 
+            
         } else {
-            // Jika belum ada, masukkan data baru
-            $cart[$productId] = [
+            // ITEM BARU
+            $cart[$id] = [
                 "name" => $product->name,
-                "qty" => 1,
+                "quantity" => 1,          // Konsisten pakai 'quantity'
                 "price" => $product->price,
-                "image" => $product->image
+                "image" => $product->image,
+                "weight" => $product->weight ?? 1000,
+                "product_id" => $product->id
             ];
         }
 
-        // Simpan kembali ke session
-        session()->put('cart', $cart);
+        session()->put($cartKey, $cart);
 
-        // Redirect kembali dengan pesan sukses
+        if (request()->wantsJson()) {
+            return response()->json([
+                'message' => 'Produk berhasil ditambahkan!', 
+                'cart_count' => count($cart)
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Produk masuk keranjang!');
     }
     
-    // Halaman Cart / Checkout
-    public function cart(Request $request, $subdomain)
+    // 2. HALAMAN CART
+    public function cart(Request $request)
     {
-        $website = Website::where('subdomain', $subdomain)->firstOrFail();
-        return view('templates.modern.cart', compact('website'));
-    }
-    public function processCheckout(Request $request, $subdomain)
-    {
-        // 1. Cek Keranjang
-        $cart = session()->get('cart');
-        if(!$cart) {
-            return redirect()->back()->with('error', 'Keranjang kosong!');
+        $website = $request->attributes->get('website');
+        $cartKey = 'cart_' . $website->id;
+        $cart = session()->get($cartKey, []);
+
+        $total = 0;
+        foreach($cart as $item) {
+            // Sekarang aman karena addToCart sudah pakai 'quantity'
+            $qty = $item['quantity'] ?? 1; 
+            $total += $item['price'] * $qty;
         }
 
-        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        return view('storefront.cart', compact('website', 'cart', 'total')); 
+    }
 
-        // 2. Validasi Input
+    // 3. PROCESS CHECKOUT
+    public function processCheckout(Request $request)
+    {
+        $website = $request->attributes->get('website');
+        $cartKey = 'cart_' . $website->id;
+        $cart = session()->get($cartKey);
+        
+        if(!$cart) return redirect()->back()->with('error', 'Keranjang kosong!');
+
+        // 1. VALIDASI STOK DULU (PENTING!)
+        // Jangan sampai orang checkout barang yang sudah habis
+        foreach($cart as $productId => $item) {
+            $product = Product::find($productId);
+            $qtyRequested = $item['quantity'] ?? 1;
+
+            // Jika produk tidak ditemukan atau stok kurang
+            if (!$product || $product->stock < $qtyRequested) {
+                return redirect()->back()->with('error', "Maaf, stok produk '{$item['name']}' tidak mencukupi. Sisa stok: " . ($product->stock ?? 0));
+            }
+        }
+
         $request->validate([
             'customer_name' => 'required|string|max:100',
             'customer_whatsapp' => 'required|numeric',
             'customer_address' => 'required|string',
         ]);
 
-        // 3. Hitung Total
         $totalAmount = 0;
         foreach($cart as $item) {
-            $totalAmount += $item['price'] * $item['qty'];
+            $qty = $item['quantity'] ?? 1;
+            $totalAmount += $item['price'] * $qty;
         }
 
-        // 4. Simpan Header Order (Tabel orders)
-        $order = \App\Models\Order::create([
-            'website_id' => $website->id,
-            'order_number' => 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
-            'customer_name' => $request->customer_name,
-            'customer_whatsapp' => $request->customer_whatsapp,
-            'customer_address' => $request->customer_address,
-            'total_amount' => $totalAmount,
-            'status' => 'pending', // Status awal: Menunggu
-        ]);
+        // Mulai Database Transaction (Biar aman, kalau error di tengah, stok balik lagi)
+        \Illuminate\Support\Facades\DB::beginTransaction();
 
-        // 5. Simpan Detail Item (Tabel order_items)
-        foreach($cart as $productId => $item) {
-            \App\Models\OrderItem::create([
-                'order_id' => $order->id,
-                'product_id' => $productId,
-                'product_name' => $item['name'], // Snapshot nama
-                'product_image' => $item['image'],
-                'price' => $item['price'],       // Snapshot harga
-                'qty' => $item['qty'],
-                'subtotal' => $item['price'] * $item['qty'],
+        try {
+            // 2. Simpan Header Order
+            $order = Order::create([
+                'website_id' => $website->id,
+                'order_number' => 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
+                'customer_name' => $request->customer_name,
+                'customer_whatsapp' => $request->customer_whatsapp, // Pastikan format 628...
+                'customer_address' => $request->customer_address,
+                'total_amount' => $totalAmount,
+                'status' => 'pending',
             ]);
+
+            // 3. Simpan Detail & KURANGI STOK
+            foreach($cart as $productId => $item) {
+                $qty = $item['quantity'] ?? 1;
+                
+                // Ambil Produk Asli untuk dikurangi stoknya
+                $product = Product::find($productId);
+                
+                // KURANGI STOK DISINI
+                $product->decrement('stock', $qty);
+
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $productId,
+                    'product_name' => $item['name'],
+                    'product_image' => $item['image'] ?? null,
+                    'price' => $item['price'],
+                    'qty' => $qty,
+                    'subtotal' => $item['price'] * $qty,
+                ]);
+            }
+
+            \Illuminate\Support\Facades\DB::commit(); // Simpan perubahan permanen
+            
+            session()->forget($cartKey); 
+
+            // Redirect dengan pesan sukses + Link WA Konfirmasi
+            return redirect()->route('store.home')
+                ->with('success', "Pesanan berhasil! Stok produk telah diamankan untuk Anda. No Invoice: " . $order->order_number);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack(); // Batalkan semua jika error
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses pesanan. Silakan coba lagi.');
         }
-
-        // 6. Hapus Keranjang & Redirect Sukses
-        session()->forget('cart');
-
-        // Untuk sementara kita return text dulu
-        return redirect()->route('store.home', $subdomain)
-            ->with('success', "Pesanan berhasil! No Invoice: " . $order->order_number . ". Silakan cek WhatsApp Anda untuk instruksi pembayaran.");
     }
-    // UPDATE JUMLAH BARANG
-    public function updateCart(Request $request, $subdomain)
-    {
-        $request->validate([
-            'id' => 'required',
-            'qty' => 'required|numeric|min:1'
-        ]);
 
-        $cart = session()->get('cart');
+    // 4. UPDATE CART
+    public function updateCart(Request $request)
+    {
+        $website = $request->attributes->get('website');
+        $cartKey = 'cart_' . $website->id;
+        
+        $request->validate(['id' => 'required', 'qty' => 'required|numeric|min:1']);
+
+        $cart = session()->get($cartKey);
 
         if(isset($cart[$request->id])) {
-            $cart[$request->id]['qty'] = $request->qty;
-            session()->put('cart', $cart);
+            // Input name dari form tetap 'qty', tapi simpan ke session sebagai 'quantity'
+            $cart[$request->id]['quantity'] = $request->qty; 
+            session()->put($cartKey, $cart);
             return redirect()->back()->with('success', 'Keranjang diperbarui!');
         }
     }
 
-    // HAPUS BARANG
-    public function removeFromCart($subdomain, $id)
+    // 5. REMOVE FROM CART
+    public function removeFromCart(Request $request, $id)
     {
-        $cart = session()->get('cart');
+        $website = $request->attributes->get('website');
+        $cartKey = 'cart_' . $website->id;
+        $cart = session()->get($cartKey, []);
 
         if(isset($cart[$id])) {
             unset($cart[$id]);
-            session()->put('cart', $cart);
+            session()->put($cartKey, $cart);
         }
 
         return redirect()->back()->with('success', 'Produk dihapus dari keranjang.');

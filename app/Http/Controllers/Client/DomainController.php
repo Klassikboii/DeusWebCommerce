@@ -10,32 +10,42 @@ class DomainController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
         return view('client.domains.index', compact('website'));
     }
 
-    public function update(Request $request, Website $website)
+    public function update(Request $request, $id)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $website = Website::where('user_id', auth()->id())->findOrFail($id);
 
-        // Ganti regex yang rumit dengan validasi string biasa dulu untuk testing
+        // 1. Validasi Input
         $request->validate([
-            'custom_domain' => 'required|string|min:4|max:100', 
+            'custom_domain' => [
+                'required', 
+                'string', 
+                'unique:websites,custom_domain,' . $id, // Ignore diri sendiri
+                'regex:/^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i' // Validasi format domain (harus ada titiknya)
+            ]
+        ], [
+            'custom_domain.regex' => 'Format domain salah. Gunakan format: contoh.com (tanpa http://)'
         ]);
 
-        // Simpan domain dengan status 'pending' (menunggu verifikasi admin pusat)
+        // 2. Bersihkan Input (Jaga-jaga user copas pakai http)
+        $domain = strtolower($request->custom_domain);
+        $domain = str_replace(['http://', 'https://', '/'], '', $domain);
+
+        // 3. Simpan ke Database
         $website->update([
-            'custom_domain' => $request->custom_domain,
-            'domain_status' => 'pending'
+            'custom_domain' => $domain
         ]);
 
-        return redirect()->back()->with('success', 'Request domain berhasil dikirim! Silakan ikuti instruksi DNS di bawah.');
+        return back()->with('success', 'Domain berhasil dihubungkan! Silakan tunggu propagasi DNS.');
     }
     
     // Fitur batal/hapus domain
     public function destroy(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('delete', $website);
         
         $website->update([
             'custom_domain' => null,

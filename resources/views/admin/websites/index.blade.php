@@ -68,14 +68,25 @@
                     <td class="text-muted small">
                         {{ $web->created_at->format('d M Y') }}
                     </td>
-                    <td class="text-end px-4">
-                        <form action="{{ route('admin.websites.destroy', $web->id) }}" method="POST" onsubmit="return confirm('HATI-HATI! Menghapus website ini akan menghapus semua produk dan datanya secara permanen. Lanjutkan?')">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-trash"></i> Hapus
-                            </button>
-                        </form>
+                    <td class="text-end">
+                        <div class="d-flex gap-2 justify-content-end">
+                            {{-- TOMBOL LOGIN AS --}}
+                            <a href="{{ route('admin.users.impersonate', $web->user->id) }}" 
+                            class="btn btn-sm btn-outline-primary"
+                            onclick="return confirm('Anda akan login sebagai {{ $web->user->name }}. Lanjutkan?')">
+                                <i class="bi bi-person-fill-gear"></i> Masuk
+                            </a>
+
+                            {{-- TOMBOL HAPUS --}}
+                            <form action="{{ route('admin.users.destroy', $web->user->id) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('YAKIN HAPUS USER INI? Semua website dan data user ini akan hilang permanen!')">
+                                    <i class="bi bi-trash"></i> Hapus
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @endforeach

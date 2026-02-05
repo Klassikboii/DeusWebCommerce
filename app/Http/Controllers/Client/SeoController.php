@@ -10,13 +10,13 @@ class SeoController extends Controller
 {
     public function index(Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('viewAny', $website);
         return view('client.seo.index', compact('website'));
     }
 
     public function update(Request $request, Website $website)
     {
-        if ($website->user_id !== auth()->id()) abort(403);
+        $this->authorize('update', $website);
 
         $request->validate([
             'meta_title' => 'nullable|string|max:70',

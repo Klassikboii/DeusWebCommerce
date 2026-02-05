@@ -14,8 +14,16 @@ return new class extends Migration
     Schema::create('packages', function (Blueprint $table) {
         $table->id();
         $table->string('name'); // Contoh: "Starter", "Pro", "Business"
+        $table->string('slug')->unique(); // Slug untuk URL
         $table->decimal('price', 15, 2); // Harga bulanan (Rp 0 sampai Rp Juta-an)
         $table->integer('duration_days')->default(30); // Durasi (biasanya 30 hari)
+
+        // === BAGIAN YANG HILANG (PASTIKAN INI ADA) ===
+            $table->text('description')->nullable();
+            $table->json('features')->nullable();
+            // ============================================
+        
+            // ===========================
         
         // --- BATASAN FITUR (LIMITS) ---
         $table->integer('max_products')->default(10); // Limit jumlah produk
