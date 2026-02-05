@@ -18,6 +18,7 @@ class Website extends Model
     ];
     protected $casts = [
         'sections' => 'array', // <--- TAMBAHKAN INI
+        'navigation_menu' => 'array', // <--- Otomatis ubah JSON jadi Array
         // casts lain jika ada...
     ];
 

@@ -43,7 +43,7 @@ class WebsiteController extends Controller
         } elseif ($request->template == 'modern') {
              $defaultSections = [
                 // Template Modern mungkin punya hero slider atau layout beda
-                ["id" => "hero-mod", "type" => "hero", "visible" => true, "data" => ["title" => "Modern Store", "subtitle" => "Gaya Baru Belanja Online", "button_text" => "Shop Now", "button_link" => "#products"]],
+                ["id" => "hero-1", "type" => "hero", "visible" => true, "data" => ["title" => "Modern Store", "subtitle" => "Gaya Baru Belanja Online", "button_text" => "Shop Now", "button_link" => "#products"]],
                 ["id" => "features", "type" => "features", "visible" => true, "data" => ["title" => "Keunggulan Kami"]],
                 ["id" => "products", "type" => "products", "visible" => true, "data" => ["title" => "Koleksi Eksklusif", "limit" => 12]]
             ];

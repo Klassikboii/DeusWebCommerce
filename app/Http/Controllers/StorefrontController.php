@@ -2,55 +2,47 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Website; 
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; // <--- WAJIB IMPORT
+use App\Models\Website;
 
 class StorefrontController extends Controller
 {
     public function index(Request $request)
     {
+        // 1. Ambil Website dari Middleware
         $website = $request->attributes->get('website');
 
+        // 2. SAFETY NET: Jika website NULL (berarti Admin nyasar), lempar ke Login
         if (!$website) {
             return redirect()->route('login');
         }
+
         $products = $website->products()->with('category')->latest()->get();
 
-        // LOGIKA BARU: Ambil nama template dari database
-        // Jika active_template = 'simple', maka view = 'templates.simple.home'
+        // Logika Template
         $template = $website->active_template ?? 'modern'; 
-        
-        // Cek apakah view-nya ada, untuk mencegah error
         if (!view()->exists("templates.{$template}.home")) {
-            $template = 'modern'; // Fallback ke modern jika error
+            $template = 'modern';
         }
 
-        // return view("templates.{$template}.home", compact('website', 'products'));
         return view('storefront.index', compact('website', 'products'));
     }
-
-    // 2. BLOG INDEX
-    public function blogIndex($request) // <-- Tangkap $subdomain
+    
+    public function blogIndex(Request $request)
     {
         $website = $request->attributes->get('website');
-        
-        // Pastikan ada data post yang statusnya 'published'
-        $posts = $website->posts()->where('status', 'published')->latest()->paginate(10);
+        if (!$website) return redirect()->route('login'); // Safety Net
 
-        // Path View sesuai yang sudah kita pindahkan tadi
+        $posts = $website->posts()->where('status', 'published')->latest()->paginate(10);
         return view('storefront.blog.index', compact('website', 'posts'));
     }
 
-    // 3. BLOG SHOW
-    public function blogShow($request, $slug) // <-- Tangkap $subdomain dulu, baru $slug
+    public function blogShow(Request $request, $slug)
     {
         $website = $request->attributes->get('website');
+        if (!$website) return redirect()->route('login'); // Safety Net
         
-        $post = $website->posts()
-                        ->where('slug', $slug)
-                        ->where('status', 'published')
-                        ->firstOrFail(); // <-- Kalau post gak ketemu, dia otomatis 404
-
+        $post = $website->posts()->where('slug', $slug)->where('status', 'published')->firstOrFail();
         return view('storefront.blog.show', compact('website', 'post'));
     }
 }

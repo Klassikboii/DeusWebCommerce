@@ -17,7 +17,7 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         // SECURITY: Cegah login sebagai sesama Super Admin
-        if ($user->role === 'superadmin') {
+        if ($user->role === 'admin') {
             return redirect()->back()->with('error', 'Anda tidak bisa melakukan impersonate terhadap sesama Super Admin.');
         }
 
@@ -36,7 +36,7 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         // SECURITY: Cegah menghapus diri sendiri atau sesama Admin
-        if ($user->role === 'superadmin') {
+        if ($user->role === 'admin') {
             return redirect()->back()->with('error', 'DILARANG MENGHAPUS AKUN SUPER ADMIN!');
         }
 

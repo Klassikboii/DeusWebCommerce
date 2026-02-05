@@ -30,7 +30,7 @@ Route::get('/', function () {
     // A. JIKA SUDAH LOGIN -> Redirect ke Dashboard (JANGAN KE LOGIN!)
     if (Auth::check()) {
         $user = Auth::user();
-        if ($user->role === 'admin' || $user->role === 'superadmin') {
+        if ($user->role === 'admin' || $user->role === 'client') {
             return redirect()->route('admin.dashboard');
         }
         // Jika user biasa (client)
@@ -134,7 +134,7 @@ Route::middleware(['auth'])->group(function () {
         });
 });
 // --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
-// Akses: http://127.0.0.1:8000/s/namatoko/blog
+
 // GANTI DARI 'domain' KE 'prefix'
 Route::middleware([ResolveTenant::class])->group(function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
