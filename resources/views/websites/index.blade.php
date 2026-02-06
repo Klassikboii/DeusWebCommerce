@@ -93,9 +93,23 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="card card-website h-100 p-3 bg-white rounded-3 shadow-sm">
                         <div class="d-flex justify-content-between align-items-start mb-3">
+                            @php
+                                // LOGIKA PINTAR PEMBUAT URL
+                                $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : ''; // Deteksi Port otomatis
+                                $protocol = 'http://'; // Localhost biasanya http
+
+                                if ($website->custom_domain) {
+                                    // Jika punya domain sendiri (elecjos.com)
+                                    $storeUrl = $protocol . $website->custom_domain . $port;
+                                } else {
+                                    // Jika pakai subdomain bawaan (elecjos.localhost)
+                                    // Kita paksa pakai .localhost agar terbaca di sistem host
+                                    $storeUrl = $protocol . $website->subdomain . '.localhost' . $port;
+                                }
+                            @endphp
                             <div>
                                 <h5 class="fw-bold mb-1 text-truncate" style="max-width: 200px;">{{ $website->site_name }}</h5>
-                                <a href="http://{{ $website->subdomain }}.localhost:8000" target="_blank" class="text-decoration-none small text-muted">
+                                <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
                                     {{ $website->subdomain }}.webcommerce.id <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                             </div>
@@ -103,9 +117,9 @@
                                 {{ ucfirst($website->active_template) }}
                             </span>
                         </div>
-                        
+                    
                         <div class="mt-auto pt-3 border-top d-flex gap-2">
-                            <a href="{{ route('store.home', $website->subdomain) }}" target="_blank" class="btn btn-light flex-fill border btn-sm py-2">
+                            <a href="{{ $storeUrl }}" target="_blank" class="btn btn-light flex-fill border btn-sm py-2">
                                 <i class="bi bi-eye"></i> Lihat Toko
                             </a>
                             <a href="{{ route('client.dashboard', $website->id) }}" class="btn btn-primary flex-fill btn-sm py-2">

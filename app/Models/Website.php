@@ -9,17 +9,52 @@ class Website extends Model
     // Agar kita bisa isi semua kolom secara massal (mass assignment)
     protected $guarded = ['id'];
 
-    protected $fillable = [
-        'user_id', 'subdomain', 'site_name', 
-        'primary_color', 'secondary_color', 
-        'active_template', 'sections',
-        'meta_title', 'meta_description', 'meta_keywords',
-        'custom_domain' // <--- TAMBAHKAN INI
+   protected $fillable = [
+        // 1. Identitas Utama
+        'user_id', 
+        'subdomain', 
+        'custom_domain', 
+        'site_name',
+        'active_template',
+        
+        // 2. Aset Gambar
+        'logo', 
+        'favicon', 
+        'icon',      // <-- Untuk Settings
+
+        // 3. Tampilan & Builder (YANG BIKIN MASALAH BUILDER)
+        'primary_color', 
+        'secondary_color', 
+        'hero_bg_color',       // <-- PENTING: Background Banner
+        'font_family',         // <-- PENTING: Font
+        'base_font_size',      // <-- PENTING: Ukuran Font
+        'product_image_ratio', // <-- PENTING: Rasio Gambar
+
+        // 4. Konten Hero / Banner
+        'hero_image', 
+        'hero_title', 
+        'hero_subtitle', 
+        'hero_btn_text', 
+        'hero_btn_url',
+        
+        // 5. Data JSON (Menu & Section)
+        'sections', 
+        'navigation_menu',
+
+        // 6. Kontak & Alamat (YANG BIKIN MASALAH SETTINGS)
+        'whatsapp_number', 
+        'email_contact', 
+        'address',
+
+        // 7. SEO
+        'meta_title', 
+        'meta_description', 
+        'meta_keywords',
     ];
+
     protected $casts = [
-        'sections' => 'array', // <--- TAMBAHKAN INI
-        'navigation_menu' => 'array', // <--- Otomatis ubah JSON jadi Array
-        // casts lain jika ada...
+        'sections' => 'array',
+        'navigation_menu' => 'array', // <--- HAPUS KOMENTARNYA (Aktifkan)
     ];
 
     // Relasi: Website milik satu User

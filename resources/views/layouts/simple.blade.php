@@ -61,7 +61,7 @@
 
         /* Helper Warna */
         .text-primary-custom { color: var(--primary-color) !important; }
-        .bg-primary-custom { background-color: var(--primary-color) !important; }
+        .bg-primary-custom { background-color: var(--hero-bg-color) !important; }
 
         /* Tombol Kotak */
         .btn-custom { 
@@ -84,7 +84,6 @@
     @stack('styles')
 </head>
 <body>
-
     <nav class="navbar navbar-expand-lg bg-white border-bottom py-4">
         <div class="container flex-column">
             @php
@@ -121,43 +120,38 @@
 
             <ul class="nav justify-content-center small text-uppercase gap-4">
                 @php
-                    $navMenus = $website->navigation_menu 
-                                ? json_decode($website->navigation_menu, true) 
-                                : [['label' => 'Home', 'url' => '#'], ['label' => 'Shop', 'url' => '#products']];
+                    // FIX: Jangan di-json_decode lagi karena sudah array dari Model
+                    $navMenus = $website->navigation_menu ?? [
+                        ['label' => 'Home', 'url' => '#'],
+                        ['label' => 'Shop', 'url' => '#shop']
+                    ];
                 @endphp
 
                 @foreach($navMenus as $menu)
                 <li class="nav-item">
                     @php
                         $url = $menu['url'];
-                        $href = $url; // Default value
+                        $href = $url;
                         
-                        // 1. Cek apakah ini ANCHOR LINK (#fitur, #produk)
+                        // LOGIKA SMART LINK
+                        // 1. Jika Anchor Link (#)
                         if (str_starts_with($url, '#')) {
-                            // Jika sedang di Home, biarkan #saja (biar smooth scroll jalan)
-                            if (request()->routeIs('store.home')) {
-                                $href = $url;
-                            } else {
-                                // Jika di halaman lain (misal Blog), tambahkan URL Home di depannya
-                                $href = route('store.home', $website->subdomain) . $url;
+                            // Jika bukan di halaman home, tambahkan base URL toko di depannya
+                            if (!request()->routeIs('store.home')) {
+                                $href = route('store.home') . $url; 
                             }
                         } 
-                        // 2. Cek apakah ini INTERNAL LINK (/blog, /contact) <-- INI FIX-NYA
+                        // 2. Jika Internal Link (/)
                         elseif (str_starts_with($url, '/')) {
-                            // Ambil URL Home Toko (misal: http://.../s/elecjos)
-                            // Lalu sambungkan dengan /blog
-                            // rtrim gunanya membuang slash berlebih di ujung jika ada
-                            $storeUrl = rtrim(route('store.home', $website->subdomain), '/');
+                            // Pastikan mengarah ke root toko ini, bukan root localhost admin
+                            $storeUrl = rtrim(route('store.home'), '/');
                             $href = $storeUrl . $url; 
                         }
-                        // 3. Link Eksternal (https://google.com) biarkan apa adanya
                     @endphp
 
-                    <a class="nav-link text-dark" href="{{ $href }}">
-                        {{ $menu['label'] }}
-                    </a>
+                    <a class="nav-link text-dark" href="{{ $href }}">{{ $menu['label'] }}</a>
                 </li>
-            @endforeach
+                @endforeach
 
                  {{-- LOGIC CART COUNT YANG DIPERBAIKI --}}
             @php
@@ -207,26 +201,51 @@
         @yield('content')
     </main>
 
-    <footer class="bg-light text-black pt-5 pb-4 mt-5">
-        <div class="container text-center small text-secondary">
-            &copy; {{ date('Y') }} {{ $website->site_name }}. Simple Theme.
+   <footer class="bg-light text-dark pt-5 pb-4 mt-5 border-top">
+        <div class="container">
+            <div class="row g-4">
+                
+                <div class="col-md-5">
+                    <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px;">{{ $website->site_name }}</h5>
+                    @if($website->address)
+                        <p class="small text-muted mb-3">
+                            <i class="bi bi-geo-alt-fill me-1"></i> {{ $website->address }}
+                        </p>
+                    @endif
+                    
+                    <div class="d-flex gap-2">
+                        @if($website->whatsapp_number)
+                            <a href="https://wa.me/62{{ $website->whatsapp_number }}" target="_blank" class="text-dark text-decoration-none border px-3 py-1 small">
+                                <i class="bi bi-whatsapp"></i> WhatsApp
+                            </a>
+                        @endif
+                        @if($website->email_contact)
+                            <a href="mailto:{{ $website->email_contact }}" class="text-dark text-decoration-none border px-3 py-1 small">
+                                <i class="bi bi-envelope"></i> Hubungi
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="col-md-3 offset-md-1">
+                    <h6 class="fw-bold text-uppercase mb-3 small">Eksplorasi</h6>
+                    <ul class="list-unstyled small">
+                        @foreach($website->navigation_menu ?? [] as $menu)
+                            <li class="mb-2">
+                                <a href="{{ $menu['url'] }}" class="text-muted text-decoration-none">{{ $menu['label'] }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+
+                <div class="col-md-3 text-md-end">
+                    <p class="small text-muted mb-0">
+                        &copy; {{ date('Y') }} {{ $website->site_name }}<br>
+                        All rights reserved.
+                    </p>
+                </div>
+            </div>
         </div>
-        @if($website->whatsapp_number)
-            @php
-                // Format nomor Admin
-                $adminWa = $website->whatsapp_number;
-                if(str_starts_with($adminWa, '0')) {
-                    $adminWa = '62' . substr($adminWa, 1);
-                }
-                $msgCustomer = "Halo Admin {$website->site_name}, saya mau tanya tentang produk...";
-            @endphp
-            
-            <li>
-                <a href="https://wa.me/{{ $adminWa }}?text={{ urlencode($msgCustomer) }}" target="_blank" class="text-decoration-none text-secondary">
-                    <i class="bi bi-whatsapp"></i> +62 {{ $website->whatsapp_number }}
-                </a>
-            </li>
-        @endif
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
