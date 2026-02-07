@@ -6,6 +6,19 @@ use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProductController;
 use App\Http\Middleware\ResolveTenant;
 
+
+Route::get('/cek-config', function () {
+    $url = config('app.url');
+    $domain = config('session.domain');
+    
+    // Kita bungkus dengan tanda kutip untuk melihat spasi/enter tersembunyi
+    return [
+        'APP_URL_RAW' => json_encode($url), // json_encode akan menampilkan \n atau \r jika ada
+        'SESSION_DOMAIN_RAW' => json_encode($domain),
+        'Panjang_URL' => strlen($url),
+        'Panjang_Domain' => strlen($domain),
+    ];
+});
 Route::get('/debug-auth', function () {
     return [
         'is_logged_in' => Auth::check(),

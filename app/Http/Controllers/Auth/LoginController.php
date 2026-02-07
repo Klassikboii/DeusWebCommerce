@@ -19,16 +19,17 @@ class LoginController extends Controller
 
         // 1. Jika Role ADMIN -> Ke Dashboard Pusat
         if ($user->role === 'admin') {
-            return redirect()->route('admin.dashboard');
+            return route('admin.dashboard');
         }
 
         // 2. Jika Role CLIENT -> Ke Halaman Pilih Website
         if ($user->role === 'client') {
-            return redirect()->route('client.websites');
+            return route('client.websites');
         }
 
         // Default (jika ada role lain)
-        return redirect()->route('login');
+        
+        return route('login');
     }
 
     public function __construct()
