@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request; // <--- WAJIB IMPORT
 use App\Models\Website;
+use Illuminate\Support\Facades\Auth; // <--- WAJIB ADA
 
 class StorefrontController extends Controller
 {
@@ -12,10 +13,21 @@ class StorefrontController extends Controller
         // 1. Ambil Website dari Middleware
         $website = $request->attributes->get('website');
 
-        // 2. SAFETY NET: Jika website NULL (berarti Admin nyasar), lempar ke Login
+        // --- SAFETY NET (ANTI LOOPING) ---
         if (!$website) {
+            // Jika user sudah login, jangan ke login page, tapi ke Dashboard!
+            if (Auth::check()) {
+                $user = Auth::user();
+                if ($user->role === 'admin' || $user->role === 'superadmin') {
+                    return redirect()->route('admin.dashboard');
+                }
+                return redirect()->route('client.websites');
+            }
+            
+            // Jika belum login, baru lempar ke login
             return redirect()->route('login');
         }
+        // ---------------------------------
 
         $products = $website->products()->with('category')->latest()->get();
 

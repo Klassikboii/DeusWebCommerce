@@ -30,7 +30,7 @@ Route::get('/', function () {
     // A. JIKA SUDAH LOGIN -> Redirect ke Dashboard (JANGAN KE LOGIN!)
     if (Auth::check()) {
         $user = Auth::user();
-        if ($user->role === 'admin' || $user->role === 'client') {
+        if ($user->role === 'admin' ) {
             return redirect()->route('admin.dashboard');
         }
         // Jika user biasa (client)
