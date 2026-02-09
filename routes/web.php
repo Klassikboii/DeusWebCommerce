@@ -28,33 +28,30 @@ Route::get('/debug-auth', function () {
     ];
 });
 
+
 Route::get('/', function () {
     $host = request()->getHost();
+    $mainDomain = 'webcommerce.programdeus.my.id'; // Ganti dengan domain Anda
 
-    // 1. CEK APAKAH INI TOKO (CUSTOM DOMAIN)?
-    // Jika bukan 127.0.0.1 atau localhost, berarti ini Toko Klien.
-    if ($host !== '127.0.0.1' && $host !== 'localhost') {
-        // Oper ke StorefrontController manual
+    // LOGIKA PERBAIKAN:
+    // Jika host bukan localhost DAN bukan domain utama, baru oper ke Storefront
+    if ($host !== '127.0.0.1' && $host !== 'localhost' && $host !== $mainDomain) {
         return app(App\Http\Controllers\StorefrontController::class)->index(request());
     }
     
-    // 2. LOGIKA ADMIN PANEL (127.0.0.1 / localhost)
-    
-    // A. JIKA SUDAH LOGIN -> Redirect ke Dashboard (JANGAN KE LOGIN!)
+    // 2. LOGIKA ADMIN PANEL (Akan jalan jika akses lewat domain utama)
     if (Auth::check()) {
         $user = Auth::user();
         if ($user->role === 'admin' ) {
             return redirect()->route('admin.dashboard');
         }
-        // Jika user biasa (client)
         return redirect()->route('client.websites');
     }
 
-    // B. JIKA BELUM LOGIN -> Baru boleh ke halaman Login
     return redirect()->route('login');
 
-})->name('home'); // Beri nama 'home' agar RedirectIfAuthenticated tidak bingung
-// Route::get('/', [App\Http\Controllers\LandingController::class, 'index'])->name('landing');
+})->name('home');
+
 Auth::routes();
 // Group Middleware: User harus login dulu
 Route::middleware(['auth'])->group(function () {
