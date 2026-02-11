@@ -37,7 +37,7 @@
                                     <tr>
                                         <td class="ps-4 py-3">
                                             <div class="d-flex align-items-center gap-3">
-                                                <form action="{{ route('store.cart.remove', [$website->subdomain, $id]) }}" method="POST">
+                                                <form action="{{ route('store.cart.remove', ['subdomain' => $website->subdomain, 'id' => $id]) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-link text-danger p-0">
@@ -54,7 +54,7 @@
 
                                        {{-- Update Qty Form --}}
                                         <td class="align-middle text-center" style="width: 140px;">
-                                             <form action="{{ route('store.cart.update', $website->subdomain) }}" method="POST" class="d-flex align-items-center gap-2 justify-content-center">
+                                             <form action="{{ route('store.cart.update', ['subdomain' => $website->subdomain]) }}" method="POST" class="d-flex align-items-center gap-2 justify-content-center">
                                                 @csrf
                                                 @method('PATCH')
                                                 <input type="hidden" name="id" value="{{ $id }}">
@@ -91,7 +91,7 @@
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white py-3 fw-bold">Data Pengiriman</div>
                     <div class="card-body">
-                        <form action="{{ route('store.checkout', $website->subdomain) }}" method="POST">
+                        <form action="{{ route('store.checkout', ['subdomain' => $website->subdomain]) }}" method="POST">
                             @csrf
                             <div class="mb-3">
                                 <label class="form-label small text-muted">Nama Penerima</label>

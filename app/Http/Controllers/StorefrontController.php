@@ -72,31 +72,39 @@ public function blogShow(Request $request, $subdomain, $slug)
         'post' => $post
     ]);
 }
-
-    // app/Http/Controllers/StorefrontController.php
-
-// app/Http/Controllers/StorefrontController.php
-
-public function preview($id)
+public function product(Request $request, $subdomain, $slug)
 {
-    // 1. Cari Website berdasarkan ID
-    $website = \App\Models\Website::findOrFail($id);
-    
-    // 2. Ambil Produk (Untuk ditampilkan di section product)
-    $products = $website->products()->latest()->get();
+    // 1. Ambil Data Website
+    $website = $request->get('website');
+    if (!$website) {
+        $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
+    }
 
-    // 3. PERBAIKAN LOGIKA SECTIONS (Anti-Error JSON)
-    // Ambil data sections. Karena sudah di-cast 'array' di Model, ini sudah jadi Array.
-    // Kita cek: jika null, beri array kosong [].
-    $sections = $website->sections ?? []; 
+    // 2. Cari Produk berdasarkan Slug
+    $product = $website->products()
+        ->where('slug', $slug)
+        // ->where('status', 'active') // Pastikan hanya produk aktif
+        ->firstOrFail();
 
-    // 4. Render View yang BENAR (storefront.index)
-    // Kita kirim variabel $sections secara terpisah
-    return view('storefront.index', [
+    // 3. Ambil Produk Terkait (Opsional, tapi bagus untuk sales)
+    // Ambil 4 produk lain dari kategori yang sama, kecuali produk yang sedang dilihat
+    $relatedProducts = $website->products()
+        ->where('category_id', $product->category_id)
+        ->where('id', '!=', $product->id)
+        // ->where('status', 'active')
+        ->inRandomOrder()
+        ->limit(4)
+        ->get();
+
+    // 4. Tampilkan View
+    return view('storefront.product.show', [
         'website' => $website,
-        'products' => $products,
-        'sections' => $sections, // <--- Gunakan variabel ini di View nanti
-        'is_preview' => true,    // Penanda mode preview
+        'product' => $product,
+        'relatedProducts' => $relatedProducts
     ]);
 }
+
+    
+
+
 }

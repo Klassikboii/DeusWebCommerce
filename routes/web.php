@@ -26,6 +26,7 @@ Route::get('/debug-auth', function () {
         'user' => Auth::user(),
         'session_id' => session()->getId(),
         'cookie' => request()->cookie(config('session.cookie')),
+        'website_in_session' => session('website_id') ? Website::find(session('website_id')) : null,
     ];
 });
 
@@ -138,6 +139,8 @@ Route::middleware(['auth'])->group(function () {
 // GANTI DARI 'domain' KE 'prefix'
 Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant::class]], function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
+    Route::get('/product/{slug}', [App\Http\Controllers\StorefrontController::class, 'product'])->name('store.product');
+
     // ... Cart Routes (Pastikan controller menerima parameter $subdomain) ...
     Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
     Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');

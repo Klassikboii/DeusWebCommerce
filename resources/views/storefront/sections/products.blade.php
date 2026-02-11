@@ -25,24 +25,33 @@
     @endif
 
     <div class="row g-4 product-grid-container"> {{-- Tambahkan ID/Class Container --}}
+       
         
         @forelse($products as $index => $item)
         
+        {{-- .card-website:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); } --}}
             {{-- LOGIKA SHOW/HIDE: --}}
             {{-- Jika urutan produk > limit saat ini, sembunyikan dengan style="display:none" --}}
             {{-- Tambahkan class 'product-item' agar mudah dihitung JS --}}
             
-            <div class="col-6 col-md-3 product-item" 
-                 style="{{ ($index >= $currentLimit) ? 'display: none !important;' : '' }}">
+            <div class="col-6 col-md-3 product-item"  
+                 style="{{ ($index >= $currentLimit) ? 'display: none !important;' : '' }} cursor: pointer; .card-website"
+                 onclick="window.location.href='{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $item->slug]) }}'"
+                 onmouseover="this.style.filter='brightness(0.8)'; this.style.transform='translateY(-5px)'; title='Klik untuk melihat detail produk';"
+                 onmouseout="this.style.filter='brightness(1)'; this.style.transform='translateY(0)';">
                 
                 <div class="card h-100 {{ $isSimple ? 'border-0' : 'shadow-sm border' }}">
                     {{-- ... (Isi Card Produk SAMA SEPERTI SEBELUMNYA, tidak perlu diubah) ... --}}
+                    
                     @if($item->image)
                         <img src="{{ asset('storage/' . $item->image) }}" class="card-img-top" style="aspect-ratio: var(--ratio-product, 1/1); object-fit: cover;">
                     @else
                         <div class="bg-light card-img-top d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;"><i class="bi bi-image text-muted"></i></div>
                     @endif
                     <div class="card-body text-center p-3 d-flex flex-column">
+                        @if($item->category)
+                            <span class="badge mb-2 " style="background-color: var(--secondary-color); color: white;">{{ $item->category->name }}</span>
+                        @endif
                         <h6 class="card-title mb-1 small text-uppercase fw-bold">{{ $item->name }}</h6>
                         <p class="card-text fw-bold text-primary-custom mb-3">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
                         <p class="card-text mb-3">Stock : {{ $item->stock  }}</p>

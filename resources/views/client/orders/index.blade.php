@@ -35,7 +35,7 @@
                             </td>
                             <td class="fw-bold">
                                 Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                                <div class="small text-muted fw-normal">{{ $order->items->count() }} Barang</div>
+                                <div class="small text-muted fw-normal">{{ $order->items->sum('qty') }} Barang</div>
                             </td>
                             <td>
                                 @php

@@ -12,9 +12,15 @@ use Illuminate\Support\Str;
 class CheckoutController extends Controller
 {
     // 1. ADD TO CART (Perbaikan: Pakai 'quantity')
-    public function addToCart(Request $request, $id)
+    public function addToCart(Request $request, $subdomain, $id)
     {
-        $website = $request->attributes->get('website');
+        // 1. Ambil Website (Coba dari Request dulu, kalau null baru query ulang)
+    $website = $request->get('website');
+    
+    if (!$website) {
+        // Fallback jika middleware gagal inject
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+    }
         $product = Product::where('website_id', $website->id)
                           ->where('id', $id)
                           ->firstOrFail();
@@ -65,9 +71,15 @@ class CheckoutController extends Controller
     }
     
     // 2. HALAMAN CART
-    public function cart(Request $request)
+    public function cart(Request $request, $subdomain)
     {
-        $website = $request->attributes->get('website');
+        // 1. Ambil Website (Coba dari Request dulu, kalau null baru query ulang)
+    $website = $request->get('website');
+    
+    if (!$website) {
+        // Fallback jika middleware gagal inject
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+    }
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey, []);
 
@@ -82,9 +94,15 @@ class CheckoutController extends Controller
     }
 
     // 3. PROCESS CHECKOUT
-    public function processCheckout(Request $request)
+    public function processCheckout(Request $request, $subdomain)
     {
-        $website = $request->attributes->get('website');
+        // 1. Ambil Website (Coba dari Request dulu, kalau null baru query ulang)
+    $website = $request->get('website');
+    
+    if (!$website) {
+        // Fallback jika middleware gagal inject
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+    }
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey);
         
@@ -165,9 +183,16 @@ class CheckoutController extends Controller
     }
 
     // 4. UPDATE CART
-    public function updateCart(Request $request)
+    public function updateCart(Request $request, $subdomain)
     {
-        $website = $request->attributes->get('website');
+        // 1. Ambil Website (Coba dari Request dulu, kalau null baru query ulang)
+        $website = $request->get('website');
+        
+        if (!$website) {
+            // Fallback jika middleware gagal inject
+            $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        }
+
         $cartKey = 'cart_' . $website->id;
         
         $request->validate(['id' => 'required', 'qty' => 'required|numeric|min:1']);
@@ -183,17 +208,25 @@ class CheckoutController extends Controller
     }
 
     // 5. REMOVE FROM CART
-    public function removeFromCart(Request $request, $id)
+    public function removeFromCart(Request $request, $subdomain, $id)
     {
-        $website = $request->attributes->get('website');
+        // 1. Ambil Website (Coba dari Request dulu, kalau null baru query ulang)
+        $website = $request->get('website');
+        
+        if (!$website) {
+            // Fallback jika middleware gagal inject
+            $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        }
+
         $cartKey = 'cart_' . $website->id;
-        $cart = session()->get($cartKey, []);
+        $cart = session()->get($cartKey);
 
         if(isset($cart[$id])) {
             unset($cart[$id]);
             session()->put($cartKey, $cart);
         }
 
-        return redirect()->back()->with('success', 'Produk dihapus dari keranjang.');
+        return redirect()->back()->with('success', 'Produk dihapus dari keranjang!');
     }
+
 }
