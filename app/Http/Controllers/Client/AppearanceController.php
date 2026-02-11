@@ -14,8 +14,8 @@ class AppearanceController extends Controller
         // $this->authorize('viewAny', $website); 
 
         $defaultMenu = [
-            ['label' => 'Beranda', 'url' => '/'],
-            ['label' => 'Produk', 'url' => '#shop'],
+            ['label' => 'Beranda', 'url' => '#hero-1'],
+            ['label' => 'Produk', 'url' => '#products'],
             ['label' => 'Blog', 'url' => '/blog'],
         ];
 

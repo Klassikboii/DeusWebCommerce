@@ -36,7 +36,8 @@
         
         @elseif($sectionType === 'features')
             @include('storefront.sections.features', ['data' => $sectionData])
-        
+        @elseif($sectionType === 'blog')
+            @include('storefront.blog.index', ['data' => $sectionData])
         @endif
 
     </div>

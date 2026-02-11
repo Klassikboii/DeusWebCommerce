@@ -332,7 +332,7 @@
                         src="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" 
                         id="previewFrame" 
                         class="w-100 h-100 border-0 shadow-sm"
-                        style="min-height: 600px transition: all 0.5s;">
+                        style="min-height: 600px;">
                     </iframe>
                 </div>
             </div>

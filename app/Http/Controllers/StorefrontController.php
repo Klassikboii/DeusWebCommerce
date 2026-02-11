@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request; // <--- WAJIB IMPORT
 use App\Models\Website;
 use Illuminate\Support\Facades\Auth; // <--- WAJIB ADA
+use App\Models\Post;
 
 class StorefrontController extends Controller
 {
@@ -33,22 +34,44 @@ class StorefrontController extends Controller
     }
     
     public function blogIndex(Request $request)
-    {
-        $website = $request->attributes->get('website');
-        if (!$website) return redirect()->route('login'); // Safety Net
-
-        $posts = $website->posts()->where('status', 'published')->latest()->paginate(10);
-        return view('storefront.blog.index', compact('website', 'posts'));
+{
+    // 1. Ambil data website
+    // (Otomatis dari middleware, atau ambil manual jika null)
+    $website = $request->get('website');
+    
+    if (!$website) {
+        $subdomain = $request->route('subdomain');
+        $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
     }
 
-    public function blogShow(Request $request, $slug)
-    {
-        $website = $request->attributes->get('website');
-        if (!$website) return redirect()->route('login'); // Safety Net
-        
-        $post = $website->posts()->where('slug', $slug)->where('status', 'published')->firstOrFail();
-        return view('storefront.blog.show', compact('website', 'post'));
+    // 2. Ambil Postingan (Hanya yang statusnya published, opsional)
+    // Gunakan paginate agar halaman tidak berat
+    $posts = $website->posts()->latest()->paginate(9); 
+
+    // 3. Tampilkan View
+    return view('storefront.blog.index', [
+        'website' => $website,
+        'posts' => $posts
+    ]);
+}
+
+public function blogShow(Request $request, $subdomain, $slug)
+{
+    $website = $request->get('website');
+    if (!$website) {
+        $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
     }
+
+    // Cari post berdasarkan slug DAN id website (biar tidak bocor)
+    $post = Post::where('website_id', $website->id)
+                ->where('slug', $slug)
+                ->firstOrFail();
+
+    return view('storefront.blog.show', [
+        'website' => $website,
+        'post' => $post
+    ]);
+}
 
     // app/Http/Controllers/StorefrontController.php
 
