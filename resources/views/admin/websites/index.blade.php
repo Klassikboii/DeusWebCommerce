@@ -54,7 +54,7 @@
                             @endif
                             <div>
                                 <div class="fw-bold">{{ $web->site_name }}</div>
-                                <a href="{{ $storeUrl }}" target="_blank" class="small text-decoration-none text-primary">
+                                <a href="{{ route('store.home', ['subdomain' => $web->subdomain]) }}" target="_blank" class="small text-decoration-none text-primary">
                                     <i class="bi bi-box-arrow-up-right me-1"></i> Kunjungi
                                 </a>
                             </div>

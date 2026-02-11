@@ -5,44 +5,36 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Models\Website;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 
 class ResolveTenant
 {
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        $host = $request->getHost();
+        // 1. Ambil parameter 'subdomain' dari URL (prefix: s/{subdomain})
+        $subdomain = $request->route('subdomain');
 
-        // 1. BYPASS ADMIN & LOCALHOST (PENTING!)
-        // Abaikan request jika datang dari IP lokal atau localhost
-        if ($host === '127.0.0.1' || $host === 'localhost') {
-            return $next($request);
+        if (!$subdomain) {
+            abort(404, 'Toko tidak ditemukan (Parameter URL hilang).');
         }
 
-        $website = null;
+        // 2. Cari Website di Database
+        $website = Website::where('subdomain', $subdomain)->first();
 
-        // 2. LOGIKA SUBDOMAIN LOCALHOST (Agar preview jalan)
-        if (str_ends_with($host, '.localhost')) {
-            $subdomain = str_replace('.localhost', '', $host);
-            $website = Website::where('subdomain', $subdomain)->first();
-        } 
-        // 3. LOGIKA CUSTOM DOMAIN
-        else {
-            $website = Website::where('custom_domain', $host)->first();
-        }
-
-        // Jika website tidak ditemukan
         if (!$website) {
-            abort(404, 'Toko tidak ditemukan.');
+            abort(404, 'Toko tidak ditemukan di database.');
         }
 
-        // Simpan data website ke request agar bisa dipakai di Controller
-        $request->attributes->add(['website' => $website]);
-        
-        // Hapus X-Frame-Options agar Editor Website bisa jalan
-        $response = $next($request);
-        $response->headers->remove('X-Frame-Options');
+        // 3. MAGIC: Set Default URL Parameter
+        // Ini membuat route('store.cart') otomatis menjadi /s/elecjos/cart
+        // tanpa perlu kita pass parameter manual di view.
+        URL::defaults(['subdomain' => $subdomain]);
 
-        return $response;
+        // 4. Inject Data ke Request & View
+        $request->merge(['website' => $website]);
+        View::share('website', $website);
+
+        return $next($request);
     }
 }

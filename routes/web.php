@@ -5,7 +5,8 @@ use App\Http\Controllers\WebsiteController; // <--- PENTING: Import Controller
 use App\Http\Controllers\Client\DashboardController;
 use App\Http\Controllers\Client\ProductController;
 use App\Http\Middleware\ResolveTenant;
-
+use App\Models\Website;
+use Illuminate\Support\Facades\Session;
 
 Route::get('/cek-config', function () {
     $url = config('app.url');
@@ -28,28 +29,17 @@ Route::get('/debug-auth', function () {
     ];
 });
 
+Route::get('/preview/{website}', [App\Http\Controllers\StorefrontController::class, 'preview'])
+    ->name('website.preview');
 
 Route::get('/', function () {
-    $host = request()->getHost();
-    $mainDomain = 'webcommerce.programdeus.my.id'; // Ganti dengan domain Anda
-
-    // LOGIKA PERBAIKAN:
-    // Jika host bukan localhost DAN bukan domain utama, baru oper ke Storefront
-    if ($host !== '127.0.0.1' && $host !== 'localhost' && $host !== $mainDomain) {
-        return app(App\Http\Controllers\StorefrontController::class)->index(request());
-    }
-    
-    // 2. LOGIKA ADMIN PANEL (Akan jalan jika akses lewat domain utama)
     if (Auth::check()) {
-        $user = Auth::user();
-        if ($user->role === 'admin' ) {
+        if (Auth::user()->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
         return redirect()->route('client.websites');
     }
-
     return redirect()->route('login');
-
 })->name('home');
 
 Auth::routes();
@@ -146,7 +136,7 @@ Route::middleware(['auth'])->group(function () {
 // --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
 
 // GANTI DARI 'domain' KE 'prefix'
-Route::middleware([ResolveTenant::class])->group(function () {
+Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant::class]], function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
     // ... Cart Routes (Pastikan controller menerima parameter $subdomain) ...
     Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
@@ -161,7 +151,7 @@ Route::middleware([ResolveTenant::class])->group(function () {
     // === ROUTE BLOG (SUDAH BENAR) ===
     Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('store.blog');
     Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('store.blog.show');
-});
+})->name('store.');
 // --- GRUP ROUTE SUPER ADMIN ---
 Route::prefix('admin')
     ->name('admin.')

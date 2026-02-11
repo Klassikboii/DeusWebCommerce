@@ -137,7 +137,7 @@
                         </div>
                         <p class="mb-1 small text-muted">Owner: {{ $web->user->name ?? '-' }}</p>
                         <small>
-                            <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none">
+                            <a href="{{ route('store.home', ['subdomain' => $web->subdomain]) }}" target="_blank" class="text-decoration-none">
                                 <i class="bi bi-box-arrow-up-right"></i> Kunjungi
                             </a>
                         </small>

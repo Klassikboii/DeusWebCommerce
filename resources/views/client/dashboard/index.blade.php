@@ -24,7 +24,7 @@
             <p class="text-muted small">Overview performa toko <b>{{ $website->site_name }}</b>.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ $storeUrl }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <a href="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" target="_blank" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-box-arrow-up-right"></i> Lihat Toko
             </a>
         </div>
