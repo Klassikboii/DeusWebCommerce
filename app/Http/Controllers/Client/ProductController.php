@@ -8,6 +8,7 @@ use App\Models\Product;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -80,41 +81,71 @@ class ProductController extends Controller
             return redirect()->back()->with('error', "Ups! Batas produk tercapai ({$limit} item). Paket Anda mungkin telah berakhir. Silakan upgrade.");
         }
         // 1. Validasi Input
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'sku' => 'nullable|string|max:50',
-            'stock' => 'nullable|integer|min:0',
-            // Validasi Gambar: Harus gambar, max 2MB (2048 KB)
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'category_id' => 'nullable|exists:categories,id',
+      $this->authorize('create', $website);
+
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'category_id' => 'nullable|exists:categories,id',
+        'description' => 'nullable',
+        'image' => 'nullable|image|max:2048',
+        // Validasi Kondisional (Akan kita handle manual atau pakai 'required_without')
+    ]);
+
+    // DB Transaction agar aman (Produk + Varian harus sukses bareng)
+    DB::beginTransaction();
+
+    try {
+        // 1. Simpan Data Produk Utama
+        $product = $website->products()->create([
+            'category_id' => $request->category_id,
+            'name'        => $request->name,
+            'slug'        => Str::slug($request->name) . '-' . Str::random(4),
+            'description' => $request->description,
+            'image'       => $request->file('image') ? $request->file('image')->store('products', 'public') : null,
+            // Jika punya varian, set harga/stok utama jadi 0 atau ambil dari varian pertama (opsional)
+            'price'       => $request->has_variants ? 0 : $request->price,
+            'stock'       => $request->has_variants ? 0 : $request->stock,
+            'weight'      => $request->weight ?? 1000,
+            'sku'         => $request->sku,
+            'status'      => 'active'
         ]);
 
-        // 2. LOGIK UPLOAD GAMBAR BARU
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            // Simpan di folder: storage/app/public/products/{id_website}
-            // Agar gambar antar toko tidak tercampur
-            $imagePath = $request->file('image')->store('products/' . $website->id, 'public');
+        // 2. Simpan Varian (Jika dicentang)
+        if ($request->has_variants && is_array($request->variants)) {
+            
+            foreach ($request->variants as $variantData) {
+                // Skip jika nama kosong (baris sampah)
+                if (empty($variantData['name'])) continue;
+
+                $product->variants()->create([
+                    'name'    => $variantData['name'],
+                    // Kita simpan opsi sederhana dulu: {"name": "Merah - XL"}
+                    // Nanti bisa dikembangkan jadi Key-Value terpisah
+                    'options' => ['name' => $variantData['name']], 
+                    'price'   => $variantData['price'],
+                    'stock'   => $variantData['stock'],
+                    'sku'     => $variantData['sku'] ?? null,
+                    'weight'  => $request->weight, // Warisi berat induk sementara
+                ]);
+            }
+            
+            // Update harga display produk induk (ambil harga terendah varian)
+            $minPrice = $product->variants()->min('price');
+            $totalStock = $product->variants()->sum('stock');
+            
+            $product->update([
+                'price' => $minPrice,
+                'stock' => $totalStock
+            ]);
         }
 
-        // 2. Simpan ke Database
-        $website->products()->create([
-            'category_id' => $request->category_id,
-            'name' => $request->name,
-            'slug' => Str::slug($request->name) . '-' . Str::random(5), // Slug unik
-            'sku' => $request->sku,
-            'price' => $request->price,
-            'stock' => $request->stock ?? 0,
-            'weight' => $request->weight ?? 0,
-            'description' => $request->description,
-            'image' => $imagePath,
-            'is_active' => true,
-        ]);
+        DB::commit();
+        return redirect()->route('client.products.index', $website->id)->with('success', 'Produk berhasil ditambahkan!');
 
-        // 3. Kembali ke halaman list dengan pesan sukses
-        return redirect()->route('client.products.index', $website->id)
-                         ->with('success', 'Produk berhasil ditambahkan!');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Gagal menyimpan produk: ' . $e->getMessage())->withInput();
+    }
     }
 
     // 1. TAMPILKAN FORM EDIT
@@ -129,44 +160,87 @@ class ProductController extends Controller
 
     // 2. PROSES UPDATE DATA
     public function update(Request $request, Website $website, Product $product)
-    {
-        if ($product->website_id !== $website->id) abort(403);
+{
+    $this->authorize('update', $website);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric|min:0',
-            'sku' => 'nullable|string|max:50',
-            'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'category_id' => 'nullable|exists:categories,id',
-        ]);
+    // Validasi mirip store
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'category_id' => 'nullable|exists:categories,id',
+        'image' => 'nullable|image|max:2048',
+    ]);
 
-        $data = [
+    DB::beginTransaction();
+
+    try {
+        // 1. Update Data Dasar Produk
+        $dataToUpdate = [
             'category_id' => $request->category_id,
             'name' => $request->name,
-            'sku' => $request->sku,
-            'price' => $request->price,
-            'stock' => $request->stock,
-            'weight' => $request->weight,
             'description' => $request->description,
+            'weight' => $request->weight ?? 1000,
+            'sku' => $request->sku,
+            // Reset harga/stok jika mode Varian aktif (akan dihitung ulang di bawah)
+            'price' => $request->has_variants ? 0 : $request->price,
+            'stock' => $request->has_variants ? 0 : $request->stock,
         ];
 
-        // LOGIKA GANTI GAMBAR
         if ($request->hasFile('image')) {
             // Hapus gambar lama jika ada
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
-            // Upload gambar baru
-            $data['image'] = $request->file('image')->store('products/' . $website->id, 'public');
+            $dataToUpdate['image'] = $request->file('image')->store('products', 'public');
         }
 
-        $product->update($data);
-        
+        $product->update($dataToUpdate);
 
-        return redirect()->route('client.products.index', $website->id)
-                         ->with('success', 'Produk berhasil diperbarui');
+        // 2. Logic Varian
+        if ($request->has_variants && is_array($request->variants)) {
+            
+            // A. Kumpulkan ID varian yang dikirim dari Form (untuk mendeteksi yang dihapus)
+            $submittedVariantIds = collect($request->variants)->pluck('id')->filter()->toArray();
+            
+            // B. Hapus varian di Database yang TIDAK ada di list form (artinya user menghapusnya)
+            $product->variants()->whereNotIn('id', $submittedVariantIds)->delete();
+
+            // C. Loop Update / Create
+            foreach ($request->variants as $variantData) {
+                if (empty($variantData['name'])) continue;
+
+                $product->variants()->updateOrCreate(
+                    ['id' => $variantData['id'] ?? null], // Kunci pencarian (jika null, buat baru)
+                    [
+                        'name' => $variantData['name'],
+                        'options' => ['name' => $variantData['name']],
+                        'price' => $variantData['price'],
+                        'stock' => $variantData['stock'],
+                        'sku' => $variantData['sku'] ?? null,
+                        'weight' => $request->weight,
+                    ]
+                );
+            }
+
+            // D. Hitung Ulang Total Stok & Harga Terendah Parent
+            $product->update([
+                'price' => $product->variants()->min('price'),
+                'stock' => $product->variants()->sum('stock')
+            ]);
+
+        } else {
+            // Kasus: User mematikan toggle varian (Switch back to Single)
+            // Hapus semua varian
+            $product->variants()->delete();
+        }
+
+        DB::commit();
+        return redirect()->route('client.products.index', $website->id)->with('success', 'Produk berhasil diperbarui!');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->with('error', 'Gagal update: ' . $e->getMessage());
     }
+}
 
     // 3. PROSES HAPUS DATA
     public function destroy(Website $website, Product $product)

@@ -93,25 +93,92 @@
                     <div class="card-body">
                         <form action="{{ route('store.checkout', ['subdomain' => $website->subdomain]) }}" method="POST">
                             @csrf
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">Nama Penerima</label>
-                                <input type="text" name="customer_name" class="form-control" required placeholder="Budi Santoso">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">WhatsApp (Aktif)</label>
-                                <input type="number" name="customer_whatsapp" class="form-control" required placeholder="08123456789">
-                                <small class="text-muted" style="font-size: 11px;">Untuk konfirmasi pesanan.</small>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small text-muted">Alamat Lengkap</label>
-                                <textarea name="customer_address" class="form-control" rows="3" required placeholder="Jl. Mawar No. 10, Jakarta"></textarea>
-                            </div>
+                           
+
+                                                            {{-- FORM CHECKOUT --}}
+                                <div class="card border-0 shadow-sm bg-light">
+                                    <div class="card-body">
+                                        <h5 class="fw-bold mb-3">Informasi Pengiriman</h5>
+                                        
+                                        <form action="{{ route('store.checkout', $website->subdomain) }}" method="POST">
+                                            @csrf
+                                            
+                                            {{-- Nama & WA (Tetap) --}}
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Nama Penerima</label>
+                                                <input type="text" name="customer_name" class="form-control" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">WhatsApp</label>
+                                                <input type="number" name="customer_whatsapp" class="form-control" placeholder="08..." required>
+                                            </div>
+
+                                            {{-- ALAMAT LENGKAP (Textarea) --}}
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Alamat Lengkap (Jalan, No Rumah, RT/RW)</label>
+                                                <textarea name="customer_address" class="form-control" rows="2" placeholder="Jl. Mawar No. 10..." required></textarea>
+                                            </div>
+
+                                            {{-- PILIH KOTA (Dropdown dari Database Ongkir) --}}
+                                            <div class="mb-3">
+                                                <label class="form-label small fw-bold">Kota / Kecamatan Tujuan</label>
+                                                <select id="destination_city" name="destination_city" class="form-select" required onchange="getShippingRates()">
+                                                    <option value="" selected disabled>-- Pilih Lokasi --</option>
+                                                    {{-- Ambil daftar kota unik dari Website Model --}}
+                                                    @foreach($website->available_cities as $city)
+                                                        <option value="{{ $city }}">{{ $city }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            {{-- PILIHAN KURIR (Akan diisi oleh Javascript) --}}
+                                            <div id="shipping-loading" class="text-center d-none py-2">
+                                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div> Mencari ongkir...
+                                            </div>
+                                            
+                                            <div id="shipping-options-container" class="mb-4">
+                                                {{-- Radio button kurir muncul disini --}}
+                                            </div>
+
+                                            {{-- Input Hidden untuk menyimpan detail ongkir yang dipilih (Agar masuk ke Controller) --}}
+                                            <input type="hidden" name="shipping_cost" id="input_shipping_cost" value="0">
+                                            <input type="hidden" name="shipping_courier" id="input_shipping_courier" value="">
+
+                                            <hr>
+
+                                            {{-- TOTAL --}}
+                                            <div class="d-flex justify-content-between mb-2 text-muted">
+                                                <span>Subtotal</span>
+                                                <span>Rp {{ number_format($total, 0, ',', '.') }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2 text-primary">
+                                                <span>Ongkos Kirim</span>
+                                                <span id="display-ongkir">Rp 0</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-4 fs-5 fw-bold">
+                                                <span>Total Bayar</span>
+                                                <span id="display-total">Rp {{ number_format($total, 0, ',', '.') }}</span>
+                                            </div>
+
+                                            {{-- Hitung Berat Total (Hidden) --}}
+                                            @php
+                                                $totalWeight = 0;
+                                                foreach($cart as $item) {
+                                                    $totalWeight += ($item['weight'] ?? 1000) * $item['quantity'];
+                                                }
+                                            @endphp
+                                            <input type="hidden" id="total_weight" value="{{ $totalWeight }}">
+                                            <input type="hidden" id="subtotal_amount" value="{{ $total }}">
+
+                                            <button type="submit" id="btn-checkout" class="btn btn-primary-custom w-100 py-2" disabled>
+                                                Buat Pesanan
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
                             
                             <hr>
                             
-                            <button type="submit" class="btn btn-primary-custom w-100 py-2 fw-bold">
-                                Buat Pesanan <i class="bi bi-arrow-right"></i>
-                            </button>
                         </form>
                     </div>
                 </div>
@@ -128,6 +195,90 @@
     </div>
 
     <script>
+        // URL API Cek Ongkir
+    const checkShippingUrl = "{{ route('store.cart.checkShipping', $website->subdomain) }}";
+    const csrfToken = "{{ csrf_token() }}";
+
+    function formatRupiah(amount) {
+        return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+    }
+
+    function getShippingRates() {
+        const city = document.getElementById('destination_city').value;
+        const weight = document.getElementById('total_weight').value;
+        const container = document.getElementById('shipping-options-container');
+        const loading = document.getElementById('shipping-loading');
+        const btnCheckout = document.getElementById('btn-checkout');
+
+        // Reset
+        container.innerHTML = '';
+        loading.classList.remove('d-none');
+        btnCheckout.disabled = true;
+        updateTotal(0);
+
+        // Fetch API
+        fetch(checkShippingUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ destination: city, weight: weight })
+        })
+        .then(response => response.json())
+        .then(data => {
+            loading.classList.add('d-none');
+
+            if(data.status === 'success') {
+                let html = '<label class="form-label small fw-bold">Pilih Pengiriman</label>';
+                
+                data.options.forEach((opt, index) => {
+                    html += `
+                        <div class="form-check border rounded p-2 mb-2 bg-white">
+                            <input class="form-check-input ms-1 mt-2" type="radio" name="selected_shipping" 
+                                   id="ship_${opt.id}" value="${opt.id}" 
+                                   onchange="selectShipping('${opt.courier} ${opt.service}', ${opt.cost})">
+                            <label class="form-check-label w-100 ps-2" for="ship_${opt.id}" style="cursor:pointer">
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold">${opt.courier} <small class="text-muted">${opt.service}</small></span>
+                                    <span class="fw-bold text-primary">Rp ${opt.cost_formatted}</span>
+                                </div>
+                                <div class="small text-muted">${opt.estimation}</div>
+                            </label>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `<div class="alert alert-warning small">${data.message}</div>`;
+            }
+        })
+        .catch(error => {
+            loading.classList.add('d-none');
+            container.innerHTML = '<div class="alert alert-danger small">Gagal memuat ongkir. Coba lagi.</div>';
+            console.error('Error:', error);
+        });
+    }
+
+    function selectShipping(courierName, cost) {
+        // Update Input Hidden (untuk dikirim ke controller)
+        document.getElementById('input_shipping_cost').value = cost;
+        document.getElementById('input_shipping_courier').value = courierName;
+        
+        // Update Tampilan Total
+        updateTotal(cost);
+        
+        // Enable Tombol
+        document.getElementById('btn-checkout').disabled = false;
+    }
+
+    function updateTotal(shippingCost) {
+        const subtotal = parseInt(document.getElementById('subtotal_amount').value);
+        const grandTotal = subtotal + shippingCost;
+
+        document.getElementById('display-ongkir').innerText = formatRupiah(shippingCost);
+        document.getElementById('display-total').innerText = formatRupiah(grandTotal);
+    }
     document.addEventListener("DOMContentLoaded", function() {
         // Cek apakah di dalam Iframe (Preview Mode)
         if (window.self !== window.top) {

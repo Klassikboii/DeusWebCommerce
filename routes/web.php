@@ -132,6 +132,25 @@ Route::middleware(['auth'])->group(function () {
                 // --- FITUR BILLING ---
         Route::get('/billing', [App\Http\Controllers\Client\BillingController::class, 'index'])->name('client.billing.index');
         Route::post('/billing', [App\Http\Controllers\Client\BillingController::class, 'store'])->name('client.billing.store');
+
+        // ... di dalam group manage/{website} ...
+
+        // SHIPPING RATES ROUTES
+        
+        Route::get('/shipping', [App\Http\Controllers\Client\ShippingController::class, 'index'])->name('client.shipping.index');
+
+        
+        Route::post('/shipping', [App\Http\Controllers\Client\ShippingController::class, 'store'])->name('client.shipping.store');
+
+        Route::delete('/shipping/clear', [App\Http\Controllers\Client\ShippingController::class, 'clear'])->name('client.shipping.clear');
+
+        Route::delete('/shipping/{rate}', [App\Http\Controllers\Client\ShippingController::class, 'destroy'])->name('client.shipping.destroy');
+
+        // IMPORT & TEMPLATE
+        Route::get('/shipping/template', [App\Http\Controllers\Client\ShippingController::class, 'downloadTemplate'])->name('client.shipping.template');
+        Route::post('/shipping/import', [App\Http\Controllers\Client\ShippingController::class, 'import'])->name('client.shipping.import');
+                // Route untuk Hapus Semua Data Ongkir
+        
         });
 });
 // --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
@@ -146,11 +165,17 @@ Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant
     Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
     Route::patch('/cart/update', [App\Http\Controllers\CheckoutController::class, 'updateCart'])->name('store.cart.update');
     Route::delete('/cart/remove/{id}', [App\Http\Controllers\CheckoutController::class, 'removeFromCart'])->name('store.cart.remove');
+        // Route untuk AJAX Cek Ongkir (Ditaruh di group Storefront)
+    Route::post('/cart/check-shipping', [App\Http\Controllers\CheckoutController::class, 'checkShipping'])->name('store.cart.checkShipping');
     // Batasi maksimal 5 request per 1 menit per IP
     Route::middleware(['throttle:5,1'])->group(function () {
         Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'processCheckout'])->name('store.checkout');
+        
     });
-   
+        // Route Konfirmasi Pembayaran
+    Route::get('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'payment'])->name('store.payment');
+    Route::post('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'confirmPayment'])->name('store.payment.confirm');
+    
     // === ROUTE BLOG (SUDAH BENAR) ===
     Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('store.blog');
     Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('store.blog.show');

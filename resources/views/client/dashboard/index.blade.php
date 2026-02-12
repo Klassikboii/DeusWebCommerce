@@ -164,13 +164,14 @@
             </div>
             <div class="card-body p-0" style="max-height: 100px; overflow-y: auto;">
                 <ul class="list-group list-group-flush">
+                    
                     @forelse($lowStockProducts as $product)
                         <li class="list-group-item d-flex justify-content-between align-items-center"  
                         onmouseover="this.style.filter='brightness(95%)'" onmouseout="this.style.filter='brightness(100%)'" style="cursor: pointer;">
                             <div class="d-flex align-items-center gap-2" onclick="window.location.href='{{ route('client.products.edit', [$website->id, $product->id]) }}#stok_barang'" >
-                                @if($product->image)
-                                    <img src="{{ asset('storage/'.$product->product_image) }}" width="32" height="32" class="rounded object-fit-cover">
-                                @else
+                                @if($product->product_image)
+                                            <img src="{{ asset('storage/'.$product->product_image) }}" width="40" class="rounded">
+                                            @else
                                     <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width:32px; height:32px;">
                                         <i class="bi bi-box small"></i>
                                     </div>

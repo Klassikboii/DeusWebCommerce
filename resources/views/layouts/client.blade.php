@@ -211,6 +211,11 @@
                 class="nav-link {{ request()->routeIs('client.categories.*') ? 'active' : '' }}">
                     <i class="bi bi-tags"></i> Kategori
                 </a>
+                <a href="{{ route('client.shipping.index', $website->id) }}" 
+                    class="nav-link {{ request()->routeIs('client.shipping.*') ? 'active' : '' }}">
+                        <i class="bi bi-truck nav-icon"></i>
+                        <span class="nav-link-text">Pengiriman</span>
+                    </a>
                 <a href="{{ route('client.posts.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.posts.*') ? 'active' : '' }}">
                     <i class="bi bi-journal-text"></i> Blog / Artikel

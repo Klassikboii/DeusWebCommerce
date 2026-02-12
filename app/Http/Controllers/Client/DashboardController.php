@@ -99,7 +99,7 @@ class DashboardController extends Controller
             'website', 
             'revenueThisMonth', 'revenueLastMonth', 'revenueGrowth',
             'totalOrder', 'pendingOrders', 'totalProduk',
-            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts'
+            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts',
         ));
         
     }

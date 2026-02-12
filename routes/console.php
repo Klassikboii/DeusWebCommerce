@@ -9,3 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 Schedule::command('subscription:check')->daily();
+
+// Jalankan perintah cek order setiap jam
+Schedule::command('orders:cancel-unpaid')->hourly();

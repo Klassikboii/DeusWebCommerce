@@ -101,4 +101,19 @@ class Website extends Model
                       ->orWhere('ends_at', '>', now());
                 })->latest();
     }
+    // Relasi ke Ongkir
+    public function shippingRates()
+    {
+        return $this->hasMany(ShippingRate::class);
+    }
+
+    // Helper: Ambil daftar kota unik yang dimiliki toko ini (Untuk Dropdown Checkout)
+    public function getAvailableCitiesAttribute()
+    {
+        return $this->shippingRates()
+                    ->select('destination_city')
+                    ->distinct()
+                    ->orderBy('destination_city')
+                    ->pluck('destination_city');
+    }
 }

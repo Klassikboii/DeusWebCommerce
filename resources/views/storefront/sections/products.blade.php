@@ -37,8 +37,9 @@
             <div class="col-6 col-md-3 product-item"  
                  style="{{ ($index >= $currentLimit) ? 'display: none !important;' : '' }} cursor: pointer; .card-website"
                  onclick="window.location.href='{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $item->slug]) }}'"
-                 onmouseover="this.style.filter='brightness(0.8)'; this.style.transform='translateY(-5px)'; title='Klik untuk melihat detail produk';"
-                 onmouseout="this.style.filter='brightness(1)'; this.style.transform='translateY(0)';">
+                 onmouseover="this.style.transform='translateY(-5px)'; title='Klik untuk melihat detail produk';"
+                 onmouseout=" this.style.transform='translateY(0)';">
+                 
                 
                 <div class="card h-100 {{ $isSimple ? 'border-0' : 'shadow-sm border' }}">
                     {{-- ... (Isi Card Produk SAMA SEPERTI SEBELUMNYA, tidak perlu diubah) ... --}}
@@ -58,7 +59,21 @@
                         <div class="mt-auto">
                             <form action="{{ route('store.cart.add', ['subdomain' => $website->subdomain, 'id' => $item->id]) }}" method="POST">
                                  @csrf   
-                             <button class="btn w-100 btn-sm {{ $isSimple ? 'btn-outline-dark rounded-0' : 'btn-outline-secondary-custom rounded-pill' }}">{{ $isSimple ? 'ADD TO CART' : '+ Keranjang' }}</button>
+                             <div class="mt-auto">
+                                    {{-- TOMBOL LIHAT DETAIL --}}
+                                    <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $item->slug]) }}" 
+                                    class="btn w-100 btn-sm {{ $isSimple ? 'btn-outline-dark rounded-0' : 'btn-outline-secondary-custom rounded-pill' }}">
+                                    
+                                    {{-- Teks Tombol Cerdas --}}
+                                    @if($item->stock <= 0)
+                                        <i class="bi bi-x-circle"></i> Stok Habis
+                                    @elseif($item->hasVariants())
+                                        <i class="bi bi-eye"></i> Pilih Varian
+                                    @else
+                                        <i class="bi bi-eye"></i> Lihat Detail
+                                    @endif
+                                    </a>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -72,3 +87,13 @@
         @endforelse
     </div>
 </div>
+
+<script>
+    if ({{ $item->stock }} <= 0) {
+        document.getElementById("buybutton").disabled = true;
+    }
+    else{
+        document.getElementById("buybutton").disabled = false;
+    }
+ 
+</script>

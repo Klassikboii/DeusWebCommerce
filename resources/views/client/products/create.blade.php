@@ -64,23 +64,62 @@
             <div class="card-body p-4">
                 <h6 class="fw-bold mb-3 text-primary">Harga & Inventaris</h6>
                 
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Harga (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" name="price" class="form-control @error('price') is-invalid @enderror" value="{{ old('price') }}" required>
-                    </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Stok Awal</label>
-                        <input type="number" name="stock" class="form-control" value="{{ old('stock', 0) }}">
-                    </div>
+                <div class="row mb-4">
+                    <div class="col-12">
+                       <div class="form-check form-switch p-3 border rounded bg-light d-flex justify-content-between align-items-center">
+                            <div>
+                                <label class="form-check-label fw-bold" for="has_variants">Produk ini memiliki variasi (Ukuran, Warna, dll)</label>
+                                <div class="form-text small">Jika aktif, harga dan stok akan diatur per variasi.</div>
+                            </div>
+                            <input class="form-check-input ms-0" type="checkbox" id="has_variants" name="has_variants" value="1" role="switch">
+                        </div>
 
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Berat (Gram)</label>
-                        <input type="number" name="weight" class="form-control" value="{{ old('weight', 100) }}">
-                        <div class="form-text small">Untuk hitung ongkir.</div>
                     </div>
                 </div>
+
+                <div id="single-product-fields">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Harga (Rp)</label>
+                            <input type="number" name="price" class="form-control" value="{{ old('price') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Stok</label>
+                            <input type="number" name="stock" class="form-control" value="{{ old('stock') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Berat (Gram)</label>
+                            <input type="number" name="weight" class="form-control" value="{{ old('weight', 1000) }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">SKU (Opsional)</label>
+                            <input type="text" name="sku" class="form-control" value="{{ old('sku') }}">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="variant-product-fields" style="display: none;">
+                    <div class="table-responsive border rounded p-3 bg-white">
+                        <table class="table table-bordered align-middle" id="variant-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 30%">Nama Varian <span class="text-danger">*</span><br><small class="text-muted fw-normal">Contoh: Merah - XL</small></th>
+                                    <th style="width: 25%">Harga (Rp) <span class="text-danger">*</span></th>
+                                    <th style="width: 15%">Stok <span class="text-danger">*</span></th>
+                                    <th style="width: 20%">SKU / Kode</th>
+                                    <th style="width: 10%">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{-- Baris akan ditambahkan via JS --}}
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="addVariantRow()">
+                            <i class="bi bi-plus-lg"></i> Tambah Varian
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -90,4 +129,67 @@
         </div>
     </form>
 </div>
+
+<script>
+                    const checkbox = document.getElementById('has_variants');
+                    const singleFields = document.getElementById('single-product-fields');
+                    const variantFields = document.getElementById('variant-product-fields');
+                    const tableBody = document.querySelector('#variant-table tbody');
+
+                    // 1. Logic Toggle Tampilan
+                    function toggleVariantFields() {
+                        if (checkbox.checked) {
+                            singleFields.style.display = 'none';
+                            variantFields.style.display = 'block';
+                            // Disable input single agar tidak dikirim/divalidasi jika varian aktif
+                            toggleInputs(singleFields, true);
+                        } else {
+                            singleFields.style.display = 'block';
+                            variantFields.style.display = 'none';
+                            toggleInputs(singleFields, false);
+                        }
+                    }
+
+                    function toggleInputs(container, isDisabled) {
+                        container.querySelectorAll('input').forEach(input => input.disabled = isDisabled);
+                    }
+
+                    checkbox.addEventListener('change', toggleVariantFields);
+                    
+                    // Init saat load (berguna jika validasi error dan kembali ke form)
+                    toggleVariantFields(); 
+
+                    // 2. Logic Tambah Baris Varian
+                    function addVariantRow(data = {}) {
+                        const index = tableBody.children.length; // Index unik 0, 1, 2...
+                        
+                        const row = `
+                            <tr>
+                                <td>
+                                    <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Warna - Size" required>
+                                </td>
+                                <td>
+                                    <input type="number" name="variants[${index}][price]" class="form-control form-control-sm" placeholder="0" required>
+                                </td>
+                                <td>
+                                    <input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" placeholder="0" required>
+                                </td>
+                                <td>
+                                    <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm" placeholder="SKU-XXX">
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        tableBody.insertAdjacentHTML('beforeend', row);
+                    }
+
+                    // Tambah 1 baris default jika kosong saat varian aktif
+                    checkbox.addEventListener('change', () => {
+                        if(checkbox.checked && tableBody.children.length === 0) addVariantRow();
+                    });
+                </script>
 @endsection

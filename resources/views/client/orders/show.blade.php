@@ -140,17 +140,29 @@
 
                     <hr>
 
-                    {{-- TOMBOL HUBUNGI CUSTOMER --}}
+                    {{-- LOGIKA PESAN WA DINAMIS --}}
                     @php
-                        // Format Nomor WA (Ganti 08 jadi 628)
+                        // 1. Format Nomor
                         $waNumber = $order->customer_whatsapp;
                         if(str_starts_with($waNumber, '0')) {
                             $waNumber = '62' . substr($waNumber, 1);
                         }
                         
-                        // Pesan Otomatis
-                        $message = "Halo kak {$order->customer_name}, saya admin dari {$website->site_name}. Terimakasih sudah memesan (Invoice: {$order->order_number}). Apakah pesanan ini mau diproses sekarang?";
-                        $waLink = "https://wa.me/{$waNumber}?text=" . urlencode($message);
+                        // 2. Generate Link Pembayaran Toko
+                        $paymentLink = route('store.payment', ['subdomain' => $website->subdomain, 'order_number' => $order->order_number]);
+
+                        // 3. Pesan Berdasarkan Status
+                        if ($order->status == 'pending') {
+                            $text = "Halo kak {$order->customer_name}. Mohon segera selesaikan pembayaran untuk pesanan {$order->order_number} agar tidak kehabisan stok.\n\nUpload bukti bayar disini ya: {$paymentLink}";
+                        } elseif ($order->status == 'awaiting_confirmation') {
+                            $text = "Halo kak, bukti pembayaran untuk {$order->order_number} sedang kami cek ya. Mohon ditunggu.";
+                        } elseif ($order->status == 'shipped') {
+                            $text = "Halo kak, pesanan {$order->order_number} sudah dikirim via {$order->courier_name}. Resi: {$order->tracking_number}.";
+                        } else {
+                            $text = "Halo kak {$order->customer_name}, update status pesanan {$order->order_number}: " . ucfirst($order->status);
+                        }
+
+                        $waLink = "https://wa.me/{$waNumber}?text=" . urlencode($text);
                     @endphp
 
                     <a href="{{ $waLink }}" target="_blank" class="btn btn-success w-100 text-white fw-bold mb-2">
@@ -163,8 +175,11 @@
         </div>
     </div>
 
+    {{-- KOLOM KANAN --}}
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm">
+        
+        {{-- CARD 1: UPDATE PESANAN --}}
+        <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3">
                 <h6 class="fw-bold mb-0">Update Pesanan</h6>
             </div>
@@ -185,37 +200,58 @@
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Status Pesanan</label>
                         <select name="status" id="statusSelect" class="form-select" onchange="toggleResiInput()">
-                            <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Menunggu Pembayaran</option>
-                            <option value="processing" {{ $order->status == 'processing' ? 'selected' : '' }}>Diproses (Packing)</option>
-                            <option value="shipped" {{ $order->status == 'shipped' ? 'selected' : '' }}>Dikirim (Input Resi)</option>
-                            <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Selesai</option>
-                            <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+    
+                            {{-- LOGIKA PENGUNCIAN: --}}
+                            {{-- Jika sedang 'awaiting_confirmation', kunci dropdown hanya menampilkan status itu sendiri. --}}
+                            {{-- Admin HARUS menggunakan tombol Terima/Tolak di bawah untuk mengubah status. --}}
+                            
+                            @if($order->status == 'awaiting_confirmation')
+                                <option value="awaiting_confirmation" selected>Menunggu Konfirmasi Admin</option>
+                            @else
+                                {{-- Jika status BUKAN awaiting_confirmation, tampilkan opsi standar --}}
+                                
+                                <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Menunggu Pembayaran</option>
+                                
+                                {{-- Opsi awaiting_confirmation disembunyikan di sini agar admin tidak bisa manual memilihnya --}}
+                                
+                                <option value="processing" {{ $order->status == 'processing' ? 'selected' : '' }}>Diproses (Packing)</option>
+                                <option value="shipped" {{ $order->status == 'shipped' ? 'selected' : '' }}>Dikirim (Input Resi)</option>
+                                <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Selesai</option>
+                                <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Dibatalkan</option>
+                            @endif
+
                         </select>
+
+                        {{-- Tambahkan pesan kecil agar Admin tidak bingung kenapa dropdown terkunci --}}
+                        @if($order->status == 'awaiting_confirmation')
+                            <div class="form-text text-primary small">
+                                <i class="bi bi-info-circle"></i> Gunakan tombol di kartu <strong>Bukti Pembayaran</strong> untuk memproses pesanan ini.
+                            </div>
+                        @endif
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Catatan Tambahan (Opsional)</label>
                         <textarea name="note" class="form-control form-control-sm" rows="2" placeholder="Contoh: Paket sedang transit di Jakarta..."></textarea>
                     </div>
-                    <div class="card border-0 shadow-sm mt-4">
-                        <div class="card-header bg-white py-3">
-                            <h6 class="fw-bold mb-0">Riwayat Pesanan</h6>
+                    
+                    {{-- RIWAYAT PESANAN --}}
+                    <div class="card border-0 shadow-sm mt-4 mb-3">
+                        <div class="card-header bg-white py-2">
+                            <h6 class="fw-bold mb-0 small">Riwayat</h6>
                         </div>
                         <div class="card-body p-0">
-                            <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">                                @forelse($order->histories()->latest()->get() as $history)
-                                <div class="list-group-item">
+                            <div class="list-group list-group-flush" style="max-height: 200px; overflow-y: auto;">
+                                @forelse($order->histories()->latest()->get() as $history)
+                                <div class="list-group-item py-2">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span class="badge bg-light text-dark border">{{ $history->status }}</span>
-                                        <small class="text-muted" style="font-size: 10px;">{{ $history->created_at->format('d M H:i') }}</small>
+                                        <span class="badge bg-light text-dark border" style="font-size: 10px;">{{ $history->status }}</span>
+                                        <small class="text-muted" style="font-size: 9px;">{{ $history->created_at->format('d/m H:i') }}</small>
                                     </div>
-                                    <p class="mb-0 small text-muted">{{ $history->note }}</p>
+                                    <p class="mb-0 text-muted lh-1" style="font-size: 11px;">{{ $history->note }}</p>
                                 </div>
                                 @empty
                                 <div class="p-3 text-center text-muted small">Belum ada riwayat.</div>
                                 @endforelse
-                                
-                                <div class="list-group-item bg-light">
-                                    <small class="text-muted fst-italic">Pesanan dibuat pada {{ $order->created_at->format('d M Y, H:i') }}</small>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -224,30 +260,92 @@
                         <h6 class="small fw-bold text-primary mb-2"><i class="bi bi-truck me-1"></i> Data Pengiriman</h6>
                         
                         <div class="mb-2">
-                            <label class="form-label small">Nama Kurir / Ekspedisi</label>
+                            <label class="form-label small">Nama Kurir</label>
                             <input type="text" name="courier_name" class="form-control form-control-sm" 
-                                   placeholder="Contoh: JNE, J&T, GoSend" 
-                                   value="{{ $order->courier_name }}">
+                                   placeholder="JNE, J&T..." value="{{ $order->courier_name }}">
                         </div>
                         <div class="mb-0">
-                            <label class="form-label small">Nomor Resi / Tracking</label>
+                            <label class="form-label small">No. Resi</label>
                             <input type="text" name="tracking_number" class="form-control form-control-sm font-monospace" 
-                                   placeholder="Contoh: JP1234567890" 
-                                   value="{{ $order->tracking_number }}">
+                                   placeholder="JP123..." value="{{ $order->tracking_number }}">
                         </div>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100">Simpan Status</button>
                 </form>
-
-                <hr>
-
-                <button class="btn btn-outline-secondary w-100 btn-sm">
-                    <i class="bi bi-printer me-2"></i> Cetak Label Pengiriman
-                </button>
             </div>
         </div>
+
+        {{-- CARD 2: BUKTI PEMBAYARAN (SEKARANG SUDAH BENAR POSISINYA) --}}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold">Bukti Pembayaran</h6>
+            </div>
+            <div class="card-body text-center">
+                @if($order->status == 'pending')
+                    <div class="alert alert-warning small mb-0">
+                        <i class="bi bi-clock me-1"></i> Menunggu Customer upload bukti.
+                    </div>
+                    
+                    {{-- Helper Link Pembayaran untuk Admin --}}
+                    <div class="mt-3">
+                        <small class="text-muted d-block mb-1">Link Pembayaran Customer:</small>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control" id="paymentLinkInput" 
+                                   value="{{ route('store.payment', ['subdomain' => $website->subdomain, 'order_number' => $order->order_number]) }}" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyPaymentLink()">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                @elseif($order->payment_proof)
+                    <div class="mb-3 border rounded p-2 bg-light">
+                        <a href="{{ asset('storage/' . $order->payment_proof) }}" target="_blank">
+                            <img src="{{ asset('storage/' . $order->payment_proof) }}" class="img-fluid rounded" style="max-height: 200px;" alt="Bukti Bayar">
+                        </a>
+                    </div>
+                    <div class="text-start small mb-3 bg-light p-2 rounded">
+                        <div><strong>Bank:</strong> {{ $order->bank_name ?? '-' }}</div>
+                        <div><strong>Waktu:</strong> {{ $order->updated_at->format('d M H:i') }}</div>
+                    </div>
+
+                    @if($order->status == 'awaiting_confirmation')
+                        <div class="d-grid gap-2">
+                            <form action="{{ route('client.orders.update', [$website->id, $order->id]) }}" method="POST">
+                                @csrf @method('PUT')
+                                <input type="hidden" name="status" value="processing">
+                                <input type="hidden" name="note" value="Pembayaran diterima. Pesanan diproses.">
+                                <button class="btn btn-success w-100 btn-sm"><i class="bi bi-check-lg"></i> Terima</button>
+                            </form>
+
+                            <form action="{{ route('client.orders.update', [$website->id, $order->id]) }}" method="POST">
+                                @csrf @method('PUT')
+                                <input type="hidden" name="status" value="pending">
+                                <input type="hidden" name="note" value="Bukti tidak valid. Silakan upload ulang.">
+                                <button class="btn btn-warning w-100 btn-sm"><i class="bi bi-arrow-repeat"></i> Minta Upload Ulang</button>
+                            </form>
+
+                            {{-- Tolak Keras: Batalkan Order --}}
+                            <form action="{{ route('client.orders.update', [$website->id, $order->id]) }}" method="POST" onsubmit="return confirm('Yakin batalkan order? Stok akan dikembalikan.')">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="status" value="cancelled">
+                                <input type="hidden" name="note" value="Pembayaran ditolak. Order dibatalkan.">
+                                <button type="submit" class="btn btn-danger w-100 btn-sm">
+                                    <i class="bi bi-x-circle"></i> Tolak & Batalkan
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <div class="alert alert-success py-2 small mb-0"><i class="bi bi-check-all"></i> Bukti tersimpan.</div>
+                    @endif
+                @endif
+            </div>
+        </div>
+
     </div>
+
 </div>
 
 <script>
@@ -260,6 +358,13 @@
         } else {
             resiBox.classList.add('d-none');
         }
+    }
+    function copyPaymentLink() {
+        var copyText = document.getElementById("paymentLinkInput");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); 
+        navigator.clipboard.writeText(copyText.value);
+        alert("Link pembayaran disalin! Kirim ke customer.");
     }
 </script>
 @endsection

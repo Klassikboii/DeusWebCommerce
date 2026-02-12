@@ -30,38 +30,77 @@
         {{-- KOLOM KANAN: DETAIL --}}
         <div class="col-md-6">
             <div class="ps-lg-4">
-                {{-- Kategori (Jika ada) --}}
                 @if($product->category)
-                    <span class="badge mb-2 " style="background-color: var(--secondary-color); color: white;">{{ $product->category->name }}</span>
+                    <span class="badge mb-2" style="background-color: var(--secondary-color); color: white;">{{ $product->category->name }}</span>
                 @endif
 
                 <h1 class="fw-bold mb-2">{{ $product->name }}</h1>
                 
-                <h3 class="text-primary-custom fw-bold mb-3">
-                    Rp {{ number_format($product->price, 0, ',', '.') }}
+                {{-- HARGA DINAMIS (Diberi ID agar bisa diubah JS) --}}
+                <h3 class="text-primary-custom fw-bold mb-3" id="product-price">
+                    @if($product->hasVariants())
+                        {{-- Tampilkan Range Harga: Rp 50.000 - Rp 80.000 --}}
+                        Rp {{ number_format($product->variants->min('price'), 0, ',', '.') }} 
+                        @if($product->variants->min('price') != $product->variants->max('price'))
+                            - Rp {{ number_format($product->variants->max('price'), 0, ',', '.') }}
+                        @endif
+                    @else
+                        Rp {{ number_format($product->price, 0, ',', '.') }}
+                    @endif
                 </h3>
 
-                {{-- Deskripsi Singkat / Stok --}}
+                {{-- DESKRIPSI SINGKAT & STOK --}}
                 <div class="mb-4">
                     <p class="text-muted">{{ $product->short_description ?? Str::limit(strip_tags($product->description), 150) }}</p>
                     
-                    @if($product->stock > 0)
-                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Stok Tersedia: {{ $product->stock }}</span>
-                    @else
-                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i> Stok Habis</span>
-                    @endif
+                    {{-- STOK DINAMIS --}}
+                    <span id="product-stock-badge" class="badge {{ $product->stock > 0 ? 'bg-success' : 'bg-danger' }}">
+                        <i class="bi {{ $product->stock > 0 ? 'bi-check-circle' : 'bi-x-circle' }} me-1"></i> 
+                        <span id="stock-text">
+                            @if($product->hasVariants())
+                                Stok Total: {{ $product->stock }}
+                            @else
+                                {{ $product->stock > 0 ? 'Stok Tersedia: ' . $product->stock : 'Stok Habis' }}
+                            @endif
+                        </span>
+                    </span>
                 </div>
+
+                <hr>
 
                 {{-- FORM ADD TO CART --}}
                 <form action="{{ route('store.cart.add', ['subdomain' => $website->subdomain, 'id' => $product->id]) }}" method="POST">
                     @csrf
+                    
+                    {{-- === LOGIKA VARIAN (BARU) === --}}
+                    @if($product->hasVariants())
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Pilih Varian:</label>
+                            <select name="variant_id" id="variant-selector" class="form-select" required>
+                                <option value="" selected disabled>-- Pilih Opsi --</option>
+                                @foreach($product->variants as $variant)
+                                    <option value="{{ $variant->id }}" 
+                                            data-price="{{ $variant->price }}"
+                                            data-stock="{{ $variant->stock }}">
+                                        {{ $variant->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text text-danger d-none" id="variant-error">Mohon pilih varian terlebih dahulu.</div>
+                        </div>
+                    @endif
+                    {{-- ============================ --}}
+
                     <div class="d-flex align-items-center gap-3 mb-4">
                         <div class="input-group" style="width: 130px;">
                             <button class="btn btn-outline-secondary" type="button" onclick="this.parentNode.querySelector('input[type=number]').stepDown()">-</button>
-                            <input type="number" name="quantity" class="form-control text-center" value="1" min="1" max="{{ $product->stock }}">
+                            <input type="number" name="quantity" class="form-control text-center" value="1" min="1" max="{{ $product->stock }}" id="quantity-input">
                             <button class="btn btn-outline-secondary" type="button" onclick="this.parentNode.querySelector('input[type=number]').stepUp()">+</button>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-lg rounded-pill px-5" {{ $product->stock < 1 ? 'disabled' : '' }}>
+                        
+                        {{-- Tombol disabled jika stok 0 (atau jika varian belum dipilih nanti dihandle JS) --}}
+                        <button type="submit" id="add-to-cart-btn" class="btn btn-primary btn-lg rounded-pill px-5" 
+                                {{ (!$product->hasVariants() && $product->stock < 1) ? 'disabled' : '' }}>
                             <i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang
                         </button>
                     </div>
@@ -69,7 +108,6 @@
 
                 <hr class="my-4">
 
-                {{-- DESKRIPSI LENGKAP --}}
                 <div>
                     <h5 class="fw-bold mb-3">Deskripsi Produk</h5>
                     <div class="text-muted">
@@ -113,4 +151,52 @@
     @endif
 
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const variantSelector = document.getElementById('variant-selector');
+        const priceElement = document.getElementById('product-price');
+        const stockBadge = document.getElementById('product-stock-badge');
+        const stockText = document.getElementById('stock-text');
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        const quantityInput = document.getElementById('quantity-input');
+        
+        // Format Rupiah Helper
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        }
+
+        if (variantSelector) {
+            // Awal: Disable tombol Add to Cart sampai user milih varian
+            addToCartBtn.disabled = true;
+            addToCartBtn.innerText = "Pilih Varian Dulu";
+
+            variantSelector.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const price = parseFloat(selectedOption.getAttribute('data-price'));
+                const stock = parseInt(selectedOption.getAttribute('data-stock'));
+
+                // 1. Update Harga
+                priceElement.innerText = formatRupiah(price);
+
+                // 2. Update Stok
+                if (stock > 0) {
+                    stockBadge.className = 'badge bg-success';
+                    stockBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> Stok: ${stock}`;
+                    
+                    addToCartBtn.disabled = false;
+                    addToCartBtn.innerHTML = `<i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang`;
+                    quantityInput.max = stock; // Batasi input jumlah sesuai stok varian
+                    quantityInput.value = 1;   // Reset ke 1
+                } else {
+                    stockBadge.className = 'badge bg-danger';
+                    stockBadge.innerHTML = `<i class="bi bi-x-circle me-1"></i> Stok Habis`;
+                    
+                    addToCartBtn.disabled = true;
+                    addToCartBtn.innerText = "Stok Habis";
+                }
+            });
+        }
+    });
+</script>
 @endsection
