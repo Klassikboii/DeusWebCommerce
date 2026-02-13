@@ -113,7 +113,7 @@ class Website extends Model
         return $this->shippingRates()
                     ->select('destination_city')
                     ->distinct()
-                    ->orderBy('destination_city')
+                    ->orderBy('destination_city', 'asc')
                     ->pluck('destination_city');
     }
 }

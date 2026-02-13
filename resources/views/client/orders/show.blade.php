@@ -99,8 +99,8 @@
                                 <td class="text-end pt-3">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
                             </tr>
                             <tr>
-                                <td colspan="3" class="text-end text-muted">Ongkos Kirim</td>
-                                <td class="text-end">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</td>
+                                <td colspan="3" class="text-end text-muted">Ongkos Kirim ({{ $order->courier_name }} , {{ $order->courier_service ?? '-' }})</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</td>
                             </tr>
                             <tr>
                                 <td colspan="3" class="text-end fw-bold fs-5">Grand Total</td>
@@ -229,6 +229,7 @@
                             </div>
                         @endif
                     </div>
+                    @if($order->status != 'awaiting_confirmation')
                     <div class="mb-3">
                         <label class="form-label small">Catatan Tambahan (Opsional)</label>
                         <textarea name="note" class="form-control form-control-sm" rows="2" placeholder="Contoh: Paket sedang transit di Jakarta..."></textarea>
@@ -273,6 +274,7 @@
 
                     <button type="submit" class="btn btn-primary w-100">Simpan Status</button>
                 </form>
+                @endif
             </div>
         </div>
 

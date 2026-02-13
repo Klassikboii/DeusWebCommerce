@@ -12,10 +12,24 @@
                 </div>
                 <div class="card-body p-4">
                     <div class="text-center mb-4">
-                        <p class="text-muted mb-1">Total Tagihan</p>
-                        <h2 class="text-primary fw-bold">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</h2>
+                        <p class="text-muted mb-1">Total Tagihan (Termasuk Ongkir)</p>
+                        {{-- PASTIKAN INI MENJUMLAHKAN SHIPPING_COST --}}
+                        <h2 class="text-primary fw-bold">
+                            Rp {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
+                        </h2>
                         <span class="badge bg-secondary">{{ $order->order_number }}</span>
                     </div>
+
+                    {{-- Tampilkan Rincian Kecil --}}
+                    <div class="d-flex justify-content-between px-5 mb-3 text-muted small">
+                        <span>Subtotal Produk:</span>
+                        <span>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between px-5 mb-3 text-muted small">
+                        <span>Ongkos Kirim ({{ $order->courier_name }}):</span>
+                        <span>Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</span>
+                    </div>
+                    <hr>
 
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle me-1"></i> Silakan transfer ke rekening berikut:
