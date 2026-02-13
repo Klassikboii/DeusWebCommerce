@@ -165,8 +165,13 @@ Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant
     Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
     Route::patch('/cart/update', [App\Http\Controllers\CheckoutController::class, 'updateCart'])->name('store.cart.update');
     Route::delete('/cart/remove/{id}', [App\Http\Controllers\CheckoutController::class, 'removeFromCart'])->name('store.cart.remove');
-        // Route untuk AJAX Cek Ongkir (Ditaruh di group Storefront)
-    Route::post('/cart/check-shipping', [App\Http\Controllers\CheckoutController::class, 'checkShipping'])->name('store.cart.checkShipping');
+  
+
+        // SHIPPING ROUTES (RADIUS SYSTEM)
+    Route::get('/shipping', [App\Http\Controllers\Client\ShippingController::class, 'index'])->name('client.shipping.index');
+    Route::post('/shipping/range', [App\Http\Controllers\Client\ShippingController::class, 'store'])->name('client.shipping.store');
+    Route::put('/shipping/location', [App\Http\Controllers\Client\ShippingController::class, 'updateLocation'])->name('client.shipping.updateLocation'); // Route baru untuk update lokasi
+    Route::delete('/shipping/{range}', [App\Http\Controllers\Client\ShippingController::class, 'destroy'])->name('client.shipping.destroy');
     // Batasi maksimal 5 request per 1 menit per IP
     Route::middleware(['throttle:5,1'])->group(function () {
         Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'processCheckout'])->name('store.checkout');

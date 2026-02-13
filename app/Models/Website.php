@@ -50,6 +50,8 @@ class Website extends Model
         'meta_title', 
         'meta_description', 
         'meta_keywords',
+
+        'latitude', 'longitude'
     ];
 
     protected $casts = [
@@ -115,5 +117,10 @@ class Website extends Model
                     ->distinct()
                     ->orderBy('destination_city')
                     ->pluck('destination_city');
+    }
+
+    public function shippingRanges()
+    {
+        return $this->hasMany(ShippingRange::class)->orderBy('min_km', 'asc');
     }
 }

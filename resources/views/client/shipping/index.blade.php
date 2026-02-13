@@ -1,183 +1,159 @@
 @extends('layouts.client')
 
-@section('title', 'Pengaturan Ongkos Kirim')
+@section('title', 'Pengaturan Pengiriman (Radius)')
+
+{{-- LOAD CSS & JS LEAFLET (OPENSTREETMAP) --}}
+@section('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #map { height: 300px; width: 100%; border-radius: 8px; z-index: 1; }
+</style>
+@endsection
 
 @section('content')
 <div class="container-fluid p-0">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="fw-bold mb-1">Ongkos Kirim</h4>
-            <p class="text-muted small mb-0">Kelola tarif pengiriman toko Anda.</p>
-        </div>
-        <div class="d-flex gap-2">
-            {{-- TOMBOL DELETE ALL --}}
-            @if($rates->count() > 0)
-            <form action="{{ route('client.shipping.clear', $website->id) }}" method="POST" onsubmit="return confirm('PERINGATAN: Apakah Anda yakin ingin MENGHAPUS SEMUA data ongkir? Tindakan ini tidak bisa dibatalkan.')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-outline-danger">
-                    <i class="bi bi-trash me-1"></i> Hapus Semua
-                </button>
-            </form>
-            @endif
+    <h4 class="fw-bold mb-3">Pengaturan Pengiriman (Radius)</h4>
 
-            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importModal">
-                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import CSV
-            </button>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
-                <i class="bi bi-plus-lg me-1"></i> Tambah Manual
-            </button>
-        </div>
-    </div>
-    
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
+    <div class="row">
+        {{-- BAGIAN 1: SETTING LOKASI TOKO --}}
+        <div class="col-md-5 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3">
+                    <h6 class="fw-bold mb-0">1. Titik Lokasi Toko</h6>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Geser pin di peta untuk menentukan lokasi toko Anda. Titik ini akan menjadi pusat perhitungan jarak.</p>
+                    
+                    {{-- PETA --}}
+                    <div id="map" class="mb-3 border"></div>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
-                        <tr>
-                            <th class="ps-4">Kota Asal</th>
-                            <th>Kota Tujuan</th>
-                            <th>Ekspedisi</th>
-                            <th>Layanan</th> {{-- KOLOM BARU --}}
-                            <th>Tarif / Kg</th>
-                            <th>Estimasi</th>
-                            <th class="text-end pe-4">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($rates as $rate)
-                        <tr>
-                            <td class="ps-4 text-muted">{{ $rate->origin_city }}</td>
-                            <td class="fw-bold text-primary">{{ $rate->destination_city }}</td>
-                            <td>{{ $rate->courier_name }}</td>
-                            <td>
-                                {{-- BADGE LAYANAN --}}
-                                <span class="badge bg-light text-dark border">{{ $rate->service_name ?? '-' }}</span>
-                            </td>
-                            <td>Rp {{ number_format($rate->rate_per_kg, 0, ',', '.') }}</td>
-                            <td>
-                                @if($rate->min_day)
-                                    {{ $rate->min_day }}{{ $rate->max_day ? ' - '.$rate->max_day : '' }} Hari
-                                @elseif($rate->min_day && $rate->min_day == $rate->max_day)
-                                    {{ $rate->min_day }} Hari
-                                @else
-                                    -
-                                @endif
-                            </td>
-                            <td class="text-end pe-4">
-                                <form action="{{ route('client.shipping.destroy', [$website->id, $rate->id]) }}" method="POST" onsubmit="return confirm('Hapus tarif ini?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
-                                Belum ada data ongkir.<br>
-                                Silakan Import CSV atau Tambah Manual.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                    <form action="{{ route('client.shipping.updateLocation', $website->id) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="small text-muted">Latitude</label>
+                                <input type="text" id="lat" name="latitude" class="form-control form-control-sm bg-light" value="{{ $website->latitude }}" readonly>
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted">Longitude</label>
+                                <input type="text" id="lng" name="longitude" class="form-control form-control-sm bg-light" value="{{ $website->longitude }}" readonly>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-sm">Simpan Lokasi Toko</button>
+                    </form>
+                </div>
             </div>
         </div>
-        @if($rates->hasPages())
-        <div class="card-footer bg-white border-0 py-3">{{ $rates->links() }}</div>
-        @endif
+
+        {{-- BAGIAN 2: TABEL HARGA JARAK --}}
+        <div class="col-md-7 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">2. Tarif per Jarak</h6>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addRangeModal">
+                        <i class="bi bi-plus-lg"></i> Tambah Tarif
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Jarak Min</th>
+                                    <th>Jarak Max</th>
+                                    <th>Harga</th>
+                                    <th class="text-end pe-4">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($ranges as $range)
+                                <tr>
+                                    <td class="ps-4">{{ $range->min_km }} KM</td>
+                                    <td>{{ $range->max_km }} KM</td>
+                                    <td class="fw-bold text-success">Rp {{ number_format($range->price, 0, ',', '.') }}</td>
+                                    <td class="text-end pe-4">
+                                        <form action="{{ route('client.shipping.destroy', [$website->id, $range->id]) }}" method="POST">
+                                            @csrf @method('DELETE')
+                                            <button class="btn btn-link text-danger p-0 btn-sm"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted small">Belum ada setting tarif.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-{{-- MODAL TAMBAH MANUAL --}}
-<div class="modal fade" id="addModal" tabindex="-1">
-    <div class="modal-dialog">
+{{-- MODAL TAMBAH RANGE --}}
+<div class="modal fade" id="addRangeModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
         <form action="{{ route('client.shipping.store', $website->id) }}" method="POST" class="modal-content">
             @csrf
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">Tambah Ongkir Manual</h5>
+                <h6 class="modal-title fw-bold">Tambah Tarif</h6>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <label class="form-label">Kota Asal</label>
-                        <input type="text" name="origin_city" class="form-control" placeholder="Surabaya" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Kota Tujuan</label>
-                        <input type="text" name="destination_city" class="form-control" placeholder="Jakarta" required>
-                    </div>
+                <div class="mb-2">
+                    <label class="small">Dari (KM)</label>
+                    <input type="number" name="min_km" class="form-control" step="0.1" placeholder="0" required>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <label class="form-label">Kurir</label>
-                        <input type="text" name="courier_name" class="form-control" placeholder="JNE" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Layanan</label>
-                        <input type="text" name="service_name" class="form-control" placeholder="REG / YES" required>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-6">
-                        <label class="form-label">Tarif per Kg (Rp)</label>
-                        <input type="number" name="rate_per_kg" class="form-control" placeholder="10000" required>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Estimasi (Hari)</label>
-                        <div class="input-group">
-                            <input type="number" name="min_day" class="form-control" placeholder="Min">
-                            <span class="input-group-text">-</span>
-                            <input type="number" name="max_day" class="form-control" placeholder="Max">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-primary">Simpan</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- MODAL IMPORT --}}
-<div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog">
-        <form action="{{ route('client.shipping.import', $website->id) }}" method="POST" enctype="multipart/form-data" class="modal-content">
-            @csrf
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Import CSV</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info small mb-3">
-                    <strong>Format 8 Kolom:</strong><br>
-                    Asal, Tujuan, Kurir, Layanan, Tarif, Min Berat, Est Min, Est Max
+                <div class="mb-2">
+                    <label class="small">Sampai (KM)</label>
+                    <input type="number" name="max_km" class="form-control" step="0.1" placeholder="5" required>
                 </div>
                 <div class="mb-3">
-                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                    <label class="small">Ongkos Kirim (Rp)</label>
+                    <input type="number" name="price" class="form-control" placeholder="10000" required>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-success">Import</button>
+                <button type="submit" class="btn btn-primary w-100">Simpan</button>
             </div>
         </form>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Ambil koordinat awal dari database (atau default Surabaya)
+        var curLat = {{ $website->latitude ?? -7.2575 }};
+        var curLng = {{ $website->longitude ?? 112.7521 }};
+
+        // 2. Inisialisasi Peta
+        var map = L.map('map').setView([curLat, curLng], 13);
+
+        // 3. Pasang Tile Layer (Gambar Peta - Gratis dari OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 4. Tambahkan Marker (Bisa digeser)
+        var marker = L.marker([curLat, curLng], {draggable: true}).addTo(map);
+
+        // 5. Update Input saat marker digeser
+        marker.on('dragend', function(event) {
+            var position = marker.getLatLng();
+            document.getElementById('lat').value = position.lat.toFixed(6);
+            document.getElementById('lng').value = position.lng.toFixed(6);
+        });
+
+        // 6. Klik Peta untuk memindahkan marker
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            document.getElementById('lat').value = e.latlng.lat.toFixed(6);
+            document.getElementById('lng').value = e.latlng.lng.toFixed(6);
+        });
+    });
+</script>
 @endsection
