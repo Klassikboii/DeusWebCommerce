@@ -158,6 +158,9 @@ Route::middleware(['auth'])->group(function () {
 // GANTI DARI 'domain' KE 'prefix'
 Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant::class]], function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
+        // Di dalam Route Group 's/{subdomain}'
+    Route::get('/products', [App\Http\Controllers\StorefrontController::class, 'products'])->name('store.products');
+    
     Route::get('/product/{slug}', [App\Http\Controllers\StorefrontController::class, 'product'])->name('store.product');
 
     // ... Cart Routes (Pastikan controller menerima parameter $subdomain) ...

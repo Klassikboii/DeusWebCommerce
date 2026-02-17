@@ -50,6 +50,10 @@ class Website extends Model
         'meta_title', 
         'meta_description', 
         'meta_keywords',
+
+        'bank_name',
+        'bank_account_number',
+        'bank_account_holder',
     ];
 
     protected $casts = [

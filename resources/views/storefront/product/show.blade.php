@@ -3,6 +3,51 @@
 @section('title', $product->name . ' - ' . $website->site_name)
 
 @section('content')
+
+<style>
+    /* 1. Hilangkan panah input number */
+    .no-arrow::-webkit-outer-spin-button,
+    .no-arrow::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .no-arrow {
+        -moz-appearance: textfield;
+    }
+
+    /* 2. LOGIKA TAMPILAN CUSTOM (Breakpoint 695px) */
+    
+    /* Default: Tampilan Mobile (Aktif di layar < 696px) */
+    .desktop-cart-actions { display: none !important; }
+    .mobile-cart-actions { display: block !important; }
+    .mobile-spacer { display: block !important; }
+
+    /* Jika layar LEBIH BESAR dari 695px -> Pindah ke Desktop Mode */
+    @media (min-width: 696px) {
+        .desktop-cart-actions { display: flex !important; }
+        .mobile-cart-actions { display: none !important; }
+        .mobile-spacer { display: none !important; }
+    }
+
+    /* 3. STYLING STICKY BAR MOBILE */
+    .mobile-cart-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 9999;
+        background-color: white;
+        
+        /* Auto Extend ke Bawah: Padding Safe Area + Shadow */
+        padding: 1rem;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom)); /* Support Poni HP */
+        
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08); /* Shadow halus ke atas */
+        border-top: 1px solid #f0f0f0;
+    }
+</style>
+
 <div class="container py-5">
     
     {{-- BREADCRUMB --}}
@@ -36,10 +81,9 @@
 
                 <h1 class="fw-bold mb-2">{{ $product->name }}</h1>
                 
-                {{-- HARGA DINAMIS (Diberi ID agar bisa diubah JS) --}}
+                {{-- HARGA DINAMIS --}}
                 <h3 class="text-primary-custom fw-bold mb-3" id="product-price">
                     @if($product->hasVariants())
-                        {{-- Tampilkan Range Harga: Rp 50.000 - Rp 80.000 --}}
                         Rp {{ number_format($product->variants->min('price'), 0, ',', '.') }} 
                         @if($product->variants->min('price') != $product->variants->max('price'))
                             - Rp {{ number_format($product->variants->max('price'), 0, ',', '.') }}
@@ -53,7 +97,6 @@
                 <div class="mb-4">
                     <p class="text-muted">{{ $product->short_description ?? Str::limit(strip_tags($product->description), 150) }}</p>
                     
-                    {{-- STOK DINAMIS --}}
                     <span id="product-stock-badge" class="badge {{ $product->stock > 0 ? 'bg-success' : 'bg-danger' }}">
                         <i class="bi {{ $product->stock > 0 ? 'bi-check-circle' : 'bi-x-circle' }} me-1"></i> 
                         <span id="stock-text">
@@ -71,8 +114,8 @@
                 {{-- FORM ADD TO CART --}}
                 <form action="{{ route('store.cart.add', ['subdomain' => $website->subdomain, 'id' => $product->id]) }}" method="POST">
                     @csrf
-                    
-                    {{-- === LOGIKA VARIAN (BARU) === --}}
+
+                    {{-- LOGIKA VARIAN --}}
                     @if($product->hasVariants())
                         <div class="mb-4">
                             <label class="form-label fw-bold">Pilih Varian:</label>
@@ -89,22 +132,59 @@
                             <div class="form-text text-danger d-none" id="variant-error">Mohon pilih varian terlebih dahulu.</div>
                         </div>
                     @endif
-                    {{-- ============================ --}}
 
-                    <div class="d-flex align-items-center gap-3 mb-4">
-                        <div class="input-group" style="width: 130px;">
-                            <button class="btn btn-outline-secondary" type="button" onclick="this.parentNode.querySelector('input[type=number]').stepDown()">-</button>
-                            <input type="number" name="quantity" class="form-control text-center" value="1" min="1" max="{{ $product->stock }}" id="quantity-input">
-                            <button class="btn btn-outline-secondary" type="button" onclick="this.parentNode.querySelector('input[type=number]').stepUp()">+</button>
+                    {{-- 
+                        === TAMPILAN DESKTOP (> 695px) === 
+                        Menggunakan class 'desktop-cart-actions' yang diatur CSS di atas
+                    --}}
+                    <div class="desktop-cart-actions align-items-center gap-3 mb-4">
+                        <div class="input-group" style="width: 140px;">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustQty(-1)">
+                                <i class="bi bi-dash"></i>
+                            </button>
+                            <input type="number" name="quantity" class="form-control text-center desktop-qty no-arrow fw-bold" 
+                                   value="1" min="1" max="{{ $product->stock }}" onchange="syncQty(this.value)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustQty(1)">
+                                <i class="bi bi-plus"></i>
+                            </button>
                         </div>
                         
-                        {{-- Tombol disabled jika stok 0 (atau jika varian belum dipilih nanti dihandle JS) --}}
-                        <button type="submit" id="add-to-cart-btn" class="btn btn-primary btn-lg rounded-pill px-5" 
+                        <button type="submit" id="desktop-add-btn" class="btn btn-primary btn-lg rounded-pill px-5 add-btn"
                                 {{ (!$product->hasVariants() && $product->stock < 1) ? 'disabled' : '' }}>
                             <i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang
                         </button>
                     </div>
+
+                    {{-- 
+                        === TAMPILAN MOBILE (< 696px) === 
+                        Menggunakan class 'mobile-cart-actions' yang Sticky di bawah
+                    --}}
+                    <div class="mobile-cart-actions">
+                        <div class="d-flex gap-2 align-items-center">
+                            {{-- Quantity Selector Compact --}}
+                            <div class="input-group" style="width: 120px;">
+                                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="adjustQty(-1)">
+                                    <i class="bi bi-dash"></i>
+                                </button>
+                                <input type="number" class="form-control text-center mobile-qty no-arrow fw-bold" 
+                                       value="1" min="1" readonly onchange="syncQty(this.value)"> 
+                                <button class="btn btn-outline-secondary btn-sm" type="button" onclick="adjustQty(1)">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                            </div>
+
+                            {{-- Tombol Beli --}}
+                            <button type="submit" id="mobile-add-btn" class="btn btn-primary rounded-pill flex-grow-1 add-btn"
+                                    {{ (!$product->hasVariants() && $product->stock < 1) ? 'disabled' : '' }}>
+                                <i class="bi bi-bag-plus me-1"></i> Beli
+                            </button>
+                        </div>
+                    </div>
+
                 </form>
+
+                {{-- Spacer untuk Mobile agar konten tidak ketutup bar --}}
+                <div class="mobile-spacer" style="height: 100px;"></div>
 
                 <hr class="my-4">
 
@@ -153,47 +233,84 @@
 </div>
 
 <script>
+    // JS DETEKSI EDITOR (Iframe Fix)
+    // Jika di dalam editor, naikkan bar sedikit agar tidak tertutup footer editor
+    function inIframe() {
+        try { return window.self !== window.top; } catch (e) { return true; }
+    }
+    if (inIframe()) {
+        const style = document.createElement('style');
+        style.innerHTML = ` .mobile-cart-actions { bottom: 30px !important; } `; 
+        // Note: Anda bisa ubah 0px jadi 50px/80px jika toolbar editor menutupi
+        document.head.appendChild(style);
+    }
+
+    // FUNGSI SINKRONISASI JUMLAH
+    function syncQty(val) {
+        const desktopInput = document.querySelector('.desktop-qty');
+        const mobileInput = document.querySelector('.mobile-qty');
+        
+        let maxVal = parseInt(desktopInput.max) || 999;
+        let cleanVal = parseInt(val);
+
+        if (isNaN(cleanVal) || cleanVal < 1) cleanVal = 1;
+        if (cleanVal > maxVal) cleanVal = maxVal;
+
+        desktopInput.value = cleanVal;
+        mobileInput.value = cleanVal;
+    }
+
+    function adjustQty(amount) {
+        const desktopInput = document.querySelector('.desktop-qty');
+        let currentVal = parseInt(desktopInput.value) || 0;
+        syncQty(currentVal + amount); 
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
         const variantSelector = document.getElementById('variant-selector');
         const priceElement = document.getElementById('product-price');
         const stockBadge = document.getElementById('product-stock-badge');
-        const stockText = document.getElementById('stock-text');
-        const addToCartBtn = document.getElementById('add-to-cart-btn');
-        const quantityInput = document.getElementById('quantity-input');
         
-        // Format Rupiah Helper
+        const addToCartBtns = document.querySelectorAll('.add-btn');
+        const quantityInputs = document.querySelectorAll('.desktop-qty, .mobile-qty');
+        
         const formatRupiah = (number) => {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
         }
 
         if (variantSelector) {
-            // Awal: Disable tombol Add to Cart sampai user milih varian
-            addToCartBtn.disabled = true;
-            addToCartBtn.innerText = "Pilih Varian Dulu";
+            // Disable awal
+            addToCartBtns.forEach(btn => {
+                btn.disabled = true;
+                if(btn.id === 'desktop-add-btn') btn.innerHTML = 'Pilih Varian';
+                if(btn.id === 'mobile-add-btn') btn.innerHTML = 'Pilih Varian';
+            });
 
             variantSelector.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 const price = parseFloat(selectedOption.getAttribute('data-price'));
                 const stock = parseInt(selectedOption.getAttribute('data-stock'));
 
-                // 1. Update Harga
                 priceElement.innerText = formatRupiah(price);
+                quantityInputs.forEach(input => { input.max = stock; input.value = 1; });
 
-                // 2. Update Stok
                 if (stock > 0) {
                     stockBadge.className = 'badge bg-success';
                     stockBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> Stok: ${stock}`;
                     
-                    addToCartBtn.disabled = false;
-                    addToCartBtn.innerHTML = `<i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang`;
-                    quantityInput.max = stock; // Batasi input jumlah sesuai stok varian
-                    quantityInput.value = 1;   // Reset ke 1
+                    addToCartBtns.forEach(btn => {
+                        btn.disabled = false;
+                        if(btn.id === 'desktop-add-btn') btn.innerHTML = `<i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang`;
+                        if(btn.id === 'mobile-add-btn') btn.innerHTML = `<i class="bi bi-bag-plus me-1"></i> Beli`;
+                    });
                 } else {
                     stockBadge.className = 'badge bg-danger';
-                    stockBadge.innerHTML = `<i class="bi bi-x-circle me-1"></i> Stok Habis`;
+                    stockBadge.innerHTML = `<i class="bi bi-x-circle me-1"></i> Habis`;
                     
-                    addToCartBtn.disabled = true;
-                    addToCartBtn.innerText = "Stok Habis";
+                    addToCartBtns.forEach(btn => {
+                        btn.disabled = true;
+                        btn.innerText = "Stok Habis";
+                    });
                 }
             });
         }

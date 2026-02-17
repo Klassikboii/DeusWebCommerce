@@ -26,6 +26,10 @@ class SettingController extends Controller
             'email_contact' => 'nullable|email',
             'address' => 'nullable|string|max:500',
             'icon' => 'nullable|image|max:1024', // Validasi Icon Toko
+
+            'bank_name' => 'nullable|string|max:50',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_account_holder' => 'nullable|string|max:100',
         ]);
 
         $data = [
@@ -33,6 +37,9 @@ class SettingController extends Controller
             'whatsapp_number' => $request->whatsapp_number,
             'email_contact' => $request->email_contact,
             'address' => $request->address,
+            'bank_name' => $request->bank_name,
+            'bank_account_number' => $request->bank_account_number,
+            'bank_account_holder' => $request->bank_account_holder,
         ];
 
         // Fitur Tambahan: Upload Icon/Logo Toko (Opsional jika ingin dipakai nanti)

@@ -72,6 +72,75 @@ public function blogShow(Request $request, $subdomain, $slug)
         'post' => $post
     ]);
 }
+
+// Menampilkan halaman Katalog Produk (Search + Filter)
+    public function products(Request $request, $subdomain)
+    {
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        
+        // Query Dasar (Hanya produk aktif)
+        $query = $website->products()->where('status', 'active');
+
+        // 1. FILTER: PENCARIAN (Search)
+        if ($request->has('search') && $request->search != '') {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        // 2. FILTER: KATEGORI
+        if ($request->has('category')) {
+            // Bisa menerima ID atau Slug kategori
+            $category = $website->categories()->where('slug', $request->category)->first();
+            if ($category) {
+                $query->where('category_id', $category->id);
+            }
+        }
+
+        // 3. FILTER: RANGE HARGA
+        if ($request->has('min_price') && $request->min_price != '') {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->has('max_price') && $request->max_price != '') {
+            $query->where('price', '<=', $request->max_price);
+        }
+
+        // 4. SORTING (Urutan)
+        if ($request->has('sort')) {
+            switch ($request->sort) {
+                case 'price_asc':
+                    $query->orderBy('price', 'asc');
+                    break;
+                case 'price_desc':
+                    $query->orderBy('price', 'desc');
+                    break;
+                case 'newest':
+                    $query->latest();
+                    break;
+                case 'oldest':
+                    $query->oldest();
+                    break;
+                default:
+                    $query->latest();
+                    break;
+            }
+        } else {
+            $query->latest(); // Default: Terbaru
+        }
+
+        // 5. PAGINATION (12 Produk per halaman)
+        // withQueryString() penting agar saat pindah halaman, filter tidak hilang
+        $products = $query->paginate(12)->withQueryString();
+
+        // Data tambahan untuk Sidebar Filter
+        $categories = $website->categories;
+        
+        // Ambil Harga Min & Max dari seluruh produk (untuk batas input range)
+        $minProductPrice = $website->products()->min('price') ?? 0;
+        $maxProductPrice = $website->products()->max('price') ?? 0;
+
+        return view('storefront.products.index', compact(
+            'website', 'products', 'categories', 'minProductPrice', 'maxProductPrice'
+        ));
+    }
 public function product(Request $request, $subdomain, $slug)
 {
     // 1. Ambil Data Website

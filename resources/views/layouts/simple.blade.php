@@ -80,6 +80,15 @@
             background-size: cover;
             background-repeat: no-repeat;
         }
+        /* Hilangkan panah up/down default di input number */
+    .no-arrow::-webkit-outer-spin-button,
+    .no-arrow::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .no-arrow {
+        -moz-appearance: textfield; /* Firefox */
+    }
     </style>
     @stack('styles')
 </head>

@@ -31,9 +31,19 @@
                     </div>
                     <hr>
 
+                    {{-- GANTI BAGIAN HARDCODE INI --}}
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle me-1"></i> Silakan transfer ke rekening berikut:
-                        <br><strong>BCA 1234567890 a.n PT Deus Commerce</strong>
+                        <br>
+                        @if($website->bank_name && $website->bank_account_number)
+                            <strong class="fs-5 d-block mt-2">
+                                {{ strtoupper($website->bank_name) }} 
+                                {{ $website->bank_account_number }}
+                            </strong>
+                            <span>a.n {{ $website->bank_account_holder }}</span>
+                        @else
+                            <strong class="text-danger">Belum ada info rekening. Hubungi Admin via WhatsApp.</strong>
+                        @endif
                     </div>
 
                     {{-- 

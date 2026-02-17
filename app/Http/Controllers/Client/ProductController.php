@@ -129,7 +129,7 @@ class ProductController extends Controller
                 ]);
             }
             
-            // Update harga display produk induk (ambil harga terendah varian)
+            // Update harga display dduk (ambil harga terendah varian)
             $minPrice = $product->variants()->min('price');
             $totalStock = $product->variants()->sum('stock');
             
@@ -159,77 +159,108 @@ class ProductController extends Controller
     }
 
     // 2. PROSES UPDATE DATA
-    public function update(Request $request, Website $website, Product $product)
+   public function update(Request $request, Website $website, Product $product)
 {
     $this->authorize('update', $website);
 
-    // Validasi mirip store
-    $request->validate([
+    // 1. Cek Status Varian (Checkbox HTML tidak kirim value kalau uncheck, jadi kita cek keberadaannya)
+    $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
+
+    // 2. Validasi Dasar
+    $rules = [
         'name' => 'required|string|max:255',
         'category_id' => 'nullable|exists:categories,id',
         'image' => 'nullable|image|max:2048',
-    ]);
+        'description' => 'nullable',
+        'sku' => 'nullable|string|max:50',
+        'weight' => 'nullable|numeric|min:0',
+    ];
+
+    // Jika TIDAK pakai varian, Harga & Stok Utama WAJIB diisi
+    if (!$hasVariants) {
+        $rules['price'] = 'required|numeric|min:0';
+        $rules['stock'] = 'required|numeric|min:0';
+    }
+
+    $request->validate($rules);
 
     DB::beginTransaction();
 
     try {
-        // 1. Update Data Dasar Produk
+        // 3. Siapkan Data Update Utama
         $dataToUpdate = [
             'category_id' => $request->category_id,
-            'name' => $request->name,
+            'name'        => $request->name,
             'description' => $request->description,
-            'weight' => $request->weight ?? 1000,
-            'sku' => $request->sku,
-            // Reset harga/stok jika mode Varian aktif (akan dihitung ulang di bawah)
-            'price' => $request->has_variants ? 0 : $request->price,
-            'stock' => $request->has_variants ? 0 : $request->stock,
+            'weight'      => $request->weight ?? 1000,
+            'sku'         => $request->sku,
+            // Jika Uncheck (Jadi Simple Product) -> Pakai harga input
+            // Jika Check (Jadi Variant Product) -> Set 0 dulu (nanti diupdate totalnya)
+            'price'       => $hasVariants ? 0 : $request->price,
+            'stock'       => $hasVariants ? 0 : $request->stock,
         ];
 
+        // Handle Image Upload
         if ($request->hasFile('image')) {
-            // Hapus gambar lama jika ada
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
             $dataToUpdate['image'] = $request->file('image')->store('products', 'public');
         }
 
+        // Lakukan Update Utama
         $product->update($dataToUpdate);
 
-        // 2. Logic Varian
-        if ($request->has_variants && is_array($request->variants)) {
+        // 4. Logika Varian
+        if ($hasVariants) {
+            // SKENARIO A: Mode Varian AKTIF
             
-            // A. Kumpulkan ID varian yang dikirim dari Form (untuk mendeteksi yang dihapus)
-            $submittedVariantIds = collect($request->variants)->pluck('id')->filter()->toArray();
-            
-            // B. Hapus varian di Database yang TIDAK ada di list form (artinya user menghapusnya)
-            $product->variants()->whereNotIn('id', $submittedVariantIds)->delete();
+            if (is_array($request->variants)) {
+                // A. Kumpulkan ID yang dikirim (untuk deteksi hapus)
+                $submittedIds = collect($request->variants)->pluck('id')->filter()->toArray();
+                
+                // B. Hapus varian lama yang tidak ada di form baru
+                $product->variants()->whereNotIn('id', $submittedIds)->delete();
 
-            // C. Loop Update / Create
-            foreach ($request->variants as $variantData) {
-                if (empty($variantData['name'])) continue;
+                // C. Update / Create Varian
+                $minPrice = null;
+                $totalStock = 0;
 
-                $product->variants()->updateOrCreate(
-                    ['id' => $variantData['id'] ?? null], // Kunci pencarian (jika null, buat baru)
-                    [
-                        'name' => $variantData['name'],
-                        'options' => ['name' => $variantData['name']],
-                        'price' => $variantData['price'],
-                        'stock' => $variantData['stock'],
-                        'sku' => $variantData['sku'] ?? null,
-                        'weight' => $request->weight,
-                    ]
-                );
+                foreach ($request->variants as $variantData) {
+                    // Skip baris kosong
+                    if (empty($variantData['name'])) continue;
+
+                    $variant = $product->variants()->updateOrCreate(
+                        ['id' => $variantData['id'] ?? null],
+                        [
+                            'name'    => $variantData['name'],
+                            'options' => ['name' => $variantData['name']],
+                            'price'   => $variantData['price'] ?? 0,
+                            'stock'   => $variantData['stock'] ?? 0,
+                            'sku'     => $variantData['sku'] ?? null,
+                            'weight'  => $request->weight ?? 1000,
+                        ]
+                    );
+
+                    // Hitung Min Price & Total Stock untuk Parent
+                    $price = (int) ($variantData['price'] ?? 0);
+                    $stock = (int) ($variantData['stock'] ?? 0);
+
+                    if ($minPrice === null || $price < $minPrice) {
+                        $minPrice = $price;
+                    }
+                    $totalStock += $stock;
+                }
+
+                // D. Update Parent dengan Agregasi Varian
+                $product->update([
+                    'price' => $minPrice ?? 0,
+                    'stock' => $totalStock
+                ]);
             }
-
-            // D. Hitung Ulang Total Stok & Harga Terendah Parent
-            $product->update([
-                'price' => $product->variants()->min('price'),
-                'stock' => $product->variants()->sum('stock')
-            ]);
-
         } else {
-            // Kasus: User mematikan toggle varian (Switch back to Single)
-            // Hapus semua varian
+            // SKENARIO B: Mode Varian NON-AKTIF (Uncheck)
+            // Hapus semua varian yang mungkin tersisa
             $product->variants()->delete();
         }
 
@@ -238,7 +269,7 @@ class ProductController extends Controller
 
     } catch (\Exception $e) {
         DB::rollBack();
-        return back()->with('error', 'Gagal update: ' . $e->getMessage());
+        return back()->with('error', 'Gagal update: ' . $e->getMessage())->withInput();
     }
 }
 

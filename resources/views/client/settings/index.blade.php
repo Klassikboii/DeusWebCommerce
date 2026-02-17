@@ -69,6 +69,33 @@
                     <textarea name="address" class="form-control" rows="3" placeholder="Jl. Contoh No. 123, Kota...">{{ old('address', $website->address) }}</textarea>
                     <small class="text-muted">Akan ditampilkan di bagian Footer website.</small>
                 </div>
+
+                {{-- ... Di dalam Form Settings, setelah input Address ... --}}
+
+                    <hr class="my-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-credit-card me-2"></i>Informasi Rekening Bank</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Nama Bank</label>
+                            <input type="text" name="bank_name" class="form-control" 
+                                placeholder="Contoh: BCA / Mandiri" 
+                                value="{{ old('bank_name', $website->bank_name) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Nomor Rekening</label>
+                            <input type="number" name="bank_account_number" class="form-control" 
+                                placeholder="Contoh: 1234567890" 
+                                value="{{ old('bank_account_number', $website->bank_account_number) }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Atas Nama (Pemilik Rekening)</label>
+                            <input type="text" name="bank_account_holder" class="form-control" 
+                                placeholder="Contoh: John Doe" 
+                                value="{{ old('bank_account_holder', $website->bank_account_holder) }}">
+                        </div>
+                    </div>
+
+{{-- ... Lanjut ke tombol Save ... --}}
             </div>
         </div>
 
