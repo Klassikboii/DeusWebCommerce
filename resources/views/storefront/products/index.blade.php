@@ -9,21 +9,20 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold mb-1">Semua Produk</h2>
-            <p class="text-muted small mb-0">Menampilkan {{ $products->firstItem() ?? 0 }}-{{ $products->lastItem() ?? 0 }} dari {{ $products->total() }} produk</p>
+            <p class="text-muted small mb-0">Temukan produk favoritmu</p>
         </div>
         
         <div class="d-flex gap-2">
-            {{-- Tombol Filter Mobile --}}
             <button class="btn btn-outline-dark d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#filterOffcanvas">
                 <i class="bi bi-funnel"></i> Filter
             </button>
 
-            {{-- Sort Dropdown --}}
-            <select class="form-select w-auto" onchange="window.location.href=this.value">
-                <option value="{{ request()->fullUrlWithQuery(['sort' => 'newest']) }}" {{ request('sort') == 'newest' ? 'selected' : '' }}>Terbaru</option>
-                <option value="{{ request()->fullUrlWithQuery(['sort' => 'price_asc']) }}" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>Harga Terendah</option>
-                <option value="{{ request()->fullUrlWithQuery(['sort' => 'price_desc']) }}" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Harga Tertinggi</option>
-                <option value="{{ request()->fullUrlWithQuery(['sort' => 'oldest']) }}" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Terlama</option>
+            {{-- SORTING (Diberi ID filter-sort) --}}
+            <select class="form-select w-auto" id="filter-sort">
+                <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Terbaru</option>
+                <option value="price_asc" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>Harga Terendah</option>
+                <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Harga Tertinggi</option>
+                <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Terlama</option>
             </select>
         </div>
     </div>
@@ -31,77 +30,32 @@
     <div class="row">
         {{-- SIDEBAR FILTER (DESKTOP) --}}
         <div class="col-lg-3 d-none d-lg-block">
-            @include('storefront.products.partials.filter_sidebar')
+            {{-- Karena Anda menghapus partials, masukkan kode sidebar langsung di sini --}}
+            @include('storefront.products.partials.filter_sidebar_content') 
         </div>
 
-        {{-- PRODUCT GRID --}}
+        {{-- PRODUCT GRID AREA --}}
         <div class="col-lg-9">
             
-            {{-- Search Bar --}}
-            <form action="{{ route('store.products', $website->subdomain) }}" method="GET" class="mb-4">
-                {{-- Keep existing filters hidden --}}
-                @foreach(request()->except(['search', 'page']) as $key => $value)
-                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                @endforeach
-                
+            {{-- Search Bar (Real Time) --}}
+            <div class="mb-4">
                 <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Cari produk..." value="{{ request('search') }}">
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+                    <input type="text" id="search-input" class="form-control" placeholder="Cari produk (ketik untuk mencari)..." value="{{ request('search') }}">
+                    <button class="btn btn-primary"><i class="bi bi-search"></i></button>
                 </div>
-            </form>
+            </div>
 
-            @if($products->count() > 0)
-                <div class="row g-4">
-                    @foreach($products as $product)
-                        <div class="col-6 col-md-4">
-                            <div class="card h-100 border-0 shadow-sm product-card">
-                                <div class="position-relative overflow-hidden rounded-top">
-                                    <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
-                                        @if($product->image)
-                                            <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
-                                        @else
-                                            <div class="bg-light card-img-top d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
-                                                <i class="bi bi-image text-muted fs-1"></i>
-                                            </div>
-                                        @endif
-                                    </a>
-                                    @if($product->stock <= 0)
-                                        <div class="position-absolute top-0 end-0 m-2">
-                                            <span class="badge bg-danger">Habis</span>
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="card-body p-3 text-center">
-                                    @if($product->category)
-                                        <small class="text-muted d-block mb-1">{{ $product->category->name }}</small>
-                                    @endif
-                                    <h6 class="card-title text-truncate mb-2">
-                                        <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}" class="text-decoration-none text-dark stretched-link">
-                                            {{ $product->name }}
-                                        </a>
-                                    </h6>
-                                    <p class="text-primary fw-bold mb-0">
-                                        Rp {{ number_format($product->price, 0, ',', '.') }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    @endforeach
+            {{-- CONTAINER PRODUK (Akan di-refresh oleh AJAX) --}}
+            <div id="product-grid-container" style="min-height: 300px; position: relative;">
+                {{-- Loader (Hidden by default) --}}
+                <div id="loading-overlay" class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-none justify-content-center pt-5" style="z-index: 10;">
+                    <div class="spinner-border text-primary" role="status"></div>
                 </div>
 
-                {{-- PAGINATION --}}
-                <div class="mt-5 d-flex justify-content-center">
-                    {{ $products->links() }} 
-                </div>
+                {{-- Include Awal --}}
+                @include('storefront.products.partials.product_list')
+            </div>
 
-            @else
-                <div class="text-center py-5">
-                    <img src="https://illustrations.popsy.co/gray/surr-searching.svg" alt="Empty" style="width: 200px; opacity: 0.5;">
-                    <h5 class="mt-3 fw-bold">Produk Tidak Ditemukan</h5>
-                    <p class="text-muted">Coba kata kunci lain atau reset filter.</p>
-                    <a href="{{ route('store.products', $website->subdomain) }}" class="btn btn-outline-primary mt-2">Reset Filter</a>
-                </div>
-            @endif
         </div>
     </div>
 </div>
@@ -113,7 +67,104 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body">
-        @include('storefront.products.partials.filter_sidebar')
+         @include('storefront.products.partials.filter_sidebar_content')
     </div>
 </div>
+
+{{-- JAVASCRIPT REAL TIME --}}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Elemen-elemen penting
+        const container = document.getElementById('product-grid-container');
+        const loader = document.getElementById('loading-overlay');
+        const searchInput = document.getElementById('search-input');
+        const sortSelect = document.getElementById('filter-sort');
+        
+        // Ambil semua input filter (Radio & Number)
+        const filterInputs = document.querySelectorAll('input[name="category"], input[name="min_price"], input[name="max_price"]');
+        
+        // Timer untuk Debounce (Agar tidak request setiap ketikan)
+        let debounceTimer;
+
+        // FUNGSI UTAMA: Fetch Data
+        function fetchProducts(url = null) {
+            // Tampilkan Loading
+            loader.classList.remove('d-none');
+
+            // Bangun URL Query
+            let currentUrl = new URL(url || "{{ route('store.products', $website->subdomain) }}");
+            let params = new URLSearchParams(currentUrl.search);
+
+            // Masukkan data Search
+            if(searchInput.value) params.set('search', searchInput.value);
+            else params.delete('search');
+
+            // Masukkan data Sort
+            if(sortSelect.value) params.set('sort', sortSelect.value);
+
+            // Masukkan data Filter Sidebar
+            filterInputs.forEach(input => {
+                if ((input.type === 'radio' && input.checked) || (input.type === 'number' && input.value)) {
+                    params.set(input.name, input.value);
+                }
+            });
+
+            // Update URL Browser (biar kalau di-refresh tetap sama)
+            window.history.pushState({}, '', `${currentUrl.pathname}?${params.toString()}`);
+
+            // Request AJAX
+            fetch(`${currentUrl.pathname}?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Ganti konten Grid
+                container.innerHTML = html;
+                // Masukkan ulang loader karena dia ikut tertimpa (atau pisahkan loader dari container)
+                container.prepend(loader); 
+                loader.classList.add('d-none');
+                
+                // Re-attach event listener untuk Pagination baru
+                attachPaginationListeners();
+            })
+            .catch(err => {
+                console.error('Error fetching products:', err);
+                loader.classList.add('d-none');
+            });
+        }
+
+        // 1. EVENT: SEARCH (Debounce 500ms)
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                fetchProducts();
+            }, 500); // Tunggu 0.5 detik setelah user berhenti mengetik
+        });
+
+        // 2. EVENT: SORT CHANGE
+        sortSelect.addEventListener('change', () => fetchProducts());
+
+        // 3. EVENT: FILTER CHANGE (Kategori & Harga)
+        filterInputs.forEach(input => {
+            input.addEventListener('change', () => fetchProducts());
+        });
+
+        // 4. EVENT: PAGINATION CLICK
+        function attachPaginationListeners() {
+            const pageLinks = document.querySelectorAll('.ajax-pagination a');
+            pageLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    fetchProducts(this.href); // Load halaman yang diklik
+                    
+                    // Scroll ke atas grid sedikit biar enak dilihat
+                    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+        }
+
+        // Jalankan listener pagination pertama kali
+        attachPaginationListeners();
+    });
+</script>
 @endsection

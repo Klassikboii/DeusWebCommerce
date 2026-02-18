@@ -33,107 +33,108 @@ class StorefrontController extends Controller
         ]);
     }
     
-    public function blogIndex(Request $request)
-{
-    // 1. Ambil data website
-    // (Otomatis dari middleware, atau ambil manual jika null)
-    $website = $request->get('website');
-    
-    if (!$website) {
-        $subdomain = $request->route('subdomain');
-        $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
+   // Tambahkan parameter $subdomain di sini
+    public function blogIndex(Request $request, $subdomain)
+    {
+        // 1. Ambil data website
+        // Kita cari manual saja biar lebih aman & pasti
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+
+        // 2. Ambil Postingan (Hanya yang statusnya published, opsional)
+        $posts = $website->posts()->latest()->paginate(9); 
+
+        // 3. Tampilkan View
+        return view('storefront.blog.index', [
+            'website' => $website,
+            'posts' => $posts
+        ]);
     }
 
-    // 2. Ambil Postingan (Hanya yang statusnya published, opsional)
-    // Gunakan paginate agar halaman tidak berat
-    $posts = $website->posts()->latest()->paginate(9); 
+    // Tambahkan parameter $subdomain di sini juga
+    public function blogShow(Request $request, $subdomain, $slug)
+    {
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
 
-    // 3. Tampilkan View
-    return view('storefront.blog.index', [
-        'website' => $website,
-        'posts' => $posts
-    ]);
-}
+        // Cari post berdasarkan slug DAN id website
+        $post = $website->posts() // Pakai relasi agar lebih aman
+                    ->where('slug', $slug)
+                    ->firstOrFail();
 
-public function blogShow(Request $request, $subdomain, $slug)
-{
-    $website = $request->get('website');
-    if (!$website) {
-        $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
+        // Opsional: Ambil recent posts untuk sidebar
+        $recentPosts = $website->posts()
+                        ->where('id', '!=', $post->id)
+                        ->latest()
+                        ->take(5)
+                        ->get();
+
+        return view('storefront.blog.show', [
+            'website' => $website,
+            'post' => $post,
+            'recentPosts' => $recentPosts // Kirim variabel ini ke view
+        ]);
     }
-
-    // Cari post berdasarkan slug DAN id website (biar tidak bocor)
-    $post = Post::where('website_id', $website->id)
-                ->where('slug', $slug)
-                ->firstOrFail();
-
-    return view('storefront.blog.show', [
-        'website' => $website,
-        'post' => $post
-    ]);
-}
-
-// Menampilkan halaman Katalog Produk (Search + Filter)
-    public function products(Request $request, $subdomain)
+public function products(Request $request, $subdomain)
     {
         $website = Website::where('subdomain', $subdomain)->firstOrFail();
         
-        // Query Dasar (Hanya produk aktif)
-        $query = $website->products()->where('status', 'active');
+        // 1. QUERY DASAR
+        // Kita mulai dari relasi products() tanpa filter status dulu
+        $query = $website->products(); 
 
-        // 1. FILTER: PENCARIAN (Search)
-        if ($request->has('search') && $request->search != '') {
-            $query->where('name', 'like', '%' . $request->search . '%');
+        // 2. FILTER: PENCARIAN (Search)
+        // Cek apakah ada parameter 'search' di URL
+        if ($request->has('search') && $request->get('search') != '') {
+            $searchTerm = $request->get('search');
+            $query->where('name', 'like', '%' . $searchTerm . '%');
         }
 
-        // 2. FILTER: KATEGORI
-        if ($request->has('category')) {
-            // Bisa menerima ID atau Slug kategori
+        // 3. FILTER: KATEGORI
+        if ($request->filled('category')) {
             $category = $website->categories()->where('slug', $request->category)->first();
             if ($category) {
                 $query->where('category_id', $category->id);
             }
         }
 
-        // 3. FILTER: RANGE HARGA
-        if ($request->has('min_price') && $request->min_price != '') {
+        // 4. FILTER: HARGA
+        if ($request->filled('min_price')) {
             $query->where('price', '>=', $request->min_price);
         }
-        if ($request->has('max_price') && $request->max_price != '') {
+        if ($request->filled('max_price')) {
             $query->where('price', '<=', $request->max_price);
         }
 
-        // 4. SORTING (Urutan)
-        if ($request->has('sort')) {
+        // 5. SORTING
+        if ($request->filled('sort')) {
             switch ($request->sort) {
-                case 'price_asc':
-                    $query->orderBy('price', 'asc');
-                    break;
-                case 'price_desc':
-                    $query->orderBy('price', 'desc');
-                    break;
-                case 'newest':
-                    $query->latest();
-                    break;
-                case 'oldest':
-                    $query->oldest();
-                    break;
-                default:
-                    $query->latest();
-                    break;
+                case 'price_asc': $query->orderBy('price', 'asc'); break;
+                case 'price_desc': $query->orderBy('price', 'desc'); break;
+                case 'oldest': $query->oldest(); break;
+                default: $query->latest(); break;
             }
         } else {
-            $query->latest(); // Default: Terbaru
+            $query->latest();
         }
 
-        // 5. PAGINATION (12 Produk per halaman)
-        // withQueryString() penting agar saat pindah halaman, filter tidak hilang
-        $products = $query->paginate(12)->withQueryString();
+        // 6. EKSEKUSI DATA (Mencegah Error Undefined Variable)
+        if ($request->ajax() && $request->input('type') == 'dropdown') {
+            // Skenario A: Navbar Dropdown (Limit 5)
+            $products = $query->take(5)->get();
+        } else {
+            // Skenario B: Halaman Utama (Pagination 12)
+            $products = $query->paginate(12)->withQueryString();
+        }
 
-        // Data tambahan untuk Sidebar Filter
+        // 7. RETURN VIEW
+        if ($request->ajax()) {
+            if ($request->input('type') == 'dropdown') {
+                return view('storefront.products.partials.search_dropdown', compact('products', 'website'))->render();
+            }
+            return view('storefront.products.partials.product_list', compact('products', 'website'))->render();
+        }
+
+        // Data pendukung untuk view utama
         $categories = $website->categories;
-        
-        // Ambil Harga Min & Max dari seluruh produk (untuk batas input range)
         $minProductPrice = $website->products()->min('price') ?? 0;
         $maxProductPrice = $website->products()->max('price') ?? 0;
 
@@ -172,8 +173,4 @@ public function product(Request $request, $subdomain, $slug)
         'relatedProducts' => $relatedProducts
     ]);
 }
-
-    
-
-
 }

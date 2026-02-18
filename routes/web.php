@@ -180,7 +180,7 @@ Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant
     Route::post('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'confirmPayment'])->name('store.payment.confirm');
     
     // === ROUTE BLOG (SUDAH BENAR) ===
-    Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('store.blog');
+    Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('storefront.blog.index');
     Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('store.blog.show');
 })->name('store.');
 // --- GRUP ROUTE SUPER ADMIN ---

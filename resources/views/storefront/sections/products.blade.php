@@ -1,99 +1,70 @@
-@php
-    $title = $data['title'] ?? 'Produk Pilihan';
-    
-    // 1. Ambil Limit Saat Ini (dari JSON)
-    $currentLimit = $data['limit'] ?? 8;
-    
-    // 2. TAPI, Kita query selalu MAX (12) agar Live Preview bisa jalan
-    // (Jika kita cuma query 4, nanti pas diganti ke 8, datanya kurang)
-    $products = $website->products()->with('category')->latest()->take(12)->get();
-    
-    $sectionId = $data['id'] ?? 'products';
-    $isSimple = ($website->active_template == 'simple');
-@endphp
-
-<div id="products" class="container pb-5 pt-4">
-    
-    {{-- ... (Bagian Judul Biarkan Seperti Sebelumnya) ... --}}
-    @if($isSimple)
-        <h3 class="text-center mb-5 fst-italic live-editable" data-section-id="{{ $sectionId }}" data-key="title">{{ $title }}</h3>
-    @else
+<section id="products" class="py-5 bg-light">
+    <div class="container">
         <div class="text-center mb-5">
-            <h2 class="fw-bold live-editable" data-section-id="{{ $sectionId }}" data-key="title">{{ $title }}</h2>
-            <div style="height: 4px; width: 60px; background-color: var(--primary-color); margin: 0 auto;"></div>
+            <h2 class="fw-bold section-title">Produk Terbaru</h2>
+            <p class="text-muted">Pilihan terbaik untuk Anda</p>
         </div>
-    @endif
 
-    <div class="row g-4 product-grid-container"> {{-- Tambahkan ID/Class Container --}}
-       
-        
-        @forelse($products as $index => $item)
-        
-        {{-- .card-website:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); } --}}
-            {{-- LOGIKA SHOW/HIDE: --}}
-            {{-- Jika urutan produk > limit saat ini, sembunyikan dengan style="display:none" --}}
-            {{-- Tambahkan class 'product-item' agar mudah dihitung JS --}}
-            
-            <div class="col-6 col-md-3 product-item"  
-                 style="{{ ($index >= $currentLimit) ? 'display: none !important;' : '' }} cursor: pointer; .card-website"
-                 onclick="window.location.href='{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $item->slug]) }}'"
-                 onmouseover="this.style.transform='translateY(-5px)'; title='Klik untuk melihat detail produk';"
-                 onmouseout=" this.style.transform='translateY(0)';">
-                 
-                
-                <div class="card h-100 {{ $isSimple ? 'border-0' : 'shadow-sm border' }}">
-                    {{-- ... (Isi Card Produk SAMA SEPERTI SEBELUMNYA, tidak perlu diubah) ... --}}
-                    
-                    @if($item->image)
-                        <img src="{{ asset('storage/' . $item->image) }}" class="card-img-top" style="aspect-ratio: var(--ratio-product, 1/1); object-fit: cover;">
-                    @else
-                        <div class="bg-light card-img-top d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;"><i class="bi bi-image text-muted"></i></div>
-                    @endif
-                    <div class="card-body text-center p-3 d-flex flex-column">
-                        @if($item->category)
-                            <span class="badge mb-2 " style="background-color: var(--secondary-color); color: white;">{{ $item->category->name }}</span>
-                        @endif
-                        <h6 class="card-title mb-1 small text-uppercase fw-bold">{{ $item->name }}</h6>
-                        <p class="card-text fw-bold text-primary-custom mb-3">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
-                        <p class="card-text mb-3">Stock : {{ $item->stock  }}</p>
-                        <div class="mt-auto">
-                            <form action="{{ route('store.cart.add', ['subdomain' => $website->subdomain, 'id' => $item->id]) }}" method="POST">
-                                 @csrf   
-                             <div class="mt-auto">
-                                    {{-- TOMBOL LIHAT DETAIL --}}
-                                    <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $item->slug]) }}" 
-                                    class="btn w-100 btn-sm {{ $isSimple ? 'btn-outline-dark rounded-0' : 'btn-outline-secondary-custom rounded-pill' }}">
-                                    
-                                    {{-- Teks Tombol Cerdas --}}
-                                    @if($item->stock <= 0)
-                                        <i class="bi bi-x-circle"></i> Stok Habis
-                                    @elseif($item->hasVariants())
-                                        <i class="bi bi-eye"></i> Pilih Varian
-                                    @else
-                                        <i class="bi bi-eye"></i> Lihat Detail
-                                    @endif
-                                    </a>
+        <div class="row g-4">
+            {{-- HANYA TAMPILKAN 8 PRODUK TERBARU --}}
+            @foreach($website->products()->latest()->take(8)->get() as $product)
+                <div class="col-6 col-md-4 col-lg-3 product-item">
+                    <div class="card h-100 border-0 shadow-sm product-card hover-up">
+                        <div class="position-relative overflow-hidden rounded-top">
+                            <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
+                                @if($product->image)
+                                    <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
+                                @else
+                                    <div class="bg-light card-img-top d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
+                                        <i class="bi bi-image text-muted fs-1"></i>
+                                    </div>
+                                @endif
+                            </a>
+                            
+                            {{-- Badge Stok Habis --}}
+                            @if($product->stock <= 0)
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-danger bg-opacity-75 backdrop-blur">Habis</span>
                                 </div>
-                            </form>
+                            @endif
+                        </div>
+
+                        <div class="card-body p-3 text-center">
+                            @if($product->category)
+                                <small class="text-muted d-block mb-1 text-uppercase" style="font-size: 0.7rem;">{{ $product->category->name }}</small>
+                            @endif
+                            
+                            <h6 class="card-title text-truncate mb-2 fw-bold" style="font-size: 1rem;">
+                                <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}" class="text-decoration-none text-dark stretched-link">
+                                    {{ $product->name }}
+                                </a>
+                            </h6>
+                            
+                            <p class="text-primary fw-bold mb-0">
+                                @if($product->hasVariants())
+                                    <small>Mulai</small> Rp {{ number_format($product->variants->min('price'), 0, ',', '.') }}
+                                @else
+                                    Rp {{ number_format($product->price, 0, ',', '.') }}
+                                @endif
+                            </p>
                         </div>
                     </div>
                 </div>
+            @endforeach
+        </div>
 
-            </div>
-        @empty
-            <div class="col-12 text-center text-muted py-5">
-                Belum ada produk.
-            </div>
-        @endforelse
+        {{-- TOMBOL LIHAT SEMUA --}}
+        <div class="text-center mt-5">
+            <a href="{{ route('store.products', $website->subdomain) }}" class="btn btn-outline-primary rounded-pill px-5 py-2">
+                Lihat Semua Produk <i class="bi bi-arrow-right ms-2"></i>
+            </a>
+        </div>
     </div>
-</div>
+</section>
 
-<script>
-    if ({{ $item->stock }} <= 0) {
-        document.getElementById("buybutton").disabled = true;
-    }
-    else{
-        document.getElementById("buybutton").disabled = false;
-    }
- 
-</script>
+{{-- CSS Tambahan untuk Efek Hover --}}
+<style>
+    .hover-up { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .hover-up:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+    .backdrop-blur { backdrop-filter: blur(2px); }
+</style>
