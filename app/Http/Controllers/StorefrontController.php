@@ -173,4 +173,48 @@ public function product(Request $request, $subdomain, $slug)
         'relatedProducts' => $relatedProducts
     ]);
 }
+
+// --- FITUR CEK PESANAN (TRACK ORDER) ---
+
+    public function trackOrder(Request $request, $subdomain)
+    {
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        return view('storefront.track_order', compact('website'));
+    }
+
+    public function processTrackOrder(Request $request, $subdomain)
+    {
+        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+
+        // 1. Validasi Input
+        $request->validate([
+            'order_number' => 'required|string',
+            'contact'      => 'required|string', // Bisa Email atau No HP
+        ]);
+
+        // 2. Cari Order
+        // Logika: Cari order di website ini, dengan No Order yg sesuai,
+        // DAN (Email cocok ATAU No HP cocok) -> demi keamanan data.
+        $order = $website->orders()
+            ->where('order_number', $request->order_number)
+            ->where(function($q) use ($request) {
+                $q->where('customer_whatsapp', $request->contact);
+            })
+            ->first();
+
+        // 3. Eksekusi
+        if ($order) {
+            // Jika statusnya unpaid, arahkan ke pembayaran
+            if ($order->status == 'unpaid') {
+                return redirect()->route('store.payment', ['subdomain' => $subdomain, 'order_number' => $order->order_number]);
+            }
+            
+            // Jika sudah paid/shipped, mungkin nanti kita buat halaman detail status (Opsional)
+            // Untuk sekarang kita arahkan ke pembayaran juga (biasanya di sana ada status 'Sudah Dibayar')
+            return redirect()->route('store.payment', ['subdomain' => $subdomain, 'order_number' => $order->order_number]);
+        }
+
+        // 4. Jika Tidak Ketemu
+        return back()->with('error', 'Pesanan tidak ditemukan. Pastikan Nomor Order dan No HP sesuai.');
+    }
 }

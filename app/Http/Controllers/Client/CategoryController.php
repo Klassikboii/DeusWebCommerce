@@ -16,7 +16,7 @@ class CategoryController extends Controller
     public function index(Website $website)
     {
         // Ambil kategori milik website ini saja
-        $categories = $website->categories()->latest()->get();
+        $categories = $website->categories()->latest()->paginate(10);
         return view('client.categories.index', compact('website', 'categories'));
     }
 

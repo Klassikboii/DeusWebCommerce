@@ -165,7 +165,12 @@
                             </a>
                         </li>
                         @endforeach
-
+                        {{-- ITEM TAMBAHAN: CEK PESANAN --}}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('store.track', $website->subdomain) }}">
+                            Cek Pesanan
+                        </a>
+                    </li>
                     {{-- CART BUTTON --}}
                     @php
                         $cartKey = 'cart_' . $website->id;
@@ -326,9 +331,163 @@
         }
     });
 
-    // ... (Kode Preview Mode Editor Anda tetap di sini) ...
-    const isPreview = (window.self !== window.top);
-    // ...
+    // Hanya jalankan listener jika berada di dalam iframe (Mode Preview)
+        const isPreview = (window.self !== window.top);
+
+        if (isPreview) {
+            console.log("Mode Preview Aktif: Link dan Form dimatikan.");
+
+            // 1. Blokir Link & Form HANYA jika di preview
+            document.querySelectorAll('a, form').forEach(el => {
+                // Jangan blokir anchor link (#) agar smooth scroll tetap bisa dicek di preview
+                if (el.tagName === 'A' && el.getAttribute('href').startsWith('#')) {
+                    return; 
+                }
+
+                // Blokir link pindah halaman
+                el.addEventListener('click', e => {
+                    e.preventDefault();
+                    // Opsional: alert('Link dimatikan di mode editor');
+                });
+                
+                // Blokir submit form
+                el.addEventListener('submit', e => {
+                    e.preventDefault();
+                });
+            });
+
+            // 2. Event Listener Utama
+            window.addEventListener('message', function(event) {
+                const data = event.data;
+                
+                // A. UPDATE STYLE (Warna/Font)
+                if (data.type === 'updateStyle') {
+                    document.documentElement.style.setProperty(data.variable, data.value);
+                }
+
+                // B. UPDATE TEXT (Konten Section)
+                else if (data.type === 'updateSection') {
+                    // --- LOGIKA BARU UNTUK LIMIT PRODUK ---
+                    if (data.key === 'limit') {
+                        const newLimit = parseInt(data.value);
+                        // Cari semua elemen produk
+                        const items = document.querySelectorAll('.product-item');
+                        
+                        items.forEach((item, index) => {
+                            // Jika urutan < limit baru -> TAMPILKAN
+                            // Jika urutan >= limit baru -> SEMBUNYIKAN
+                            if (index < newLimit) {
+                                item.style.setProperty('display', 'block', 'important');
+                            } else {
+                                item.style.setProperty('display', 'none', 'important');
+                            }
+                        });
+                    }
+                    else if (data.key.includes('icon')) {
+                        const selector = `[data-section-id="${data.sectionId}"][data-key="${data.key}"]`;
+                        const element = document.querySelector(selector);
+                        if (element) {
+                            // Reset semua class, lalu isi class standar + class baru
+                            // "bi" dan "live-editable" adalah class wajib
+                            element.className = `bi ${data.value} live-editable`;
+                        }
+                    }
+                    
+                    // --- Logika Text Biasa (Judul/Subtitle) ---
+                    else {
+                        const selector = `[data-section-id="${data.sectionId}"][data-key="${data.key}"]`;
+                        const element = document.querySelector(selector);
+                        if (element) element.innerText = data.value;
+                    }
+                }
+
+               // C. UPDATE GAMBAR (Logo/Hero/Hapus)
+                else if (data.type === 'updateImage') {
+                    
+                    // === LOGIK LOGO ===
+                    if (data.target === 'logo') {
+            const img = document.getElementById('logo-img-preview');
+            const txt = document.getElementById('site-name-text');
+            
+            if (data.action === 'remove') {
+                if(img) img.style.display = 'none';
+                if(txt) txt.style.display = 'inline';
+            } else {
+                if(img) {
+                    img.src = data.src;
+                    img.style.display = 'inline';
+                }
+                if(txt) txt.style.display = 'none';
+            }
+        }
+                    
+                    // === LOGIK HERO BANNER ===
+                    else if (data.target === 'hero') {
+                        const heroSimple = document.querySelector('.hero-section');
+                        const heroModern = document.querySelector('header'); 
+                        
+                        // Default Style (Tanpa Gambar)
+                        const noImageStyle = "background-color: var(--hero-bg-color); background-image: none; color: var(--primary-color); text-shadow: none;";
+                        
+                        if (data.action === 'remove') {
+                            if(heroSimple) {
+                                heroSimple.style = noImageStyle;
+                                // Reset warna teks kembali ke primary (hitam/biru) karena background putih
+                                heroSimple.style.color = 'var(--primary-color)'; 
+                                // Reset juga class text-white di p
+                                const p = heroSimple.querySelector('p');
+                                if(p) { p.classList.remove('text-white'); p.classList.add('text-secondary'); }
+                            }
+                        } 
+                        else {
+                            // Ada Gambar
+                            const bgStyle = `url('${data.src}')`;
+                            if(heroSimple) {
+                                heroSimple.style.backgroundImage = bgStyle;
+                                heroSimple.style.backgroundColor = 'transparent';
+                                heroSimple.style.color = 'white'; 
+                                heroSimple.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
+                                
+                                // Ubah teks deskripsi jadi putih biar terbaca
+                                const p = heroSimple.querySelector('p');
+                                if(p) { p.classList.remove('text-secondary'); p.classList.add('text-white'); }
+                            }
+                        }
+                    }
+                }
+                // D. TOGGLE VISIBILITY (Show/Hide Section)
+                else if (data.type === 'toggleSection') {
+                    const sectionEl = document.getElementById(data.sectionId);
+                    if (sectionEl) {
+                        // Jika visible=true -> display: block
+                        // Jika visible=false -> display: none
+                        sectionEl.style.display = data.visible ? 'block' : 'none';
+                    }
+                }
+                // E. MOVE SECTION (Reorder)
+                else if (data.type === 'moveSection') {
+                    const sectionEl = document.getElementById(data.sectionId);
+                    
+                    if (sectionEl) {
+                        const parent = sectionEl.parentNode;
+                        
+                        if (data.direction === 'up') {
+                            // Pindahkan SEBELUM elemen di atasnya (previousSibling)
+                            if (sectionEl.previousElementSibling) {
+                                parent.insertBefore(sectionEl, sectionEl.previousElementSibling);
+                            }
+                        } 
+                        else {
+                            // Pindahkan SETELAH elemen di bawahnya (nextSibling)
+                            // insertBefore tidak punya "insertAfter", jadi kita insert sebelum "depannya si tetangga"
+                            if (sectionEl.nextElementSibling) {
+                                parent.insertBefore(sectionEl, sectionEl.nextElementSibling.nextElementSibling);
+                            }
+                        }
+                    }
+                }
+            });
+        }
     </script>
     @stack('scripts')
 </body>

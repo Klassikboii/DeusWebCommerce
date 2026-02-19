@@ -89,7 +89,33 @@ class ShippingController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+    public function update(Request $request, Website $website, ShippingRate $rate)
+    {
+        $this->authorize('update', $website);
+        
+        // Pastikan data milik website ini
+        if($rate->website_id !== $website->id) abort(403);
 
+        $request->validate([
+            'origin_city' => 'required|string|max:100',
+            'destination_city' => 'required|string|max:100',
+            'courier_name' => 'required|string|max:50',
+            'rate_per_kg' => 'required|numeric|min:0',
+        ]);
+
+        $rate->update([
+            'origin_city' => $request->origin_city,
+            'destination_city' => $request->destination_city,
+            'courier_name' => $request->courier_name,
+            'service_name' => $request->service_name ?? 'Reguler',
+            'rate_per_kg' => $request->rate_per_kg,
+            'min_weight' => $request->min_weight ?? 1,
+            'min_day' => $request->min_day,
+            'max_day' => $request->max_day,
+        ]);
+
+        return back()->with('success', 'Ongkos kirim berhasil diperbarui.');
+    }
     // === LOGIKA IMPORT 8 KOLOM ===
     public function import(Request $request, Website $website)
     {

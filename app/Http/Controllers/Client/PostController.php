@@ -11,10 +11,21 @@ use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
-    public function index(Website $website)
+    public function index(Request $request, Website $website)
     {
         $this->authorize('viewAny', $website);
-        $posts = $website->posts()->latest()->paginate(10);
+        // $posts = $website->posts()->latest()->paginate(10);
+        // return view('client.posts.index', compact('website', 'posts'));
+        $query = $website->posts();
+
+        // Logika Search
+        if ($request->filled('search')) {
+            $query->where('title', 'like', '%' . $request->search . '%');
+        }
+
+        // Pagination
+        $posts = $query->latest()->paginate(10)->withQueryString();
+
         return view('client.posts.index', compact('website', 'posts'));
     }
 

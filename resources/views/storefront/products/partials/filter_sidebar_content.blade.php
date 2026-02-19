@@ -1,5 +1,5 @@
 {{-- resources/views/storefront/products/partials/filter_sidebar_content.blade.php --}}
-<div class="card border-0 shadow-sm">
+<div class="card border-0 shadow-sm sticky-top" style="top: 5rem;">
     <div class="card-body">
         {{-- KATEGORI --}}
         <h6 class="fw-bold mb-3">Kategori</h6>

@@ -22,28 +22,36 @@ class ProductController extends Controller
         $free = \App\Models\Package::where('price', 0)->first();
         return $free ? $free->max_products : 2;
     }
-    public function index(Request $request, Website $website)
+  public function index(Request $request, Website $website)
     {
         $this->authorize('viewAny', $website);
 
         $query = $website->products();
         
-        // (Kode pencarian/search yang lama biarkan saja)
-        if ($request->search) {
-            $query->where('name', 'like', '%'.$request->search.'%');
+        // Logika Search (Real-time compatible)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%'.$search.'%')
+                  ->orWhere('sku', 'like', '%'.$search.'%');
+            });
         }
 
-        $products = $query->latest()->paginate(10);
+        $products = $query->latest()->paginate(10)->withQueryString();
 
-        // --- TAMBAHAN BARU: HITUNG LIMIT ---
+        // === TAMBAHAN LOGIKA AJAX ===
+        if ($request->ajax()) {
+            return view('client.products.partials.product_table', compact('website', 'products'))->render();
+        }
+        // ============================
+
+        // Data statistik limit (tetap dikirim untuk view utama)
         $currentCount = $website->products()->count();
         $limit = $this->getLimit($website);
         $isLimitReached = $currentCount >= $limit;
-        // -----------------------------------
 
         return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached'));
     }
-    
     public function create(Website $website)
     {
         $this->authorize('create', $website);
@@ -107,7 +115,7 @@ class ProductController extends Controller
             'stock'       => $request->has_variants ? 0 : $request->stock,
             'weight'      => $request->weight ?? 1000,
             'sku'         => $request->sku,
-            'status'      => 'active'
+            // 'status'      => 'active'
         ]);
 
         // 2. Simpan Varian (Jika dicentang)

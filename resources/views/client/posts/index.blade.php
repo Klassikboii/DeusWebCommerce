@@ -6,7 +6,21 @@
     <h4 class="fw-bold m-0">Blog / Artikel</h4>
     <a href="{{ route('client.posts.create', $website->id) }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tulis Artikel</a>
 </div>
-
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <form action="{{ route('client.posts.index', $website->id) }}" method="GET">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0 ps-0" 
+                           placeholder="Cari Judul Artikel..." value="{{ request('search') }}">
+                    <button class="btn btn-outline-secondary" type="submit">Cari</button>
+                    @if(request('search'))
+                        <a href="{{ route('client.posts.index', $website->id) }}" class="btn btn-outline-danger"><i class="bi bi-x-lg"></i></a>
+                    @endif
+                </div>
+            </form>
+        </div>
+    </div>
 <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
         <table class="table table-hover align-middle mb-0">

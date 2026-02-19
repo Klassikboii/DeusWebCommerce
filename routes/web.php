@@ -141,7 +141,8 @@ Route::middleware(['auth'])->group(function () {
 
         
         Route::post('/shipping', [App\Http\Controllers\Client\ShippingController::class, 'store'])->name('client.shipping.store');
-
+                // Di dalam group 'client' ...
+        Route::put('/shipping/{rate}', [App\Http\Controllers\Client\ShippingController::class, 'update'])->name('client.shipping.update');
         Route::delete('/shipping/clear', [App\Http\Controllers\Client\ShippingController::class, 'clear'])->name('client.shipping.clear');
 
         Route::delete('/shipping/{rate}', [App\Http\Controllers\Client\ShippingController::class, 'destroy'])->name('client.shipping.destroy');
@@ -178,10 +179,14 @@ Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant
         // Route Konfirmasi Pembayaran
     Route::get('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'payment'])->name('store.payment');
     Route::post('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'confirmPayment'])->name('store.payment.confirm');
-    
+    // ... di dalam group 's/{subdomain}' ...
+
+    // TRACK ORDER / CEK PESANAN
+    Route::get('/track-order', [App\Http\Controllers\StorefrontController::class, 'trackOrder'])->name('store.track');
+    Route::post('/track-order', [App\Http\Controllers\StorefrontController::class, 'processTrackOrder'])->name('store.track.check');
     // === ROUTE BLOG (SUDAH BENAR) ===
     Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('storefront.blog.index');
-    Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('store.blog.show');
+    Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('storefronts.blog.show');
 })->name('store.');
 // --- GRUP ROUTE SUPER ADMIN ---
 Route::prefix('admin')

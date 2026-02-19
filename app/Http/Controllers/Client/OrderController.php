@@ -10,13 +10,24 @@ use Illuminate\Http\Request;
 class OrderController extends Controller
 {
     // 1. Tampilkan Daftar Order Masuk
-    public function index(Website $website)
+    public function index(Request $request, Website $website)
     {
-        $this->authorize('viewAny', $website);
+        // 1. Ambil relasi orders
+        $query = $website->orders()->with(['items']); // Hapus 'customer' jika tidak ada relasi model Customer
 
-        // Ambil order terbaru beserta item-nya
-        $orders = $website->orders()->with('items')->latest()->paginate(10);
-        
+        // 2. Logika Search (Langsung ke kolom di tabel orders)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('order_number', 'like', '%' . $search . '%')
+                  ->orWhere('customer_name', 'like', '%' . $search . '%')  // Asumsi nama kolom
+                  ->orWhere('customer_whatsapp', 'like', '%' . $search . '%'); // Asumsi nama kolom
+            });
+        }
+
+        // 3. Pagination
+        $orders = $query->latest()->paginate(10)->withQueryString();
+
         return view('client.orders.index', compact('website', 'orders'));
     }
 

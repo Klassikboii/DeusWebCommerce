@@ -78,10 +78,29 @@
                                 @endif
                             </td>
                             <td class="text-end pe-4">
-                                <form action="{{ route('client.shipping.destroy', [$website->id, $rate->id]) }}" method="POST" onsubmit="return confirm('Hapus tarif ini?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
-                                </form>
+                                <div class="btn-group">
+                                    {{-- TOMBOL EDIT (Trigger Modal) --}}
+                                    <button type="button" class="btn btn-sm btn-light border me-1"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editModal"
+                                        {{-- Data Attributes untuk JS --}}
+                                        data-action="{{ route('client.shipping.update', [$website->id, $rate->id]) }}"
+                                        data-origin="{{ $rate->origin_city }}"
+                                        data-destination="{{ $rate->destination_city }}"
+                                        data-courier="{{ $rate->courier_name }}"
+                                        data-service="{{ $rate->service_name }}"
+                                        data-rate="{{ $rate->rate_per_kg }}"
+                                        data-min-day="{{ $rate->min_day }}"
+                                        data-max-day="{{ $rate->max_day }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+
+                                    {{-- TOMBOL DELETE --}}
+                                    <form action="{{ route('client.shipping.destroy', [$website->id, $rate->id]) }}" method="POST" onsubmit="return confirm('Hapus tarif ini?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-light border text-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
@@ -180,4 +199,89 @@
         </form>
     </div>
 </div>
+{{-- MODAL EDIT --}}
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form id="editForm" method="POST" class="modal-content">
+            @csrf
+            @method('PUT')
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Edit Ongkos Kirim</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Kota Asal</label>
+                        <input type="text" name="origin_city" id="edit_origin" class="form-control" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Kota Tujuan</label>
+                        <input type="text" name="destination_city" id="edit_destination" class="form-control" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Kurir</label>
+                        <input type="text" name="courier_name" id="edit_courier" class="form-control" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Layanan</label>
+                        <input type="text" name="service_name" id="edit_service" class="form-control" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <label class="form-label">Tarif per Kg (Rp)</label>
+                        <input type="number" name="rate_per_kg" id="edit_rate" class="form-control" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Estimasi (Hari)</label>
+                        <div class="input-group">
+                            <input type="number" name="min_day" id="edit_min_day" class="form-control" placeholder="Min">
+                            <span class="input-group-text">-</span>
+                            <input type="number" name="max_day" id="edit_max_day" class="form-control" placeholder="Max">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const editModal = document.getElementById('editModal');
+        
+        editModal.addEventListener('show.bs.modal', function(event) {
+            // Tombol yang diklik
+            const button = event.relatedTarget;
+            
+            // Ambil data dari atribut data-*
+            const action = button.getAttribute('data-action');
+            const origin = button.getAttribute('data-origin');
+            const destination = button.getAttribute('data-destination');
+            const courier = button.getAttribute('data-courier');
+            const service = button.getAttribute('data-service');
+            const rate = button.getAttribute('data-rate');
+            const minDay = button.getAttribute('data-min-day');
+            const maxDay = button.getAttribute('data-max-day');
+
+            // Isi Form
+            const form = document.getElementById('editForm');
+            form.action = action;
+            
+            document.getElementById('edit_origin').value = origin;
+            document.getElementById('edit_destination').value = destination;
+            document.getElementById('edit_courier').value = courier;
+            document.getElementById('edit_service').value = service;
+            document.getElementById('edit_rate').value = rate;
+            document.getElementById('edit_min_day').value = minDay;
+            document.getElementById('edit_max_day').value = maxDay;
+        });
+    });
+</script>
 @endsection
