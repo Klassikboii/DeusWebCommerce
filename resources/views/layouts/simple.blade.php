@@ -453,4 +453,13 @@
     </script>
     @stack('scripts')
 </body>
+{{-- BANNER TOKO TUTUP --}}
+    @if(!$website->is_open)
+    <div class="bg-danger text-white text-center py-2" style="z-index: 1050; position: relative;">
+        <div class="container small fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> 
+            Mohon maaf, toko saat ini sedang TUTUP. Anda tidak dapat melakukan pemesanan untuk sementara waktu.
+        </div>
+    </div>
+    @endif
 </html>

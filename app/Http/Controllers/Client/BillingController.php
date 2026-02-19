@@ -25,8 +25,9 @@ class BillingController extends Controller
                                          ->where('status', 'pending')
                                          ->latest()
                                          ->first();
-
-        return view('client.billing.index', compact('website', 'currentSubscription', 'packages', 'pendingTransaction'));
+        // Ambil data user Super Admin pertama di database
+        $admin = \App\Models\User::where('role', 'admin')->first();
+        return view('client.billing.index', compact('website', 'currentSubscription', 'packages', 'pendingTransaction', 'admin'));
     }
 
     public function store(Request $request, Website $website)

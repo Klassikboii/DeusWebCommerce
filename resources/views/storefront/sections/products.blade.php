@@ -26,6 +26,11 @@
                                 <div class="position-absolute top-0 end-0 m-2">
                                     <span class="badge bg-danger bg-opacity-75 backdrop-blur">Habis</span>
                                 </div>
+                            @elseif($product->stock <= 5)
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-warning bg-opacity-75 backdrop-blur">Stok Terbatas</span>
+                                </div>
+                        
                             @endif
                         </div>
 

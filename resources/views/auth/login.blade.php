@@ -79,10 +79,7 @@
                         @enderror
                     </div>
 
-                    <div class="mb-4 form-check">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-                        <label class="form-check-label small" for="remember">Ingat Saya</label>
-                    </div>
+                    
 
                     <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">Masuk ke Dashboard</button>
 

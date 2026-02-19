@@ -35,13 +35,25 @@
                         <input type="text" class="form-control bg-light" value="{{ $website->subdomain }}.webcommerce.id" readonly>
                         <small class="text-muted">Subdomain tidak dapat diubah.</small>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Status Toko</label>
-                        <select name="status" class="form-select" disabled>
-                            <option>Published</option>
-                        </select>
-                        <small class="text-muted">Hubungi admin untuk unpublish.</small>
-                    </div>
+                    {{-- Letakkan di dalam form pengaturan Anda --}}
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-white py-3">
+                                <h6 class="mb-0 fw-bold">Status Operasional Toko</h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="form-check form-switch fs-5">
+                                    <input class="form-check-input cursor-pointer" type="checkbox" role="switch" 
+                                        id="storeStatusSwitch" name="is_open" value="1" 
+                                        {{ $website->is_open ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold ms-2" for="storeStatusSwitch">
+                                        {{ $website->is_open ? 'Toko Buka (Menerima Pesanan)' : 'Toko Tutup Sementara' }}
+                                    </label>
+                                </div>
+                                <p class="text-muted small mt-2 mb-0">
+                                    Jika dimatikan, pengunjung masih bisa melihat produk tapi tidak bisa melakukan Checkout (Keranjang akan dinonaktifkan).
+                                </p>
+                            </div>
+                        </div>
                 </div>
             </div>
         </div>

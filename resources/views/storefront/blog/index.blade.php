@@ -42,7 +42,7 @@
                         </small>
                         
                         <h5 class="card-title fw-bold mb-3">
-                            <a href="{{ route('store.blog.show', [$website->subdomain, $post->slug]) }}" class="text-decoration-none text-dark stretched-link">
+                            <a href="{{ route('storefronts.blog.show', [$website->subdomain, $post->slug]) }}" class="text-decoration-none text-dark stretched-link">
                                 {{ $post->title }}
                             </a>
                         </h5>

@@ -16,6 +16,7 @@ class Website extends Model
         'custom_domain', 
         'site_name',
         'active_template',
+        'is_open',
         
         // 2. Aset Gambar
         'logo', 
@@ -59,6 +60,7 @@ class Website extends Model
     protected $casts = [
         'sections' => 'array',
         'navigation_menu' => 'array', // <--- HAPUS KOMENTARNYA (Aktifkan)
+        'is_open' => 'boolean',
     ];
 
     // Relasi: Website milik satu User

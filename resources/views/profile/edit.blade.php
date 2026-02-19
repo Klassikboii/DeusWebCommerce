@@ -44,6 +44,29 @@
                     <label class="form-label">Konfirmasi Password</label>
                     <input type="password" name="password_confirmation" class="form-control" placeholder="Ulangi password baru">
                 </div>
+                {{-- resources/views/profile/edit.blade.php --}}
+
+                    @if(auth()->user()->role == 'admin')
+                    <div class="card mb-4 shadow-sm border-0">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0 fw-bold">Pengaturan Rekening Pembayaran (Khusus Super Admin)</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-3">
+                                <label class="form-label">Nama Bank</label>
+                                <input type="text" name="bank_name" class="form-control" value="{{ old('bank_name', auth()->user()->bank_name) }}" placeholder="Contoh: BCA / Mandiri / BNI">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nomor Rekening</label>
+                                <input type="text" name="bank_account_number" class="form-control" value="{{ old('bank_account_number', auth()->user()->bank_account_number) }}" placeholder="Contoh: 1234567890">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Atas Nama</label>
+                                <input type="text" name="bank_account_name" class="form-control" value="{{ old('bank_account_name', auth()->user()->bank_account_name) }}" placeholder="Contoh: PT. Deus Web Commerce">
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                 <button type="submit" class="btn btn-primary px-4">Simpan Perubahan</button>
             </form>

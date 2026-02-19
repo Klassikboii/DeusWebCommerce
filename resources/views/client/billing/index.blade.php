@@ -87,10 +87,18 @@
                             @enderror
                         </div>
 
-                        <div class="bg-light p-3 rounded mb-3 border">
-                            <small class="d-block text-muted mb-1">Silakan transfer ke:</small>
-                            <div class="fw-bold">BCA 123-456-7890 (PT WebCommerce)</div>
-                            <div class="fw-bold" id="totalDisplay">Total: Rp -</div>
+                        <div class="alert alert-info border-0 d-flex align-items-start gap-3 mt-4">
+                            <i class="bi bi-bank fs-4 text-primary"></i>
+                            <div>
+                                <p class="mb-1 small text-muted">Silakan transfer pembayaran langganan ke rekening berikut:</p>
+                                @if($admin && $admin->bank_name)
+                                    <h6 class="fw-bold mb-0 text-uppercase">{{ $admin->bank_name }}</h6>
+                                    <div class="fs-5 fw-bold mb-1 font-monospace">{{ $admin->bank_account_number }}</div>
+                                    <div class="small">a.n {{ $admin->bank_account_name }}</div>
+                                @else
+                                    <strong class="text-danger small">Belum ada info rekening Super Admin. Harap hubungi penyedia layanan.</strong>
+                                @endif
+                            </div>
                         </div>
 
                         <div class="mb-4">

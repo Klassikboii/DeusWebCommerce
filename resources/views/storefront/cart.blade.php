@@ -48,6 +48,7 @@
                                                 <div>
                                                     <div class="fw-bold">{{ $details['name'] }}</div>
                                                     <small class="text-muted">Rp {{ number_format($details['price']) }}</small>
+                                                    <small class="text-muted">SKU: {{ $details['sku'] ?? 'SKU: -' }}</small>
                                                 </div>
                                             </div>
                                         </td>
@@ -170,9 +171,19 @@
                                             <input type="hidden" id="total_weight" value="{{ $totalWeight }}">
                                             <input type="hidden" id="subtotal_amount" value="{{ $total }}">
 
-                                            <button type="submit" id="btn-checkout" class="btn btn-primary-custom w-100 py-2" disabled>
-                                                Buat Pesanan
-                                            </button>
+                                            {{-- CEK APAKAH TOKO BUKA --}}
+                                                @if($website->is_open)
+                                                    <a href="{{ route('store.checkout', $website->subdomain) }}" class="btn btn-primary w-100 py-3 fw-bold">
+                                                        Lanjut ke Pembayaran <i class="bi bi-arrow-right ms-2"></i>
+                                                    </a>
+                                                @else
+                                                    <div class="alert alert-danger text-center mb-0">
+                                                        Toko Sedang Tutup. Silakan kembali lagi nanti.
+                                                    </div>
+                                                    <button class="btn btn-secondary w-100 py-3 fw-bold mt-2" disabled>
+                                                        Checkout Dinonaktifkan
+                                                    </button>
+                                                @endif
                                         </form>
                                     </div>
                                 </div>

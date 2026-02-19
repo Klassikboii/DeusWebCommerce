@@ -40,6 +40,7 @@ class SettingController extends Controller
             'bank_name' => $request->bank_name,
             'bank_account_number' => $request->bank_account_number,
             'bank_account_holder' => $request->bank_account_holder,
+            'is_open' => $request->has('is_open'),
         ];
 
         // Fitur Tambahan: Upload Icon/Logo Toko (Opsional jika ingin dipakai nanti)

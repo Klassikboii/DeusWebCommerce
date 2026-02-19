@@ -14,28 +14,29 @@ class ProfileController extends Controller
         ]);
     }
 
+    // app/Http/Controllers/ProfileController.php (atau sejenisnya)
+
     public function update(Request $request)
     {
         $user = auth()->user();
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$user->id,
-            // Password opsional: hanya divalidasi jika user mengisi kolom password
-            'password' => 'nullable|min:8|confirmed', 
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            // Validasi Bank
+            'bank_name' => 'nullable|string|max:50',
+            'bank_account_number' => 'nullable|string|max:50',
+            'bank_account_name' => 'nullable|string|max:100',
         ]);
 
-        // Update data dasar
-        $user->name = $request->name;
-        $user->email = $request->email;
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'bank_name' => $request->bank_name,
+            'bank_account_number' => $request->bank_account_number,
+            'bank_account_name' => $request->bank_account_name,
+        ]);
 
-        // Update password jika diisi
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        $user->save();
-
-        return redirect()->back()->with('success', 'Profil berhasil diperbarui!');
+        return back()->with('success', 'Profil berhasil diupdate.');
     }
 }

@@ -12,23 +12,42 @@ class OrderController extends Controller
     // 1. Tampilkan Daftar Order Masuk
     public function index(Request $request, Website $website)
     {
-        // 1. Ambil relasi orders
-        $query = $website->orders()->with(['items']); // Hapus 'customer' jika tidak ada relasi model Customer
+        // 1. Base Query
+        $query = $website->orders()->with(['items']); 
 
-        // 2. Logika Search (Langsung ke kolom di tabel orders)
+        // 2. Filter Berdasarkan Status
+        // Pastikan status yang direquest valid sesuai enum
+        $validStatuses = ['pending', 'awaiting_confirmation', 'processing', 'shipped', 'completed', 'cancelled'];
+        
+        if ($request->filled('status') && in_array($request->status, $validStatuses)) {
+            $query->where('status', $request->status);
+        }
+
+        // 3. Logika Search (No Order / Nama / Email)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('order_number', 'like', '%' . $search . '%')
-                  ->orWhere('customer_name', 'like', '%' . $search . '%')  // Asumsi nama kolom
-                  ->orWhere('customer_whatsapp', 'like', '%' . $search . '%'); // Asumsi nama kolom
+                  ->orWhere('customer_name', 'like', '%' . $search . '%')
+                  ->orWhere('customer_whatsapp', 'like', '%' . $search . '%');
             });
         }
 
-        // 3. Pagination
+        // 4. Hitung jumlah pesanan untuk masing-masing status (Untuk angka di Tab)
+        // Menghasilkan array seperti: ['pending' => 5, 'completed' => 12]
+        $statusCounts = $website->orders()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+        
+        // Total semua pesanan untuk tab "Semua"
+        $totalOrders = array_sum($statusCounts);
+
+        // 5. Pagination
         $orders = $query->latest()->paginate(10)->withQueryString();
 
-        return view('client.orders.index', compact('website', 'orders'));
+        return view('client.orders.index', compact('website', 'orders', 'statusCounts', 'totalOrders'));
     }
 
     // 2. Tampilkan Detail Order (Invoice)

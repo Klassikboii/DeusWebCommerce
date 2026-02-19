@@ -208,24 +208,81 @@
             <div class="row g-4">
                 <div class="col-md-4">
                     <h5 class="fw-bold text-primary-custom mb-3">{{ $website->site_name }}</h5>
-                    <p class="small text-secondary">{{ $website->hero_subtitle ?? 'Platform toko online terpercaya.' }}</p>
+                    <p class="small text-secondary">
+                        {{ $website->hero_subtitle ?? 'Platform toko online terpercaya.' }}
+                    </p>
+                    
+                    {{-- Social Media / Contact Buttons --}}
+                    <div class="d-flex gap-2 mt-3">
+                        @if($website->whatsapp_number)
+                            <a href="https://wa.me/62{{ $website->whatsapp_number }}?text=Halo%20{{ $website->site_name }},%20saya%20tertarik%20dengan%20produk%20Anda." 
+                               target="_blank" class="btn btn-sm btn-success rounded-pill">
+                                <i class="bi bi-whatsapp"></i> Chat WA
+                            </a>
+                        @endif
+                        @if($website->email_contact)
+                            <a href="mailto:{{ $website->email_contact }}" class="btn btn-sm btn-outline-light rounded-pill">
+                                <i class="bi bi-envelope"></i> Email
+                            </a>
+                        @endif
+                    </div>
+                    
                 </div>
+                
                 <div class="col-md-4">
                     <h6 class="fw-bold mb-3">Hubungi Kami</h6>
                     <ul class="list-unstyled small text-secondary">
-                        @if($website->address) <li class="mb-2"><i class="bi bi-geo-alt me-2"></i> {{ $website->address }}</li> @endif
-                        @if($website->whatsapp_number) <li class="mb-2"><i class="bi bi-telephone me-2"></i> +62 {{ $website->whatsapp_number }}</li> @endif
-                        @if($website->email_contact) <li class="mb-2"><i class="bi bi-envelope me-2"></i> {{ $website->email_contact }}</li> @endif
+                        @if($website->address)
+                            <li class="mb-3 d-flex">
+                                <i class="bi bi-geo-alt me-2 mt-1 text-primary-custom"></i> 
+                                <span>{{ $website->address }}</span>
+                            </li>
+                        @endif
+                        
+                        @if($website->whatsapp_number)
+                            <li class="mb-2">
+                                <i class="bi bi-telephone me-2 text-primary-custom"></i> 
+                                +62 {{ $website->whatsapp_number }}
+                            </li>
+                        @endif
+                        
+                        @if($website->email_contact)
+                            <li class="mb-2">
+                                <i class="bi bi-envelope-at me-2 text-primary-custom"></i> 
+                                {{ $website->email_contact }}
+                            </li>
+                        @endif
+                       
                     </ul>
                 </div>
+
                 <div class="col-md-4">
                     <h6 class="fw-bold mb-3">Menu</h6>
                     <ul class="list-unstyled small">
+                        @php
+                            $footerMenus = $website->navigation_menu ?? [
+                                ['label' => 'Beranda', 'url' => '/'],
+                                ['label' => 'Produk', 'url' => '#products']
+                            ];
+                        @endphp
+
+                        @foreach($footerMenus as $menu)
+                            <li class="mb-2">
+                                <a href="{{ $menu['url'] }}" class="text-secondary text-decoration-none hover-white">
+                                    {{ $menu['label'] }}
+                                </a>
+                            </li>
+                        @endforeach
                         <li class="mb-2"><a href="#" class="text-secondary text-decoration-none hover-white">Beranda</a></li>
                     </ul>
                 </div>
             </div>
+            
             <hr class="border-secondary mt-4">
+            
+            <div class="text-center small text-secondary">
+                &copy; {{ date('Y') }} {{ $website->site_name }}. Powered by WebCommerce.
+            </div>
             <div class="text-center small text-secondary">&copy; {{ date('Y') }} {{ $website->site_name }}.</div>
         </div>
     </footer>
@@ -344,15 +401,16 @@
                     return; 
                 }
 
-                // Blokir link pindah halaman
-                el.addEventListener('click', e => {
-                    e.preventDefault();
-                    // Opsional: alert('Link dimatikan di mode editor');
-                });
+                // // Blokir link pindah halaman
+                // el.addEventListener('click', e => {
+                //     e.preventDefault();
+                //     // Opsional: alert('Link dimatikan di mode editor');
+                // });
                 
                 // Blokir submit form
                 el.addEventListener('submit', e => {
                     e.preventDefault();
+                    alert('Link dimatikan di mode editor');
                 });
             });
 
@@ -491,4 +549,13 @@
     </script>
     @stack('scripts')
 </body>
+{{-- BANNER TOKO TUTUP --}}
+    @if(!$website->is_open)
+    <div class="bg-danger text-white text-center py-2" style="z-index: 1050; position: relative;">
+        <div class="container small fw-bold">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> 
+            Mohon maaf, toko saat ini sedang TUTUP. Anda tidak dapat melakukan pemesanan untuk sementara waktu.
+        </div>
+    </div>
+    @endif
 </html>
