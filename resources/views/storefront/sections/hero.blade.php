@@ -3,7 +3,16 @@
     $title = $data['title'] ?? 'Koleksi Terbaru';
     $subtitle = $data['subtitle'] ?? 'Temukan gaya terbaik Anda.';
     $btnText = $data['button_text'] ?? 'Shop Now';
-    $btnLink = $data['button_link'] ?? '#products';
+    // --- FIX LINK BUTTON ---
+    $rawLink = $data['button_link'] ?? '#products';
+    if ($rawLink === '/blog') {
+        // Jika minta ke blog, kita buatkan rute dinamis lengkap dengan subdomain
+        $btnLink = route('storefront.blog.index', ['subdomain' => $website->subdomain]);
+    } else {
+        // Jika #anchor atau URL luar, biarkan apa adanya
+        $btnLink = $rawLink;
+    }
+    // -----------------------
     
     // ID Unik (Default ke 'hero-1' agar cocok dengan input di Editor)
     $sectionId = $data['id'] ?? 'hero-1';

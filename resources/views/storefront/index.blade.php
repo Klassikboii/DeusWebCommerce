@@ -38,6 +38,9 @@
             @include('storefront.sections.features', ['data' => $sectionData])
         @elseif($sectionType === 'blog')
             @include('storefront.blog.index', ['data' => $sectionData])
+        {{-- TAMBAHAN BARU: Teks & Gambar --}}
+        @elseif($sectionType === 'text-image')
+            @include('storefront.sections.text-image', ['data' => $sectionData])
         @endif
 
     </div>

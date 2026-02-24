@@ -404,7 +404,7 @@
                 // // Blokir link pindah halaman
                 // el.addEventListener('click', e => {
                 //     e.preventDefault();
-                //     // Opsional: alert('Link dimatikan di mode editor');
+                //    alert('Link dimatikan di mode editor');
                 // });
                 
                 // Blokir submit form

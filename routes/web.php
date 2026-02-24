@@ -92,6 +92,8 @@ Route::middleware(['auth'])->group(function () {
         // --- FITUR WEBSITE BUILDER ---
         Route::get('/builder', [App\Http\Controllers\Client\BuilderController::class, 'index'])->name('client.builder.index');
         Route::put('/builder', [App\Http\Controllers\Client\BuilderController::class, 'update'])->name('client.builder.update');
+        // TAMBAHKAN RUTE INI:
+        Route::post('/builder/upload-image', [App\Http\Controllers\Client\BuilderController::class, 'uploadImage'])->name('client.builder.uploadImage');
         // ... route builder & produk ...
     // --- FITUR ORDER (PENJUALAN) ---
         Route::get('/orders', [App\Http\Controllers\Client\OrderController::class, 'index'])->name('client.orders.index');

@@ -44,7 +44,23 @@ class BuilderController extends Controller
 
         // 3. Simpan Sections JSON
         if ($request->filled('sections_json')) {
-            $website->sections = json_decode($request->sections_json, true);
+            $sections = json_decode($request->sections_json, true);
+
+            // --- TAMBAHAN BARU: Handle Upload Gambar Dinamis (Text & Image) ---
+            if ($request->hasFile('section_images')) {
+                foreach ($request->file('section_images') as $sectionId => $file) {
+                    // Simpan gambar ke folder 'sections'
+                    $path = $file->store('sections', 'public');
+                    
+                    // Cari section mana yang punya ID ini, lalu masukkan path gambarnya ke data JSON
+                    foreach ($sections as &$sec) {
+                        if ($sec['id'] === $sectionId) {
+                            $sec['data']['image'] = $path;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         // 4. Handle Gambar (Kode Anda sudah benar, saya rapikan sedikit)
@@ -76,6 +92,25 @@ class BuilderController extends Controller
         $website->save();
 
         return back()->with('success', 'Perubahan berhasil disimpan!');
+    }
+    // Fungsi khusus untuk menerima upload gambar via AJAX
+    public function uploadImage(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ]);
+
+        // Simpan gambar ke storage public/sections
+        $path = $request->file('image')->store('sections', 'public');
+
+        // Kembalikan respon JSON ke JavaScript
+        return response()->json([
+            'success' => true,
+            'path' => $path, // path relatif (misal: sections/abc.jpg)
+            'url' => asset('storage/' . $path) // URL penuh untuk preview
+        ]);
     }
     
     // }

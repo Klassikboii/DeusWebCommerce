@@ -4,14 +4,11 @@
 
 @section('content')
 <div class="container-fluid p-0 h-100">
-    
     <div class="row g-0 h-100">
         <div class="col-md-3 bg-white border-end d-flex flex-column" style="height: calc(100vh - 65px);">
-    
             <div class="p-3 border-bottom">
                 <h5 class="fw-bold m-0">Website Builder</h5>
                 <small class="text-muted">Kustomisasi tampilan toko.</small>
-                
             </div>
 
             <ul class="nav nav-tabs nav-fill" id="builderTab" role="tablist">
@@ -32,36 +29,23 @@
                 <input type="hidden" name="sections_json" id="sectionsJsonInput">
 
                 <div class="tab-content p-4">
-                    
                     <div class="tab-pane fade show active" id="tab-style">
-                        
                         <h6 class="fw-bold mb-3">Warna</h6>
                         <div class="mb-3">
                             <label class="form-label small">Primary Color</label>
-                            <input type="color" name="primary_color" 
-                                   class="form-control form-control-color w-100 live-update-style" 
-                                   data-style-var="--primary-color"
-                                   value="{{ $website->primary_color }}">
+                            <input type="color" name="primary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--primary-color" value="{{ $website->primary_color }}">
                         </div>
                         <div class="mb-3">
                             <label class="form-label small">Secondary Color</label>
-                            <input type="color" name="secondary_color" 
-                                   class="form-control form-control-color w-100 live-update-style" 
-                                   data-style-var="--secondary-color"
-                                   value="{{ $website->secondary_color }}">
+                            <input type="color" name="secondary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--secondary-color" value="{{ $website->secondary_color }}">
                         </div>
                         <div class="mb-3">
                             <label class="form-label small">Background Banner</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="color" name="hero_bg_color" 
-                                       class="form-control form-control-color w-100 live-update-style" 
-                                       data-style-var="--hero-bg-color"
-                                       value="{{ $website->hero_bg_color ?? '#333333' }}">
+                                <input type="color" name="hero_bg_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--hero-bg-color" value="{{ $website->hero_bg_color ?? '#333333' }}">
                             </div>
                         </div>
-
                         <hr>
-
                         <h6 class="fw-bold mb-3">Tipografi</h6>
                         <div class="mb-3">
                             <label class="form-label small">Jenis Font</label>
@@ -72,7 +56,6 @@
                                 <option value="Courier Prime" {{ $website->font_family == 'Courier Prime' ? 'selected' : '' }}>Courier (Retro)</option>
                             </select>
                         </div>
-                        
                         <div class="mb-3">
                             <label class="form-label small">Rasio Gambar Produk</label>
                             <select name="product_image_ratio" class="form-select live-update-style" data-style-var="--ratio-product">
@@ -84,243 +67,81 @@
                     </div>
 
                     <div class="tab-pane fade" id="tab-content">
-
-                        {{-- === LOGIKA PENCARI DATA JSON === --}}
-                        @php
-                            // 1. Ambil semua sections, atau array kosong jika belum ada
-                            $allSections = $website->sections ?? [];
-
-                            // 2. Cari section yang ID-nya 'hero-1'
-                            // Kita gunakan helper collect() Laravel agar mudah mencari
-                            $heroSection = collect($allSections)->firstWhere('id', 'hero-1');
-
-                            // 3. Ambil 'data'-nya
-                            // Jika section ketemu, ambil 'data'. Jika tidak, array kosong.
-                            // Note: Kita pakai null coalescing (??) agar tidak error
-                            $heroData = $heroSection['data'] ?? [];
-
-                            // === TAMBAHAN BARU: Cari Data Produk ===
-                            $prodSection = collect($allSections)->firstWhere('id', 'products');
-                            $prodData = $prodSection['data'] ?? [];
-
-                            $featSection = collect($allSections)->firstWhere('id', 'features');
-                            $featData = $featSection['data'] ?? [];
-                        @endphp
-                        <div id="sectionListContainer" class="d-flex flex-column gap-2">
-        
-                            
-
-                        </div>
-                        <hr>
-                        <div class="alert alert-info py-2 small">
-                            <i class="bi bi-info-circle"></i> Edit bagian Banner Utama
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Judul Utama</label>
-                            <input type="text" name="hero_title" 
-                                   class="form-control live-update-section" 
-                                   data-section-id="hero-1" 
-                                   data-key="title" 
-                                   value="{{ $heroData['title'] ?? $website->hero_title ?? '' }}">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Deskripsi</label>
-                            <textarea name="hero_subtitle" 
-                                      class="form-control live-update-section" 
-                                      data-section-id="hero-1" 
-                                      data-key="subtitle" 
-                                      rows="3">{{ $heroData['subtitle'] ?? $website->hero_subtitle ?? '' }}</textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Teks Tombol</label>
-                            <input type="text" name="hero_btn_text" 
-                                   class="form-control live-update-section" 
-                                   data-section-id="hero-1" 
-                                   data-key="button_text" 
-                                   value="{{$heroData['button_text'] ?? $website->hero_btn_text ?? '' }}">
-                        </div>
-                            <hr class="my-4">
-                                <div class="alert alert-info py-2 small">
-                                    <i class="bi bi-bag"></i> Edit bagian List Produk
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold">Judul List Produk</label>
-                                    <input type="text" name="product_title" 
-                                        class="form-control live-update-section" 
-                                        data-section-id="products" 
-                                        data-key="title" 
-                                        value="{{ $prodData['title'] ?? 'Produk Pilihan' }}">
-                                </div>
-
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold">Jumlah Produk Tampil</label>
-                                    <select name="product_limit" class="form-select live-update-section", data-section-id="products", data-key="limit">
-                                        <option value="4" {{ ($prodData['limit'] ?? 8) == 4 ? 'selected' : '' }}>4 Produk</option>
-                                        <option value="8" {{ ($prodData['limit'] ?? 8) == 8 ? 'selected' : '' }}>8 Produk</option>
-                                        <option value="12" {{ ($prodData['limit'] ?? 8) == 12 ? 'selected' : '' }}>12 Produk</option>
-                                    </select>
-                                </div>
-                                 <hr class="my-4">
-
-                                <div class="alert alert-info py-2 small">
-                                    <i class="bi bi-grid-3x3-gap"></i> Edit Keunggulan Toko
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold">Judul Section</label>
-                                    <input type="text" name="feat_title" 
-                                        class="form-control live-update-section" 
-                                        data-section-id="features" 
-                                        data-key="title" 
-                                        value="{{ $featData['title'] ?? 'Kenapa Memilih Kami?' }}">
-                                </div>
-
-                                <div class="alert alert-light border small text-muted p-2 mb-3">
-        Gunakan kode icon dari <a href="https://icons.getbootstrap.com/" target="_blank" class="fw-bold text-decoration-underline">Bootstrap Icons</a>. <br>
-        Contoh: <code>whatsapp</code>, <code>star-fill</code>.
-    </div>
-
-                        <div class="mb-2 border-bottom pb-2">
-                            <label class="small fw-bold text-muted">Fitur 1</label>
-                            <div class="d-flex gap-2 mb-1">
-                                <input type="text" name="feat_1_icon" class="form-control form-control-sm live-update-section" 
-                                    data-section-id="features" data-key="f1_icon" placeholder="Kode Icon (ex: bi-star)"
-                                    style="width: 35%;"
-                                    value="{{ $featData['f1_icon'] ?? 'bi-patch-check' }}">
-                                <input type="text" name="feat_1_title" class="form-control form-control-sm live-update-section" 
-                                    data-section-id="features" data-key="f1_title" placeholder="Judul Fitur"
-                                    value="{{ $featData['f1_title'] ?? 'Produk Asli' }}">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold m-0">Konten Halaman</h6>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-plus"></i> Tambah Section
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                    <li><a class="dropdown-item small" href="#" onclick="addNewSection('hero')"><i class="bi bi-image me-2"></i>Hero Banner</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="addNewSection('products')"><i class="bi bi-bag me-2"></i>List Produk</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="addNewSection('features')"><i class="bi bi-grid-3x3-gap me-2"></i>Keunggulan</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="addNewSection('text-image')"><i class="bi bi-card-heading me-2"></i>Teks & Gambar</a></li>
+                                </ul>
                             </div>
-                            <textarea name="feat_1_desc" class="form-control form-control-sm live-update-section" 
-                                data-section-id="features" data-key="f1_desc" rows="2">{{ $featData['f1_desc'] ?? 'Jaminan produk original.' }}</textarea>
                         </div>
 
-                        <div class="mb-2 border-bottom pb-2">
-                            <label class="small fw-bold text-muted">Fitur 2</label>
-                            <div class="d-flex gap-2 mb-1">
-                                <input type="text" name="feat_2_icon" class="form-control form-control-sm live-update-section" 
-                                    data-section-id="features" data-key="f2_icon" placeholder="Kode Icon"
-                                    style="width: 35%;"
-                                    value="{{ $featData['f2_icon'] ?? 'bi-lightning' }}">
-                                <input type="text" name="feat_2_title" class="form-control form-control-sm live-update-section" 
-                                    data-section-id="features" data-key="f2_title" placeholder="Judul Fitur"
-                                    value="{{ $featData['f2_title'] ?? 'Pengiriman Cepat' }}">
+                        <div id="dynamicAccordionContainer" class="accordion d-flex flex-column gap-2 mb-4">
                             </div>
-                            <textarea name="feat_2_desc" class="form-control form-control-sm live-update-section" 
-                                data-section-id="features" data-key="f2_desc" rows="2">{{ $featData['f2_desc'] ?? 'Dikirim hari yang sama.' }}</textarea>
-                        </div>
-
-                        <div class="mb-2">
-                            <label class="small fw-bold text-muted">Fitur 3</label>
-                            <div class="d-flex gap-2 mb-1">
-                                <input type="text" name="feat_3_icon" class="form-control form-control-sm live-update-section" 
-                                    data-section-id="features" data-key="f3_icon" placeholder="Kode Icon"
-                                    style="width: 35%;"
-                                    value="{{ $featData['f3_icon'] ?? 'bi-shield-check' }}">
-                                <input type="text" name="feat_3_title" class="form-control form-control-sm live-update-section" 
-                                    data-section-id="features" data-key="f3_title" placeholder="Judul Fitur"
-                                    value="{{ $featData['f3_title'] ?? 'Garansi Resmi' }}">
-                            </div>
-                            <textarea name="feat_3_desc" class="form-control form-control-sm live-update-section" 
-                                data-section-id="features" data-key="f3_desc" rows="2">{{ $featData['f3_desc'] ?? 'Garansi uang kembali.' }}</textarea>
-                        </div>
                     </div>
                            
                     <div class="tab-pane fade" id="tab-assets">
-    
                         <div class="mb-4 p-3 border rounded bg-light">
                             <label class="form-label small fw-bold">Logo Website</label>
-                            
-                            <input type="file" name="logo" id="inputLogo" 
-                                class="form-control form-control-sm mb-2" 
-                                accept="image/png, image/jpeg, image/jpg, image/webp"
-                                onchange="handleImageUpload(this, 'logo')">
-                            
-                            <small class="d-block text-muted mb-2" style="font-size: 11px;">
-                                Format: PNG, JPG, WEBP. Maks: 2MB.<br>
-                                Disarankan menggunakan background transparan.
-                            </small>
-
+                            <input type="file" name="logo" id="inputLogo" class="form-control form-control-sm mb-2" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="handleImageUpload(this, 'logo')">
+                            <small class="d-block text-muted mb-2" style="font-size: 11px;">Format: PNG, JPG, WEBP. Maks: 2MB.<br>Disarankan menggunakan background transparan.</small>
                             @if($website->logo)
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="remove_logo" id="checkRemoveLogo" value="1"
-                                        onchange="handleImageRemove('logo', this.checked)">
-                                    <label class="form-check-label small text-danger" for="checkRemoveLogo">
-                                        Hapus Logo (Kembali ke Teks)
-                                    </label>
+                                    <input class="form-check-input" type="checkbox" name="remove_logo" id="checkRemoveLogo" value="1" onchange="handleImageRemove('logo', this.checked)">
+                                    <label class="form-check-label small text-danger" for="checkRemoveLogo">Hapus Logo (Kembali ke Teks)</label>
                                 </div>
                             @endif
                         </div>
 
                         <div class="mb-4 p-3 border rounded bg-light">
                             <label class="form-label small fw-bold">Gambar Banner (Hero)</label>
-                            
-                            <input type="file" name="hero_image" id="inputHero"
-                                class="form-control form-control-sm mb-2" 
-                                accept="image/png, image/jpeg, image/jpg, image/webp"
-                                onchange="handleImageUpload(this, 'hero')">
-                            
-                            <small class="d-block text-muted mb-2" style="font-size: 11px;">
-                                Disarankan gambar landscape (Rasio 16:9).<br>
-                                Jika dihapus, akan menggunakan warna background polos.
-                            </small>
-
+                            <input type="file" name="hero_image" id="inputHero" class="form-control form-control-sm mb-2" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="handleImageUpload(this, 'hero')">
+                            <small class="d-block text-muted mb-2" style="font-size: 11px;">Disarankan gambar landscape (Rasio 16:9).<br>Jika dihapus, akan menggunakan warna background polos.</small>
                             @if($website->hero_image)
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="remove_hero_image" id="checkRemoveHero" value="1"
-                                        onchange="handleImageRemove('hero', this.checked)">
-                                    <label class="form-check-label small text-danger" for="checkRemoveHero">
-                                        Hapus Gambar Banner
-                                    </label>
+                                    <input class="form-check-input" type="checkbox" name="remove_hero_image" id="checkRemoveHero" value="1" onchange="handleImageRemove('hero', this.checked)">
+                                    <label class="form-check-label small text-danger" for="checkRemoveHero">Hapus Gambar Banner</label>
                                 </div>
                             @endif
                         </div>
 
                         <div class="mb-4 p-3 border rounded bg-light">
                             <label class="form-label small fw-bold">Favicon (Icon Tab Browser)</label>
-                            
-                            <input type="file" name="favicon" 
-                                class="form-control form-control-sm mb-2" 
-                                accept="image/png, image/jpeg, image/ico">
-                            
-                            <small class="d-block text-muted mb-2" style="font-size: 11px;">
-                                Format: ICO, PNG. Ukuran kecil (32x32 px).
-                            </small>
-
+                            <input type="file" name="favicon" class="form-control form-control-sm mb-2" accept="image/png, image/jpeg, image/ico">
+                            <small class="d-block text-muted mb-2" style="font-size: 11px;">Format: ICO, PNG. Ukuran kecil (32x32 px).</small>
                             @if($website->favicon)
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" name="remove_favicon" value="1">
-                                    <label class="form-check-label small text-danger">
-                                        Hapus Favicon
-                                    </label>
+                                    <label class="form-check-label small text-danger">Hapus Favicon</label>
                                 </div>
                             @endif
                         </div>
                     </div>
                 </div>
-@php
-    $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : '';
-    
-    if ($website->custom_domain) {
-        $previewUrl = 'http://' . $website->custom_domain . $port;
-    } else {
-        $previewUrl = 'http://' . $website->subdomain . '.localhost' . $port;
-    }
-@endphp
+
+                @php
+                    $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : '';
+                    if ($website->custom_domain) {
+                        $previewUrl = 'http://' . $website->custom_domain . $port;
+                    } else {
+                        $previewUrl = 'http://' . $website->subdomain . '.localhost' . $port;
+                    }
+                @endphp
+                
                 <div class="p-3 border-top bg-light">
-                    {{-- Kita ubah jadi type="button" agar form tidak auto-submit --}}
-                    <button type="button" onclick="handleSave()" class="btn btn-primary w-100 fw-bold">
-                        Simpan Perubahan
-                    </button>
+                    <button type="button" onclick="handleSave()" class="btn btn-primary w-100 fw-bold">Simpan Perubahan</button>
                     <a href="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" target="_blank" class="btn btn-link w-100 btn-sm text-muted mt-2">Lihat Live Website</a>
                 </div>
             </form>
         </div>
 
         <div class="col-md-9 bg-light d-flex flex-column align-items-center justify-content-center p-4" style="height: calc(100vh - 65px); overflow: hidden;">
-    
             <div class="bg-white rounded-pill shadow-sm px-4 py-2 mb-3 d-flex gap-4 align-items-center z-3">
                 <button type="button" class="btn btn-link p-0 text-primary" onclick="setView('desktop', this)"><i class="bi bi-laptop fs-5"></i></button>
                 <button type="button" class="btn btn-link p-0 text-muted" onclick="setView('tablet', this)"><i class="bi bi-tablet fs-5"></i></button>
@@ -329,12 +150,7 @@
             
             <div class="w-100 h-100 d-flex justify-content-center overflow-hidden">
                 <div id="previewContainer" class="shadow-lg bg-white overflow-hidden d-flex" style="width: 100%; height: 100%; border: 8px solid #2c3e50; border-radius: 12px; transition: all 0.5s;">
-                    <iframe 
-                        src="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" 
-                        id="previewFrame" 
-                        class="w-100 h-100 border-0 shadow-sm"
-                        style="min-height: 600px; transition: all 0.5s;">
-                    </iframe>
+                    <iframe src="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" id="previewFrame" class="w-100 h-100 border-0 shadow-sm" style="min-height: 600px; transition: all 0.5s;"></iframe>
                 </div>
             </div>
         </div>
@@ -345,270 +161,362 @@
     const iframe = document.getElementById('previewFrame');
     
     // === DATA AWAL DARI DB ===
-    // Menggunakan empty array sebagai fallback jika data null
     let currentSections = @json($website->sections ?? []);
     if (!Array.isArray(currentSections)) currentSections = [];
 
-    // === DATA GAMBAR ASLI (Untuk Restore) ===
     const originalLogoSrc = "{{ $website->logo ? asset('storage/'.$website->logo) : '' }}";
     const originalHeroSrc = "{{ $website->hero_image ? asset('storage/'.$website->hero_image) : '' }}";
 
-    // --- 1. Fungsi Helper: Kirim Pesan ke Iframe ---
     function sendUpdate(type, payload) {
         if (iframe && iframe.contentWindow) {
             iframe.contentWindow.postMessage({ type: type, ...payload }, '*');
         }
     }
 
-    // --- 2. Fungsi Helper: Auto Prefix 'bi-' ---
     function formatIconClass(val) {
         if (!val) return '';
         val = val.trim();
-        // Jika user sudah ngetik 'bi-', biarkan. Jika belum, tambahkan.
         return val.startsWith('bi-') ? val : `bi-${val}`;
     }
 
-    // --- 3. Event Listener: LIVE PREVIEW (Input Text/Select) ---
-    document.querySelectorAll('.live-update-section').forEach(input => {
-        input.addEventListener('input', function() {
-            let val = this.value;
-            const key = this.dataset.key;
-
-            // KHUSUS ICON: Tambahkan prefix bi- otomatis saat preview
-            if (key.includes('icon')) {
-                val = formatIconClass(val);
-            }
-
-            sendUpdate('updateSection', {
-                sectionId: this.dataset.sectionId,
-                key: key,
-                value: val
-            });
-        });
-    });
-
-    // --- 4. Event Listener: STYLE (Warna/Font) ---
+    // --- Event Listener: STYLE ---
     document.querySelectorAll('.live-update-style').forEach(input => {
         input.addEventListener('input', function() {
-            sendUpdate('updateStyle', {
-                variable: this.dataset.styleVar,
-                value: this.value
-            });
+            sendUpdate('updateStyle', { variable: this.dataset.styleVar, value: this.value });
         });
     });
 
-    // --- 5. LOGIC SAVE (DIPERBAIKI & LEBIH KUAT) ---
-    function handleSave() {
-        console.log("Memulai proses penyimpanan...");
-        
+    // --- FUNGSI SAVE ---
+    function handleSave() { saveToServer(false); }
+
+    function saveToServer(isReload = false) {
         try {
             const form = document.getElementById('builderForm');
             const hiddenInput = document.getElementById('sectionsJsonInput');
 
-            if (!form || !hiddenInput) {
-                alert("Error fatal: Form tidak ditemukan.");
-                return;
+            // Ekstrak data dari DOM HTML sebelum save
+            document.querySelectorAll('.section-form-block').forEach(block => {
+                const sId = block.dataset.sectionId;
+                let sectionRef = currentSections.find(s => s.id === sId);
+                if (sectionRef) {
+                    const inputs = block.querySelectorAll('.live-update-section');
+                    inputs.forEach(input => {
+                        const key = input.dataset.key;
+                        let val = input.value;
+                        if (key.includes('icon')) val = formatIconClass(val);
+                        sectionRef.data[key] = val; 
+                    });
+                }
+            });
+
+            hiddenInput.value = JSON.stringify(currentSections);
+            
+            if(isReload) {
+                 // Untuk cegah reload berulang saat tambah data, gunakan Fetch API 
+                 // Tapi karena struktur Anda Form Submit biasa, kita reload saja
+                 form.submit();
+            } else {
+                 form.submit();
             }
-
-            // A. Helper untuk ambil value dengan aman (biar gak error kalau input hilang)
-            const getVal = (name) => {
-                const el = document.querySelector(`[name="${name}"]`);
-                return el ? el.value : '';
-            };
-
-            // B. Racik Data HERO (Ambil via helper)
-            const newHeroData = {
-                title: getVal('hero_title'),
-                subtitle: getVal('hero_subtitle'),
-                button_text: getVal('hero_btn_text'),
-                button_link: '#products'
-            };
-            updateOrPushSection('hero-1', 'hero', newHeroData);
-
-            // C. Racik Data PRODUCTS
-            const newProdData = {
-                title: getVal('product_title') || 'Produk Pilihan',
-                limit: parseInt(getVal('product_limit')) || 8
-            };
-            updateOrPushSection('products', 'products', newProdData);
-
-            // D. Racik Data FEATURES (Dengan Auto Prefix Icon)
-            const newFeatData = {
-                title: getVal('feat_title'),
-                
-                f1_title: getVal('feat_1_title'), 
-                f1_desc: getVal('feat_1_desc'), 
-                f1_icon: formatIconClass(getVal('feat_1_icon')), // <--- AUTO PREFIX
-
-                f2_title: getVal('feat_2_title'), 
-                f2_desc: getVal('feat_2_desc'), 
-                f2_icon: formatIconClass(getVal('feat_2_icon')), // <--- AUTO PREFIX
-
-                f3_title: getVal('feat_3_title'), 
-                f3_desc: getVal('feat_3_desc'), 
-                f3_icon: formatIconClass(getVal('feat_3_icon'))  // <--- AUTO PREFIX
-            };
-            updateOrPushSection('features', 'features', newFeatData);
-
-            // E. Finalisasi JSON
-            const jsonString = JSON.stringify(currentSections);
-            hiddenInput.value = jsonString;
-            
-            console.log("JSON Success:", jsonString);
-            
-            // F. Submit Form
-            form.submit();
 
         } catch (error) {
             console.error("Gagal Save:", error);
-            alert("Terjadi kesalahan teknis saat menyimpan. Cek Console.");
+            alert("Terjadi kesalahan teknis.");
         }
     }
 
-    // Helper untuk update array sections (agar kode handleSave lebih rapi)
-    function updateOrPushSection(id, type, dataPayload) {
-        let index = currentSections.findIndex(s => s.id === id);
-        if (index > -1) {
-            // Update data saja, pertahankan status visible
-            currentSections[index].data = dataPayload;
-        } else {
-            // Buat baru
-            currentSections.push({ 
-                id: id, 
-                type: type, 
-                visible: true, 
-                data: dataPayload 
-            });
-        }
+    function addNewSection(type) {
+        const uniqueId = type + '-' + Date.now().toString().slice(-6);
+        let defaultData = {};
+        
+        if (type === 'hero') defaultData = { title: 'Judul Baru', subtitle: 'Deskripsi...', button_text: 'Klik Disini' };
+        else if (type === 'products') defaultData = { title: 'Produk Baru', limit: 8 };
+        else if (type === 'features') defaultData = { title: 'Keunggulan Kami', f1_title: 'Fitur 1', 
+        f1_desc: 'Des 1', f1_icon: 'bi-star', f2_title: 'Fitur 2', f2_desc: 'Des 2', f2_icon: 'bi-lightning', 
+        f3_title: 'Fitur 3', f3_desc: 'Des 3', f3_icon: 'bi-shield-check' };
+        else if (type === 'text-image') {
+            // <--- TAMBAHAN BARU: Default data untuk Text & Image
+            defaultData = { 
+                title: 'Cerita Toko Kami', 
+                description: 'Ceritakan sejarah singkat toko Anda di sini...', 
+                button_text: 'Baca Selengkapnya',
+                button_link: '/blog',
+                layout: 'image_left' // Bisa 'image_left' atau 'image_right'
+            };}
+
+        currentSections.push({ id: uniqueId, type: type, visible: true, data: defaultData });
+        saveToServer(true); 
     }
 
-    // --- 6. Handle Visibility & Move (Fitur Sebelumnya) ---
-    // (Kode Toggle Visibility & Move Section tetap sama, tidak perlu diubah)
-    // Pastikan Anda menyalin fungsi toggleVisibility dan moveSection yang lama kesini 
-    // ATAU biarkan kode di bawah ini:
+    function deleteSection(sectionId) {
+        if(!confirm('Hapus section ini?')) return;
+        currentSections = currentSections.filter(s => s.id !== sectionId);
+        saveToServer(true);
+    }
 
-    // === CONFIG: Label & Icon untuk setiap Section ID ===
-    const sectionConfig = {
-        'hero-1':   { label: 'Banner Utama', icon: 'bi-image' },
-        'products': { label: 'List Produk',  icon: 'bi-bag' },
-        'features': { label: 'Keunggulan',   icon: 'bi-grid-3x3-gap' }
-    };
+    function moveSection(sectionId, direction) {
+        // Ambil data terbaru dari input form agar tidak hilang saat ditukar posisinya
+        extractDataFromDOM();
 
-    // === 7. FUNGSI BARU: Render Daftar Section ===
+        const index = currentSections.findIndex(s => s.id === sectionId);
+        if (index === -1) return;
+
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= currentSections.length) return;
+
+        [currentSections[index], currentSections[targetIndex]] = [currentSections[targetIndex], currentSections[index]];
+
+        sendUpdate('moveSection', { sectionId: sectionId, direction: direction });
+        renderSectionList(); // Render ulang HTML sesuai urutan baru
+    }
+
+    function toggleVisibility(sectionId, btn) {
+        extractDataFromDOM();
+        let section = currentSections.find(s => s.id === sectionId);
+        if (!section) return;
+
+        section.visible = (section.visible === undefined) ? false : !section.visible;
+        sendUpdate('toggleSection', { sectionId: sectionId, visible: section.visible });
+        renderSectionList();
+    }
+
+    function getSectionConfig(type, id) {
+        if (type === 'hero') return { label: 'Banner Utama', icon: 'bi-image' };
+        if (type === 'products') return { label: 'List Produk', icon: 'bi-bag' };
+        if (type === 'features') return { label: 'Keunggulan', icon: 'bi-grid-3x3-gap' };
+        if (type === 'text-image') return { label: 'Teks & Gambar', icon: 'bi-card-heading' }; // <--- TAMBAHAN BARU
+        return { label: id, icon: 'bi-square' };
+    }
+
+    // Helper untuk menyimpan data yang diketik user sebelum HTML di render ulang
+    function extractDataFromDOM() {
+         document.querySelectorAll('.section-form-block').forEach(block => {
+            const sId = block.dataset.sectionId;
+            let sectionRef = currentSections.find(s => s.id === sId);
+            if (sectionRef) {
+                block.querySelectorAll('.live-update-section').forEach(input => {
+                    sectionRef.data[input.dataset.key] = input.value; 
+                });
+            }
+        });
+    }
+
+    // === INI JANTUNGNYA! MERENDER ACCORDION VIA JS ===
+    // === INI JANTUNGNYA! MERENDER ACCORDION VIA JS ===
     function renderSectionList() {
-        const container = document.getElementById('sectionListContainer');
-        container.innerHTML = ''; // Bersihkan dulu isinya
+        const container = document.getElementById('dynamicAccordionContainer');
+        if(!container) return;
+        container.innerHTML = ''; 
+
+        if(currentSections.length === 0) {
+            container.innerHTML = `<div class="alert alert-warning small">Belum ada section. Silakan klik Tambah Section.</div>`;
+            return;
+        }
 
         currentSections.forEach((section, index) => {
-            // Ambil Config (Label & Icon)
-            const config = sectionConfig[section.id] || { label: section.id, icon: 'bi-square' };
-            
-            // Cek Visibilitas
-            const isVisible = (section.visible !== false); // Default true
+            const config = getSectionConfig(section.type, section.id);
+            const isVisible = (section.visible !== false); 
             const eyeIcon = isVisible ? 'bi-eye' : 'bi-eye-slash';
             const eyeColor = isVisible ? '' : 'text-danger';
+            const sData = section.data || {};
 
-            // Disable tombol panah jika di ujung
             const disableUp = index === 0 ? 'disabled' : '';
             const disableDown = index === (currentSections.length - 1) ? 'disabled' : '';
 
-            // Buat HTML Kartu
-            const html = `
-                <div class="d-flex align-items-center justify-content-between p-2 border rounded bg-white section-item" data-id="${section.id}">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi ${config.icon} text-muted"></i>
-                        <span class="small fw-bold">${config.label}</span>
+            // --- TAMBAHAN LOGIKA CERDAS: GENERATE DROPDOWN LINK ---
+            // Buat opsi dropdown dinamis berdasarkan section yang sedang aktif
+            let linkOptionsHtml = `<option value="">-- Pilih Tujuan --</option>`;
+            linkOptionsHtml += `<option value="/blog" ${sData.button_link === '/blog' ? 'selected' : ''}>📄 Halaman Blog</option>`;
+            
+            currentSections.forEach(s => {
+                // Jangan tampilkan section yang di-hidden, dan jangan link ke section itu sendiri
+                if(s.visible !== false && s.id !== section.id) { 
+                    const secConfig = getSectionConfig(s.type, s.id);
+                    const targetUrl = `#${s.id}`;
+                    const isSelected = (sData.button_link === targetUrl) ? 'selected' : '';
+                    linkOptionsHtml += `<option value="${targetUrl}" ${isSelected}>⬇️ Scroll ke ${secConfig.label} (${s.id})</option>`;
+                }
+            });
+            // --------------------------------------------------------
+
+            // GENERATE FORM BERDASARKAN TYPE
+            let formHtml = '';
+            if(section.type === 'hero') {
+                formHtml = `
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Judul Utama</label>
+                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}">
                     </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-light border" onclick="moveSection('${section.id}', 'up')" ${disableUp}>
-                            <i class="bi bi-arrow-up-short"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-light border" onclick="moveSection('${section.id}', 'down')" ${disableDown}>
-                            <i class="bi bi-arrow-down-short"></i>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-light border btn-visibility ${eyeColor}" onclick="toggleVisibility('${section.id}', this)">
-                            <i class="bi ${eyeIcon}"></i>
-                        </button>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Deskripsi</label>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="3">${sData.subtitle || ''}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label small fw-bold">Teks Tombol</label>
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="button_text" value="${sData.button_text || ''}">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label small fw-bold">Target Tombol</label>
+                            <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="button_link">
+                                ${linkOptionsHtml}
+                            </select>
+                        </div>
+                    </div>
+                `;
+            } else if(section.type === 'products') {
+                const limitStr = sData.limit || 8;
+                formHtml = `
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Judul List Produk</label>
+                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Produk Pilihan'}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Jumlah Produk Tampil</label>
+                        <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="limit">
+                            <option value="4" ${limitStr == 4 ? 'selected' : ''}>4 Produk</option>
+                            <option value="8" ${limitStr == 8 ? 'selected' : ''}>8 Produk</option>
+                            <option value="12" ${limitStr == 12 ? 'selected' : ''}>12 Produk</option>
+                        </select>
+                    </div>
+                `;
+            } else if(section.type === 'features') {
+                formHtml = `
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Judul Section</label>
+                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Kenapa Memilih Kami?'}">
+                    </div>
+                    <div class="alert alert-light border small text-muted p-2 mb-3">
+                        Gunakan kode icon dari <a href="https://icons.getbootstrap.com/" target="_blank" class="fw-bold text-decoration-underline">Bootstrap Icons</a>. Contoh: <code>whatsapp</code>
+                    </div>
+                    <div class="mb-2 border-bottom pb-2">
+                        <label class="small fw-bold text-muted">Fitur 1</label>
+                        <div class="d-flex gap-2 mb-1">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_icon" placeholder="Icon" style="width: 35%;" value="${sData.f1_icon || 'bi-patch-check'}">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_title" placeholder="Judul" value="${sData.f1_title || 'Produk Asli'}">
+                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_desc" rows="2">${sData.f1_desc || ''}</textarea>
+                    </div>
+                    <div class="mb-2 border-bottom pb-2">
+                        <label class="small fw-bold text-muted">Fitur 2</label>
+                        <div class="d-flex gap-2 mb-1">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_icon" placeholder="Icon" style="width: 35%;" value="${sData.f2_icon || 'bi-lightning'}">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_title" placeholder="Judul" value="${sData.f2_title || 'Pengiriman Cepat'}">
+                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_desc" rows="2">${sData.f2_desc || ''}</textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold text-muted">Fitur 3</label>
+                        <div class="d-flex gap-2 mb-1">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_icon" placeholder="Icon" style="width: 35%;" value="${sData.f3_icon || 'bi-shield-check'}">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_title" placeholder="Judul" value="${sData.f3_title || 'Garansi Resmi'}">
+                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_desc" rows="2">${sData.f3_desc || ''}</textarea>
+                    </div>
+                `;
+            }  else if(section.type === 'text-image') {
+                // Tentukan preview gambar (dari database atau placeholder)
+                const imgPreview = sData.image ? `/storage/${sData.image}` : 'https://via.placeholder.com/150?text=Pilih+Gambar';
+                
+                formHtml = `
+                    <div class="mb-3 border rounded p-2 bg-light">
+                        <label class="form-label small fw-bold">Gambar Section</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <img src="${imgPreview}" class="rounded border bg-white" style="width: 50px; height: 50px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <input type="file" name="section_images[${section.id}]" class="form-control form-control-sm" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="if(this.files[0]) { saveToServer(true); }">
+                                <small class="text-muted" style="font-size: 10px;">Otomatis tersimpan saat dipilih.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Posisi Gambar</label>
+                        <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="layout">
+                            <option value="image_left" ${sData.layout === 'image_left' ? 'selected' : ''}>Kiri (Gambar), Kanan (Teks)</option>
+                            <option value="image_right" ${sData.layout === 'image_right' ? 'selected' : ''}>Kiri (Teks), Kanan (Gambar)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Judul</label>
+                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Deskripsi</label>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="description" rows="4">${sData.description || ''}</textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label small fw-bold">Teks Tombol</label>
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="button_text" value="${sData.button_text || ''}">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label small fw-bold">Target Tombol</label>
+                            <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="button_link">
+                                ${linkOptionsHtml}
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // GABUNGKAN HEADER (SORTING) & BODY (FORM)
+            const html = `
+                <div class="accordion-item section-form-block bg-white border rounded" data-section-id="${section.id}">
+                    <div class="accordion-header d-flex align-items-center justify-content-between p-2 bg-light border-bottom">
+                        
+                        <div class="d-flex align-items-center gap-2 flex-grow-1 cursor-pointer" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapse-${section.id}">
+                            <i class="bi bi-grip-vertical text-muted"></i>
+                            <i class="bi ${config.icon} text-primary"></i>
+                            <span class="small fw-bold text-dark">${config.label}</span>
+                            <span class="badge bg-secondary ms-auto me-2" style="font-size: 0.6rem;">${section.id}</span>
+                        </div>
+
+                        <div class="btn-group z-3">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" onclick="moveSection('${section.id}', 'up')" ${disableUp} title="Naik"><i class="bi bi-arrow-up-short"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" onclick="moveSection('${section.id}', 'down')" ${disableDown} title="Turun"><i class="bi bi-arrow-down-short"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 ${eyeColor}" onclick="toggleVisibility('${section.id}', this)" title="Sembunyikan"><i class="bi ${eyeIcon}"></i></button>
+                        </div>
+                    </div>
+
+                    <div id="collapse-${section.id}" class="accordion-collapse collapse" data-bs-parent="#dynamicAccordionContainer">
+                        <div class="accordion-body p-3">
+                            ${formHtml}
+                            <div class="text-end mt-3 border-top pt-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSection('${section.id}')"><i class="bi bi-trash"></i> Hapus Section</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', html);
         });
-    }
 
-    // === 8. UPDATE: Move Section (Logic Lebih Stabil) ===
-    function moveSection(sectionId, direction) {
-        const index = currentSections.findIndex(s => s.id === sectionId);
-        if (index === -1) return;
-
-        // Tentukan Target Swap
-        const targetIndex = direction === 'up' ? index - 1 : index + 1;
-
-        // Validasi Batas Array
-        if (targetIndex < 0 || targetIndex >= currentSections.length) return;
-
-        // A. TUKAR DATA DI ARRAY
-        [currentSections[index], currentSections[targetIndex]] = [currentSections[targetIndex], currentSections[index]];
-
-        // B. KIRIM SINYAL KE IFRAME (Live Preview)
-        sendUpdate('moveSection', {
-            sectionId: sectionId,
-            direction: direction
+        // RE-ATTACH EVENT LISTENER
+        document.querySelectorAll('.live-update-section').forEach(input => {
+            input.addEventListener('input', function() {
+                let val = this.value;
+                const key = this.dataset.key;
+                if (key.includes('icon')) val = formatIconClass(val);
+                sendUpdate('updateSection', { sectionId: this.dataset.sectionId, key: key, value: val });
+            });
         });
-
-        // C. RENDER ULANG SIDEBAR (Agar sinkron)
-        renderSectionList();
     }
 
-    // === 9. UPDATE: Toggle Visibility (Logic Render Ulang) ===
-    function toggleVisibility(sectionId, btn) {
-        let section = currentSections.find(s => s.id === sectionId);
-        if (!section) return;
+    // --- INIT ---
+    window.addEventListener('load', () => { renderSectionList(); });
 
-        // Toggle nilai
-        section.visible = (section.visible === undefined) ? false : !section.visible;
-
-        // Kirim Sinyal
-        sendUpdate('toggleSection', { sectionId: sectionId, visible: section.visible });
-        
-        // Render Ulang (Ganti icon mata otomatis)
-        renderSectionList();
-    }
-
-    // === 10. INIT SAAT LOAD ===
-    // Panggil renderSectionList saat halaman pertama kali dibuka
-    window.addEventListener('load', () => {
-        // Pastikan currentSections punya minimal data default jika kosong
-        if(currentSections.length === 0) {
-             // Opsional: Isi default jika database kosong melompong (Logic fallback)
-        }
-        renderSectionList();
-    });
-
-    // --- 7. Handle Image Upload & Remove (Kode Sebelumnya) ---
+    // --- HANDLE ASET GAMBAR ---
     function handleImageUpload(input, type) {
-        // (Salin fungsi handleImageUpload yang ada validasi size/type dari langkah sebelumnya)
         if (!input.files || !input.files[0]) return;
-        const file = input.files[0];
-        
-        // Validasi sederhana
-        if(file.size > 2 * 1024 * 1024) { alert('File terlalu besar (Max 2MB)'); return; }
+        if(input.files[0].size > 2 * 1024 * 1024) { alert('File terlalu besar (Max 2MB)'); return; }
 
         if(type === 'logo') { let c=document.getElementById('checkRemoveLogo'); if(c) c.checked=false; }
         if(type === 'hero') { let c=document.getElementById('checkRemoveHero'); if(c) c.checked=false; }
 
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                // Kirim sinyal update gambar
-                sendUpdate('updateImage', {
-                    target: type, // 'logo' atau 'hero'
-                    src: e.target.result,
-                    action: 'upload' // Penanda aksi
-                });
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
+        const reader = new FileReader();
+        reader.onload = function(e) { sendUpdate('updateImage', { target: type, src: e.target.result, action: 'upload' }); }
+        reader.readAsDataURL(input.files[0]);
     }
 
     function handleImageRemove(type, isChecked) {
@@ -616,45 +524,77 @@
             if(type==='logo') document.getElementById('inputLogo').value = '';
             if(type==='hero') document.getElementById('inputHero').value = '';
         }
-        let srcToRestore = '';
-        if (!isChecked) {
-            if(type === 'logo') srcToRestore = originalLogoSrc;
-            if(type === 'hero') srcToRestore = originalHeroSrc;
-        }
+        let srcToRestore = isChecked ? '' : (type === 'logo' ? originalLogoSrc : originalHeroSrc);
         sendUpdate('updateImage', { target: type, src: srcToRestore, action: isChecked ? 'remove' : 'restore' });
     }
-    // 5. Kontrol Responsive View
+
     function setView(mode, btn) {
         const container = document.getElementById('previewContainer');
-        const buttons = btn.parentElement.querySelectorAll('button');
-        
-        // Reset tombol
-        buttons.forEach(b => {
-            b.classList.remove('text-primary');
-            b.classList.add('text-muted');
-        });
-        btn.classList.remove('text-muted');
-        btn.classList.add('text-primary');
+        btn.parentElement.querySelectorAll('button').forEach(b => { b.classList.remove('text-primary'); b.classList.add('text-muted'); });
+        btn.classList.remove('text-muted'); btn.classList.add('text-primary');
 
-        // Ubah Ukuran
         if (mode === 'desktop') container.style.maxWidth = '100%';
         if (mode === 'tablet') container.style.maxWidth = '768px';
         if (mode === 'mobile') container.style.maxWidth = '375px';
     }
-    // Init Visibility UI saat Load
-    window.addEventListener('load', () => {
-        currentSections.forEach(s => {
-            if(s.visible === false) {
-                const item = document.querySelector(`.section-item[data-id="${s.id}"]`);
-                if(item) {
-                    const btn = item.querySelector('.btn-visibility');
-                    if(btn) {
-                        btn.querySelector('i').classList.replace('bi-eye', 'bi-eye-slash');
-                        btn.classList.add('text-danger');
-                    }
+    // --- FUNGSI UPLOAD GAMBAR SECTION VIA AJAX ---
+    async function uploadSectionImage(input, sectionId) {
+        if (!input.files || !input.files[0]) return;
+        
+        const file = input.files[0];
+        
+        // Validasi ukuran di sisi Client (Max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            alert('Ukuran file maksimal 2MB!');
+            input.value = '';
+            return;
+        }
+
+        // Tampilkan indikator loading di gambar thumbnail
+        const imgPreview = document.getElementById(`preview-img-${sectionId}`);
+        const originalSrc = imgPreview.src;
+        imgPreview.src = 'https://via.placeholder.com/150?text=Uploading...';
+
+        // Siapkan data untuk dikirim
+        const formData = new FormData();
+        formData.append('image', file);
+        // Ambil CSRF token dari form utama
+        formData.append('_token', document.querySelector('input[name="_token"]').value);
+
+        try {
+            // Tembak ke endpoint upload yang baru kita buat
+            const response = await fetch(`{{ route('client.builder.uploadImage', $website->id) }}`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // 1. Simpan path gambar ke dalam memory JSON kita!
+                let sectionRef = currentSections.find(s => s.id === sectionId);
+                if (sectionRef) {
+                    sectionRef.data.image = result.path; 
                 }
+
+                // 2. Ganti thumbnail di sidebar dengan gambar yang sukses diupload
+                imgPreview.src = result.url;
+                
+                // 3. Masukkan memory terbaru ke hidden input form
+                document.getElementById('sectionsJsonInput').value = JSON.stringify(currentSections);
+
+                // Opsional: Jika Anda ingin Iframe langsung refresh atau update (Untuk sekarang, klien bisa klik Simpan Perubahan jika ingin lihat di Iframe)
+                alert('Gambar berhasil diupload! Klik "Simpan Perubahan" untuk menerapkan ke website.');
+
+            } else {
+                alert('Gagal mengupload gambar.');
+                imgPreview.src = originalSrc;
             }
-        });
-    });
+        } catch (error) {
+            console.error('Error upload:', error);
+            alert('Terjadi kesalahan jaringan.');
+            imgPreview.src = originalSrc;
+        }
+    }
 </script>
 @endsection
