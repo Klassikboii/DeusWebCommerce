@@ -10,7 +10,21 @@
                 <h5 class="fw-bold m-0">Website Builder</h5>
                 <small class="text-muted">Kustomisasi tampilan toko.</small>
             </div>
-
+            {{-- RADAR ERROR & SUCCESS --}}
+            @if($errors->any())
+                <div class="alert alert-danger m-3 small rounded">
+                    <ul class="mb-0 ps-3">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            @if(session('success'))
+                <div class="alert alert-success m-3 small rounded">
+                    <i class="bi bi-check-circle me-1"></i> {{ session('success') }}
+                </div>
+            @endif
             <ul class="nav nav-tabs nav-fill" id="builderTab" role="tablist">
                 <li class="nav-item">
                     <button class="nav-link active small py-3" data-bs-toggle="tab" data-bs-target="#tab-style" type="button">Style</button>
@@ -78,6 +92,9 @@
                                     <li><a class="dropdown-item small" href="#" onclick="addNewSection('products')"><i class="bi bi-bag me-2"></i>List Produk</a></li>
                                     <li><a class="dropdown-item small" href="#" onclick="addNewSection('features')"><i class="bi bi-grid-3x3-gap me-2"></i>Keunggulan</a></li>
                                     <li><a class="dropdown-item small" href="#" onclick="addNewSection('text-image')"><i class="bi bi-card-heading me-2"></i>Teks & Gambar</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="addNewSection('faq')"><i class="bi bi-question-circle me-2"></i>Tanya Jawab (FAQ)</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="addNewSection('testimonial')"><i class="bi bi-chat-quote me-2"></i>Testimonial</a></li>
+                                    <li><a class="dropdown-item small" href="#" onclick="addNewSection('cta')"><i class="bi bi-megaphone me-2"></i>CTA / Promo Banner</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -230,9 +247,16 @@
         let defaultData = {};
         
         if (type === 'hero') defaultData = { title: 'Judul Baru', subtitle: 'Deskripsi...', button_text: 'Klik Disini' };
-        else if (type === 'products') defaultData = { title: 'Produk Baru', limit: 8 };
-        else if (type === 'features') defaultData = { title: 'Keunggulan Kami', f1_title: 'Fitur 1', 
-        f1_desc: 'Des 1', f1_icon: 'bi-star', f2_title: 'Fitur 2', f2_desc: 'Des 2', f2_icon: 'bi-lightning', 
+        else if (type === 'products') {
+            defaultData = { 
+                title: 'Produk Pilihan', 
+                subtitle: 'Koleksi terbaik dari toko kami', // <--- Tambahan Subjudul
+                limit: 8 
+            };
+        }
+        else if (type === 'features') defaultData = { title: 'Keunggulan Kami', 
+        f1_title: 'Fitur 1', f1_desc: 'Des 1', f1_icon: 'bi-star', 
+        f2_title: 'Fitur 2', f2_desc: 'Des 2', f2_icon: 'bi-lightning', 
         f3_title: 'Fitur 3', f3_desc: 'Des 3', f3_icon: 'bi-shield-check' };
         else if (type === 'text-image') {
             // <--- TAMBAHAN BARU: Default data untuk Text & Image
@@ -243,6 +267,34 @@
                 button_link: '/blog',
                 layout: 'image_left' // Bisa 'image_left' atau 'image_right'
             };}
+        else if (type === 'faq') {
+            defaultData = { 
+                title: 'Pertanyaan Umum', 
+                subtitle: 'Temukan jawaban untuk pertanyaan yang sering diajukan.', 
+                q1_ask: 'Berapa lama estimasi pengiriman?', q1_ans: 'Pengiriman memakan waktu 2-3 hari kerja.',
+                q2_ask: 'Apakah ada garansi pengembalian?', q2_ans: 'Ya, kami memberikan garansi 7 hari uang kembali jika produk cacat.',
+                q3_ask: 'Bagaimana cara melacak pesanan?',  q3_ans: 'Anda dapat memasukkan nomor pesanan di halaman Cek Pesanan.'
+            };
+        }
+        else if (type === 'testimonial') {
+            defaultData = { 
+                title: 'Apa Kata Mereka?', 
+                subtitle: 'Ulasan asli dari pelanggan setia kami.', 
+                t1_name: 'Budi Santoso', t1_role: 'Pengusaha', t1_review: 'Kualitas produk sangat luar biasa, pengiriman juga sangat cepat!',
+                t2_name: 'Siti Aminah', t2_role: 'Ibu Rumah Tangga', t2_review: 'Sangat puas belanja di sini. Admin ramah dan responsif.',
+                t3_name: 'Andi Wijaya', t3_role: 'Mahasiswa', t3_review: 'Barang sesuai dengan deskripsi, packing sangat aman. Bintang 5!'
+            }; 
+        }
+        else if (type === 'cta') {
+            defaultData = { 
+                title: 'Dapatkan Diskon 20% Hari Ini!', 
+                subtitle: 'Gunakan kode promo: DEUS20 saat checkout.', 
+                button_text: 'Belanja Sekarang',
+                button_link: '#products'
+            };
+        }
+    
+
 
         currentSections.push({ id: uniqueId, type: type, visible: true, data: defaultData });
         saveToServer(true); 
@@ -285,7 +337,11 @@
         if (type === 'products') return { label: 'List Produk', icon: 'bi-bag' };
         if (type === 'features') return { label: 'Keunggulan', icon: 'bi-grid-3x3-gap' };
         if (type === 'text-image') return { label: 'Teks & Gambar', icon: 'bi-card-heading' }; // <--- TAMBAHAN BARU
-        return { label: id, icon: 'bi-square' };
+       
+        if (type === 'faq') return { label: 'Tanya Jawab (FAQ)', icon: 'bi-question-circle' }; 
+        if (type === 'testimonial') return { label: 'Testimonial', icon: 'bi-chat-quote' }; 
+        if (type === 'cta') return { label: 'CTA / Promo Banner', icon: 'bi-megaphone' };
+        return { label: id, icon: 'bi-square'};
     }
 
     // Helper untuk menyimpan data yang diketik user sebelum HTML di render ulang
@@ -303,6 +359,7 @@
 
     // === INI JANTUNGNYA! MERENDER ACCORDION VIA JS ===
     // === INI JANTUNGNYA! MERENDER ACCORDION VIA JS ===
+   // === INI JANTUNGNYA! MERENDER ACCORDION VIA JS ===
     function renderSectionList() {
         const container = document.getElementById('dynamicAccordionContainer');
         if(!container) return;
@@ -323,167 +380,229 @@
             const disableUp = index === 0 ? 'disabled' : '';
             const disableDown = index === (currentSections.length - 1) ? 'disabled' : '';
 
-            // --- TAMBAHAN LOGIKA CERDAS: GENERATE DROPDOWN LINK ---
-            // Buat opsi dropdown dinamis berdasarkan section yang sedang aktif
+            // Generate Dropdown Link Target
             let linkOptionsHtml = `<option value="">-- Pilih Tujuan --</option>`;
             linkOptionsHtml += `<option value="/blog" ${sData.button_link === '/blog' ? 'selected' : ''}>📄 Halaman Blog</option>`;
-            
             currentSections.forEach(s => {
-                // Jangan tampilkan section yang di-hidden, dan jangan link ke section itu sendiri
                 if(s.visible !== false && s.id !== section.id) { 
                     const secConfig = getSectionConfig(s.type, s.id);
                     const targetUrl = `#${s.id}`;
                     const isSelected = (sData.button_link === targetUrl) ? 'selected' : '';
-                    linkOptionsHtml += `<option value="${targetUrl}" ${isSelected}>⬇️ Scroll ke ${secConfig.label} (${s.id})</option>`;
+                    linkOptionsHtml += `<option value="${targetUrl}" ${isSelected}>⬇️ Scroll ke ${secConfig.label}</option>`;
                 }
             });
-            // --------------------------------------------------------
 
-            // GENERATE FORM BERDASARKAN TYPE
+            // GENERATE FORM BERDASARKAN TYPE DENGAN UI YANG LEBIH RAPI
             let formHtml = '';
+            
             if(section.type === 'hero') {
                 formHtml = `
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Judul Utama</label>
-                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}">
+                    <div class="mb-2">
+                        <label class="form-label text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Teks Utama</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul Banner">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="2" placeholder="Deskripsi/Subjudul...">${sData.subtitle || ''}</textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Deskripsi</label>
-                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="3">${sData.subtitle || ''}</textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label small fw-bold">Teks Tombol</label>
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="button_text" value="${sData.button_text || ''}">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label small fw-bold">Target Tombol</label>
-                            <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="button_link">
-                                ${linkOptionsHtml}
-                            </select>
-                        </div>
+                    <div class="p-2 bg-white border rounded shadow-sm mt-3">
+                        <label class="form-label text-muted mb-2" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-hand-index-thumb me-1"></i>Pengaturan Tombol</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="button_text" value="${sData.button_text || ''}" placeholder="Teks Tombol (mis: Beli Sekarang)">
+                        <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="button_link">
+                            ${linkOptionsHtml}
+                        </select>
                     </div>
                 `;
-            } else if(section.type === 'products') {
+            } 
+            
+            else if(section.type === 'products') {
                 const limitStr = sData.limit || 8;
                 formHtml = `
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Judul List Produk</label>
-                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Produk Pilihan'}">
+                        <label class="form-label text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Pengaturan Teks</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Produk Pilihan'}" placeholder="Judul Section">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="2" placeholder="Subjudul...">${sData.subtitle || ''}</textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Jumlah Produk Tampil</label>
+                    <div class="p-2 bg-white border rounded shadow-sm">
+                        <label class="form-label text-muted mb-1" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-grid me-1"></i>Jumlah Tampil</label>
                         <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="limit">
-                            <option value="4" ${limitStr == 4 ? 'selected' : ''}>4 Produk</option>
-                            <option value="8" ${limitStr == 8 ? 'selected' : ''}>8 Produk</option>
-                            <option value="12" ${limitStr == 12 ? 'selected' : ''}>12 Produk</option>
+                            <option value="4" ${limitStr == 4 ? 'selected' : ''}>4 Produk (1 Baris)</option>
+                            <option value="8" ${limitStr == 8 ? 'selected' : ''}>8 Produk (2 Baris)</option>
+                            <option value="12" ${limitStr == 12 ? 'selected' : ''}>12 Produk (3 Baris)</option>
                         </select>
                     </div>
                 `;
-            } else if(section.type === 'features') {
+            } 
+            
+            else if(section.type === 'features') {
                 formHtml = `
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Judul Section</label>
-                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Kenapa Memilih Kami?'}">
+                        <input type="text" class="form-control form-control-sm fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Kenapa Memilih Kami?'}" placeholder="Judul Section Fitur">
                     </div>
-                    <div class="alert alert-light border small text-muted p-2 mb-3">
-                        Gunakan kode icon dari <a href="https://icons.getbootstrap.com/" target="_blank" class="fw-bold text-decoration-underline">Bootstrap Icons</a>. Contoh: <code>whatsapp</code>
-                    </div>
-                    <div class="mb-2 border-bottom pb-2">
-                        <label class="small fw-bold text-muted">Fitur 1</label>
-                        <div class="d-flex gap-2 mb-1">
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_icon" placeholder="Icon" style="width: 35%;" value="${sData.f1_icon || 'bi-patch-check'}">
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_title" placeholder="Judul" value="${sData.f1_title || 'Produk Asli'}">
+                    
+                    <div class="p-2 bg-white border rounded shadow-sm mb-2">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-1-circle me-1"></i>Fitur Pertama</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_icon" placeholder="Icon (bi-star)" style="width: 40%;" value="${sData.f1_icon || ''}">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_title" placeholder="Judul Fitur" value="${sData.f1_title || ''}">
                         </div>
-                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_desc" rows="2">${sData.f1_desc || ''}</textarea>
-                    </div>
-                    <div class="mb-2 border-bottom pb-2">
-                        <label class="small fw-bold text-muted">Fitur 2</label>
-                        <div class="d-flex gap-2 mb-1">
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_icon" placeholder="Icon" style="width: 35%;" value="${sData.f2_icon || 'bi-lightning'}">
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_title" placeholder="Judul" value="${sData.f2_title || 'Pengiriman Cepat'}">
-                        </div>
-                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_desc" rows="2">${sData.f2_desc || ''}</textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="small fw-bold text-muted">Fitur 3</label>
-                        <div class="d-flex gap-2 mb-1">
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_icon" placeholder="Icon" style="width: 35%;" value="${sData.f3_icon || 'bi-shield-check'}">
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_title" placeholder="Judul" value="${sData.f3_title || 'Garansi Resmi'}">
-                        </div>
-                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_desc" rows="2">${sData.f3_desc || ''}</textarea>
-                    </div>
-                `;
-            }  else if(section.type === 'text-image') {
-                // Tentukan preview gambar (dari database atau placeholder)
-                const imgPreview = sData.image ? `/storage/${sData.image}` : 'https://via.placeholder.com/150?text=Pilih+Gambar';
-                
-                formHtml = `
-                    <div class="mb-3 border rounded p-2 bg-light">
-                        <label class="form-label small fw-bold">Gambar Section</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="${imgPreview}" class="rounded border bg-white" style="width: 50px; height: 50px; object-fit: cover;">
-                            <div class="flex-grow-1">
-                                <input type="file" name="section_images[${section.id}]" class="form-control form-control-sm" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="if(this.files[0]) { saveToServer(true); }">
-                                <small class="text-muted" style="font-size: 10px;">Otomatis tersimpan saat dipilih.</small>
-                            </div>
-                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f1_desc" rows="2" placeholder="Deskripsi singkat...">${sData.f1_desc || ''}</textarea>
                     </div>
 
+                    <div class="p-2 bg-white border rounded shadow-sm mb-2">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-2-circle me-1"></i>Fitur Kedua</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_icon" placeholder="Icon (bi-truck)" style="width: 40%;" value="${sData.f2_icon || ''}">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_title" placeholder="Judul Fitur" value="${sData.f2_title || ''}">
+                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f2_desc" rows="2" placeholder="Deskripsi singkat...">${sData.f2_desc || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-3-circle me-1"></i>Fitur Ketiga</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_icon" placeholder="Icon (bi-shield)" style="width: 40%;" value="${sData.f3_icon || ''}">
+                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_title" placeholder="Judul Fitur" value="${sData.f3_title || ''}">
+                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="f3_desc" rows="2" placeholder="Deskripsi singkat...">${sData.f3_desc || ''}</textarea>
+                    </div>
+                `;
+            } 
+            
+            else if(section.type === 'text-image') {
+                const svgPlaceholder = `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect fill='%23eeeeee' width='150' height='150'/%3E%3Ctext fill='%23999999' x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-family='Arial, sans-serif' font-size='14'%3EPilih Gambar%3C/text%3E%3C/svg%3E`;
+                const imgPreview = sData.image ? `/storage/${sData.image}` : svgPlaceholder;
+                
+                formHtml = `
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Posisi Gambar</label>
-                        <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="layout">
+                        <label class="form-label text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Layout & Konten</label>
+                        <select class="form-select form-select-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="layout">
                             <option value="image_left" ${sData.layout === 'image_left' ? 'selected' : ''}>Kiri (Gambar), Kanan (Teks)</option>
                             <option value="image_right" ${sData.layout === 'image_right' ? 'selected' : ''}>Kiri (Teks), Kanan (Gambar)</option>
                         </select>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul Paragraf">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="description" rows="3" placeholder="Tuliskan cerita/deskripsi Anda...">${sData.description || ''}</textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Judul</label>
-                        <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Deskripsi</label>
-                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="description" rows="4">${sData.description || ''}</textarea>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label small fw-bold">Teks Tombol</label>
-                            <input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="button_text" value="${sData.button_text || ''}">
+
+                    <div class="p-2 bg-white border rounded shadow-sm mb-3 d-flex align-items-center gap-3">
+                        <img src="${imgPreview}" id="preview-img-${section.id}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+                        <div class="flex-grow-1">
+                            <label class="form-label text-muted mb-1" style="font-size: 10px; font-weight: 600; text-transform: uppercase;">Upload Gambar Section</label>
+                            <input type="file" class="form-control form-control-sm" accept="image/png, image/jpeg, image/webp" onchange="uploadSectionImage(this, '${section.id}')">
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label small fw-bold">Target Tombol</label>
-                            <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="button_link">
-                                ${linkOptionsHtml}
-                            </select>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm">
+                        <label class="form-label text-muted mb-2" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-hand-index-thumb me-1"></i>Tombol (Opsional)</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="button_text" value="${sData.button_text || ''}" placeholder="Teks Tombol (Kosongkan jika tidak perlu)">
+                        <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="button_link">
+                            ${linkOptionsHtml}
+                        </select>
+                    </div>
+                `;
+            }
+
+            else if(section.type === 'faq') {
+                formHtml = `
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm mb-2 fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul FAQ">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="2" placeholder="Subjudul FAQ...">${sData.subtitle || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm mb-2">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-patch-question me-1"></i>Tanya Jawab 1</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="q1_ask" value="${sData.q1_ask || ''}" placeholder="Pertanyaan...">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="q1_ans" rows="2" placeholder="Jawaban...">${sData.q1_ans || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm mb-2">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-patch-question me-1"></i>Tanya Jawab 2</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="q2_ask" value="${sData.q2_ask || ''}" placeholder="Pertanyaan...">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="q2_ans" rows="2" placeholder="Jawaban...">${sData.q2_ans || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-patch-question me-1"></i>Tanya Jawab 3</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="q3_ask" value="${sData.q3_ask || ''}" placeholder="Pertanyaan...">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="q3_ans" rows="2" placeholder="Jawaban...">${sData.q3_ans || ''}</textarea>
+                    </div>
+                `;
+            }
+
+            else if(section.type === 'testimonial') {
+                formHtml = `
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-control-sm mb-2 fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul Testimonial">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="2" placeholder="Subjudul...">${sData.subtitle || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm mb-2">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-chat-left-quote me-1"></i>Ulasan 1</label>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t1_name" value="${sData.t1_name || ''}" placeholder="Nama Pelanggan"></div>
+                            <div class="col-6"><input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t1_role" value="${sData.t1_role || ''}" placeholder="Status/Asal"></div>
                         </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t1_review" rows="2" placeholder="Isi ulasan...">${sData.t1_review || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm mb-2">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-chat-left-quote me-1"></i>Ulasan 2</label>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t2_name" value="${sData.t2_name || ''}" placeholder="Nama Pelanggan"></div>
+                            <div class="col-6"><input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t2_role" value="${sData.t2_role || ''}" placeholder="Status/Asal"></div>
+                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t2_review" rows="2" placeholder="Isi ulasan...">${sData.t2_review || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm">
+                        <label class="form-label text-primary mb-1" style="font-size: 11px; font-weight: 700;"><i class="bi bi-chat-left-quote me-1"></i>Ulasan 3</label>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t3_name" value="${sData.t3_name || ''}" placeholder="Nama Pelanggan"></div>
+                            <div class="col-6"><input type="text" class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t3_role" value="${sData.t3_role || ''}" placeholder="Status/Asal"></div>
+                        </div>
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="t3_review" rows="2" placeholder="Isi ulasan...">${sData.t3_review || ''}</textarea>
+                    </div>
+                `;
+            } else if(section.type === 'cta') {
+                formHtml = `
+                    <div class="mb-3">
+                        <label class="form-label text-muted mb-1" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Konten Penawaran</label>
+                        <input type="text" class="form-control form-control-sm mb-2 fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul Promo/CTA">
+                        <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="2" placeholder="Subjudul/Deskripsi Promo...">${sData.subtitle || ''}</textarea>
+                    </div>
+
+                    <div class="p-2 bg-white border rounded shadow-sm">
+                        <label class="form-label text-muted mb-2" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-hand-index-thumb me-1"></i>Pengaturan Tombol</label>
+                        <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="button_text" value="${sData.button_text || ''}" placeholder="Teks Tombol (mis: Ambil Promo)">
+                        <select class="form-select form-select-sm live-update-section" data-section-id="${section.id}" data-key="button_link">
+                            ${linkOptionsHtml}
+                        </select>
                     </div>
                 `;
             }
 
             // GABUNGKAN HEADER (SORTING) & BODY (FORM)
+            // Perhatikan pergantian p-3 menjadi p-2 dan bg-white menjadi bg-light di accordion-body
             const html = `
-                <div class="accordion-item section-form-block bg-white border rounded" data-section-id="${section.id}">
-                    <div class="accordion-header d-flex align-items-center justify-content-between p-2 bg-light border-bottom">
+                <div class="accordion-item section-form-block border rounded mb-2 shadow-sm" data-section-id="${section.id}">
+                    <div class="accordion-header d-flex align-items-center justify-content-between p-2 bg-white border-bottom rounded-top">
                         
                         <div class="d-flex align-items-center gap-2 flex-grow-1 cursor-pointer" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapse-${section.id}">
                             <i class="bi bi-grip-vertical text-muted"></i>
                             <i class="bi ${config.icon} text-primary"></i>
                             <span class="small fw-bold text-dark">${config.label}</span>
-                            <span class="badge bg-secondary ms-auto me-2" style="font-size: 0.6rem;">${section.id}</span>
+                            <span class="badge bg-light text-secondary border flex-shrink-0" style="font-size: 0.6rem;">#${section.id.split('-').pop()}</span>                            
                         </div>
 
                         <div class="btn-group z-3">
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" onclick="moveSection('${section.id}', 'up')" ${disableUp} title="Naik"><i class="bi bi-arrow-up-short"></i></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0" onclick="moveSection('${section.id}', 'down')" ${disableDown} title="Turun"><i class="bi bi-arrow-down-short"></i></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 ${eyeColor}" onclick="toggleVisibility('${section.id}', this)" title="Sembunyikan"><i class="bi ${eyeIcon}"></i></button>
+                            <button type="button" class="btn btn-sm btn-light border py-0 text-muted" onclick="moveSection('${section.id}', 'up')" ${disableUp} title="Naik"><i class="bi bi-chevron-up"></i></button>
+                            <button type="button" class="btn btn-sm btn-light border py-0 text-muted" onclick="moveSection('${section.id}', 'down')" ${disableDown} title="Turun"><i class="bi bi-chevron-down"></i></button>
+                            <button type="button" class="btn btn-sm btn-light border py-0 ${eyeColor}" onclick="toggleVisibility('${section.id}', this)" title="Sembunyikan"><i class="bi ${eyeIcon}"></i></button>
                         </div>
                     </div>
 
                     <div id="collapse-${section.id}" class="accordion-collapse collapse" data-bs-parent="#dynamicAccordionContainer">
-                        <div class="accordion-body p-3">
+                        <div class="accordion-body p-2 bg-light rounded-bottom">
                             ${formHtml}
-                            <div class="text-end mt-3 border-top pt-2">
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSection('${section.id}')"><i class="bi bi-trash"></i> Hapus Section</button>
+                            <div class="text-end mt-2 pt-2 border-top">
+                                <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="deleteSection('${section.id}')"><i class="bi bi-trash"></i> Hapus Bagian Ini</button>
                             </div>
                         </div>
                     </div>
@@ -502,7 +621,6 @@
             });
         });
     }
-
     // --- INIT ---
     window.addEventListener('load', () => { renderSectionList(); });
 
@@ -538,62 +656,46 @@
         if (mode === 'mobile') container.style.maxWidth = '375px';
     }
     // --- FUNGSI UPLOAD GAMBAR SECTION VIA AJAX ---
+    // --- FUNGSI UPLOAD GAMBAR SECTION VIA AJAX ---
     async function uploadSectionImage(input, sectionId) {
         if (!input.files || !input.files[0]) return;
-        
         const file = input.files[0];
         
-        // Validasi ukuran di sisi Client (Max 2MB)
-        if (file.size > 2 * 1024 * 1024) {
-            alert('Ukuran file maksimal 2MB!');
-            input.value = '';
-            return;
-        }
+        if (file.size > 2 * 1024 * 1024) { alert('Ukuran maksimal 2MB!'); input.value = ''; return; }
 
-        // Tampilkan indikator loading di gambar thumbnail
+        const svgLoading = `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect fill='%23eeeeee' width='150' height='150'/%3E%3Ctext fill='%23999999' x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-family='Arial, sans-serif' font-size='12'%3EUploading...%3C/text%3E%3C/svg%3E`;
         const imgPreview = document.getElementById(`preview-img-${sectionId}`);
         const originalSrc = imgPreview.src;
-        imgPreview.src = 'https://via.placeholder.com/150?text=Uploading...';
+        imgPreview.src = svgLoading;
 
-        // Siapkan data untuk dikirim
         const formData = new FormData();
         formData.append('image', file);
-        // Ambil CSRF token dari form utama
         formData.append('_token', document.querySelector('input[name="_token"]').value);
 
         try {
-            // Tembak ke endpoint upload yang baru kita buat
-            const response = await fetch(`{{ route('client.builder.uploadImage', $website->id) }}`, {
-                method: 'POST',
-                body: formData
-            });
-
+            const response = await fetch(`{{ route('client.builder.uploadImage', $website->id) }}`, { method: 'POST', body: formData });
             const result = await response.json();
 
             if (result.success) {
-                // 1. Simpan path gambar ke dalam memory JSON kita!
-                let sectionRef = currentSections.find(s => s.id === sectionId);
-                if (sectionRef) {
-                    sectionRef.data.image = result.path; 
-                }
+                // 1. Amankan data input teks agar tidak hilang
+                extractDataFromDOM();
 
-                // 2. Ganti thumbnail di sidebar dengan gambar yang sukses diupload
-                imgPreview.src = result.url;
-                
-                // 3. Masukkan memory terbaru ke hidden input form
+                // 2. Simpan path gambar ke memori
+                let sectionRef = currentSections.find(s => s.id === sectionId);
+                if (sectionRef) sectionRef.data.image = result.path; 
+
+                // 3. Update hidden input JSON
                 document.getElementById('sectionsJsonInput').value = JSON.stringify(currentSections);
 
-                // Opsional: Jika Anda ingin Iframe langsung refresh atau update (Untuk sekarang, klien bisa klik Simpan Perubahan jika ingin lihat di Iframe)
-                alert('Gambar berhasil diupload! Klik "Simpan Perubahan" untuk menerapkan ke website.');
+                // 4. Ubah thumbnail dan Live Preview Iframe!
+                imgPreview.src = result.url;
+                sendUpdate('updateSection', { sectionId: sectionId, key: 'image', value: result.url });
 
             } else {
-                alert('Gagal mengupload gambar.');
-                imgPreview.src = originalSrc;
+                alert('Gagal upload.'); imgPreview.src = originalSrc;
             }
         } catch (error) {
-            console.error('Error upload:', error);
-            alert('Terjadi kesalahan jaringan.');
-            imgPreview.src = originalSrc;
+            console.error('Error:', error); alert('Error jaringan.'); imgPreview.src = originalSrc;
         }
     }
 </script>

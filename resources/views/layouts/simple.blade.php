@@ -327,17 +327,14 @@
                     document.documentElement.style.setProperty(data.variable, data.value);
                 }
 
-                // B. UPDATE TEXT (Konten Section)
+               // B. UPDATE TEXT (Konten Section)
                 else if (data.type === 'updateSection') {
-                    // --- LOGIKA BARU UNTUK LIMIT PRODUK ---
+                    
+                    // --- LOGIKA LIMIT PRODUK ---
                     if (data.key === 'limit') {
                         const newLimit = parseInt(data.value);
-                        // Cari semua elemen produk
                         const items = document.querySelectorAll('.product-item');
-                        
                         items.forEach((item, index) => {
-                            // Jika urutan < limit baru -> TAMPILKAN
-                            // Jika urutan >= limit baru -> SEMBUNYIKAN
                             if (index < newLimit) {
                                 item.style.setProperty('display', 'block', 'important');
                             } else {
@@ -345,21 +342,48 @@
                             }
                         });
                     }
+                    // --- LOGIKA UPDATE ICON ---
                     else if (data.key.includes('icon')) {
                         const selector = `[data-section-id="${data.sectionId}"][data-key="${data.key}"]`;
                         const element = document.querySelector(selector);
                         if (element) {
-                            // Reset semua class, lalu isi class standar + class baru
-                            // "bi" dan "live-editable" adalah class wajib
                             element.className = `bi ${data.value} live-editable`;
                         }
                     }
-                    
-                    // --- Logika Text Biasa (Judul/Subtitle) ---
+                    // 👇=== LOGIKA POSISI GAMBAR (LAYOUT) ===👇
+                    else if (data.key === 'layout') {
+                        const selector = `[data-section-id="${data.sectionId}"][data-key="layout"]`;
+                        const rowElement = document.querySelector(selector);
+                        if (rowElement) {
+                            if (data.value === 'image_right') {
+                                rowElement.classList.add('flex-row-reverse');
+                            } else {
+                                rowElement.classList.remove('flex-row-reverse');
+                            }
+                        }
+                    }
+                    // 👇=== LOGIKA UPDATE LINK TOMBOL ===👇
+                    else if (data.key === 'button_link') {
+                        const selector = `[data-section-id="${data.sectionId}"][data-link-key="button_link"]`;
+                        const btnElement = document.querySelector(selector);
+                        if (btnElement) {
+                            btnElement.href = data.value;
+                        }
+                    }
+                    // --- LOGIKA TEXT & GAMBAR BIASA ---
                     else {
                         const selector = `[data-section-id="${data.sectionId}"][data-key="${data.key}"]`;
                         const element = document.querySelector(selector);
-                        if (element) element.innerText = data.value;
+                        if (element) {
+                            // Jika tag-nya IMG, ganti src gambarnya
+                            if (element.tagName === 'IMG') {
+                                element.src = data.value;
+                            } 
+                            // PAGAR PELINDUNG: Jangan pernah timpa HTML jika tag-nya DIV
+                            else if (element.tagName !== 'DIV' && element.tagName !== 'SECTION') {
+                                element.innerText = data.value;
+                            }
+                        }
                     }
                 }
 

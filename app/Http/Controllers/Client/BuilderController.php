@@ -43,6 +43,7 @@ class BuilderController extends Controller
         ]);
 
         // 3. Simpan Sections JSON
+        // 3. Simpan Sections JSON
         if ($request->filled('sections_json')) {
             $sections = json_decode($request->sections_json, true);
 
@@ -61,7 +62,11 @@ class BuilderController extends Controller
                     }
                 }
             }
+            
+            // 👇 INI BARIS YANG HILANG SEBELUMNYA! WAJIB ADA 👇
+            $website->sections = $sections;
         }
+        
 
         // 4. Handle Gambar (Kode Anda sudah benar, saya rapikan sedikit)
         if ($request->hasFile('logo')) {

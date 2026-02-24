@@ -1,14 +1,36 @@
-<section id="products" class="py-5 bg-light">
+@php
+    // Ambil data dinamis dari JSON Builder
+    $title = $data['title'] ?? 'Produk Terbaru';
+    $subtitle = $data['subtitle'] ?? 'Pilihan terbaik untuk Anda';
+    $limit = $data['limit'] ?? 8;
+    $sectionId = $data['id'] ?? 'products';
+@endphp
+
+<section id="{{ $sectionId }}" class="py-5 bg-light">
     <div class="container">
+        
         <div class="text-center mb-5">
-            <h2 class="fw-bold section-title">Produk Terbaru</h2>
-            <p class="text-muted">Pilihan terbaik untuk Anda</p>
+            {{-- SENSOR LIVE PREVIEW UNTUK JUDUL & SUBJUDUL --}}
+            <h2 class="fw-bold section-title live-editable" 
+                data-section-id="{{ $sectionId }}" 
+                data-key="title">{{ $title }}</h2>
+                
+            <p class="text-muted live-editable" 
+               data-section-id="{{ $sectionId }}" 
+               data-key="subtitle">{{ $subtitle }}</p>
         </div>
 
         <div class="row g-4">
-            {{-- HANYA TAMPILKAN 8 PRODUK TERBARU --}}
-            @foreach($website->products()->latest()->take(8)->get() as $product)
-                <div class="col-6 col-md-4 col-lg-3 product-item">
+            {{-- 
+                TRIK REAL-TIME: Selalu query maksimal 12 produk (batas tertinggi dropdown).
+                Lalu gunakan inline CSS untuk menyembunyikan index yang lebih besar dari $limit saat ini.
+            --}}
+            @foreach($website->products()->latest()->take(12)->get() as $index => $product)
+                
+                {{-- Tambahkan logika display:none jika melewati limit --}}
+                <div class="col-6 col-md-4 col-lg-3 product-item" 
+                     style="{{ $index >= $limit ? 'display: none !important;' : '' }}">
+                    
                     <div class="card h-100 border-0 shadow-sm product-card hover-up">
                         <div class="position-relative overflow-hidden rounded-top">
                             <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
@@ -30,7 +52,6 @@
                                 <div class="position-absolute top-0 end-0 m-2">
                                     <span class="badge bg-warning bg-opacity-75 backdrop-blur">Stok Terbatas</span>
                                 </div>
-                        
                             @endif
                         </div>
 
@@ -45,7 +66,7 @@
                                 </a>
                             </h6>
                             
-                            <p class="text-primary fw-bold mb-0">
+                            <p class=" fw-bold mb-0"  style="color: var(--secondary-color);">
                                 @if($product->hasVariants())
                                     <small>Mulai</small> Rp {{ number_format($product->variants->min('price'), 0, ',', '.') }}
                                 @else

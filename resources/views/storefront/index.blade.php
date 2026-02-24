@@ -41,6 +41,14 @@
         {{-- TAMBAHAN BARU: Teks & Gambar --}}
         @elseif($sectionType === 'text-image')
             @include('storefront.sections.text-image', ['data' => $sectionData])
+        {{-- TAMBAHAN BARU: FAQ --}}
+        @elseif($sectionType === 'faq')
+            @include('storefront.sections.faq', ['data' => $sectionData])
+        @elseif($sectionType === 'testimonial')
+            @include('storefront.sections.testimonial', ['data' => $sectionData])
+            {{-- TAMBAHAN BARU: CTA BANNER --}}
+        @elseif($sectionType === 'cta')
+            @include('storefront.sections.cta', ['data' => $sectionData])
         @endif
 
     </div>
