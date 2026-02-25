@@ -36,7 +36,7 @@
 
     <div class="row g-4 text-center">
         <div class="col-md-4">
-            <div class="p-4 {{ $isSimple ? 'border-0' : 'border rounded bg-light' }} h-100">
+            <div class="p-4 {{ $isSimple ? 'border-0' : 'border rounded bg-light' }} h-100 shadow-sm">
                 <div class="fs-1 text-primary-custom mb-3">
                     <i class="bi {{ $f1_icon }} live-editable" data-section-id="{{ $sectionId }}" data-key="f1_icon"></i>
                 </div>
@@ -46,7 +46,7 @@
         </div>
 
         <div class="col-md-4">
-            <div class="p-4 {{ $isSimple ? 'border-0' : 'border rounded bg-light' }} h-100">
+            <div class="p-4 {{ $isSimple ? 'border-0' : 'border rounded bg-light' }} h-100 shadow-sm">
                 <div class="fs-1 text-primary-custom mb-3">
                     <i class="bi {{ $f2_icon }} live-editable" data-section-id="{{ $sectionId }}" data-key="f2_icon"></i>
                 </div>
@@ -56,7 +56,7 @@
         </div>
 
         <div class="col-md-4">
-            <div class="p-4 {{ $isSimple ? 'border-0' : 'border rounded bg-light' }} h-100">
+            <div class="p-4 {{ $isSimple ? 'border-0' : 'border rounded bg-light' }} h-100 shadow-sm">
                 <div class="fs-1 text-primary-custom mb-3">
                     <i class="bi {{ $f3_icon }} live-editable" data-section-id="{{ $sectionId }}" data-key="f3_icon"></i>
                 </div>

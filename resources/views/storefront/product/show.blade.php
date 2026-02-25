@@ -61,7 +61,7 @@
     <div class="row g-5">
         {{-- KOLOM KIRI: GAMBAR --}}
         <div class="col-md-6">
-            <div class="border rounded overflow-hidden shadow-sm bg-white">
+            <div class="border rounded overflow-hidden shadow-sm" style="background-color: white;">
                 @if($product->image)
                     <img src="{{ asset('storage/' . $product->image) }}" class="w-100 object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
                 @else
@@ -151,7 +151,7 @@
                         
                         <button type="submit" id="desktop-add-btn" class="btn btn-primary btn-lg rounded-pill px-5 add-btn"
                                 {{ (!$product->hasVariants() && $product->stock < 1) ? 'disabled' : '' }}>
-                            <i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang
+                            <i class="bi bi-bag-plus "></i> Masukkan Keranjang
                         </button>
                     </div>
 
@@ -206,7 +206,7 @@
             @foreach($relatedProducts as $related)
                 <div class="col-6 col-md-3">
                     <div class="card h-100 border-0 shadow-sm">
-                        <div class="position-relative overflow-hidden rounded-top">
+                        <div class="position-relative overflow-hidden rounded-top" style="background-color: white;">
                             <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $related->slug]) }}">
                                 @if($related->image)
                                     <img src="{{ asset('storage/' . $related->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;">

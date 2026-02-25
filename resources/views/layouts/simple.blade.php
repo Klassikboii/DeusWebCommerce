@@ -13,7 +13,13 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+   @php
+        // Ambil nama font dari JSON
+        $fontName = $website->theme_config['typography']['main'] ?? 'Inter';
+        // Ubah spasi menjadi + untuk URL Google Fonts (misal: "Playfair Display" jadi "Playfair+Display")
+        $fontUrl = str_replace(' ', '+', $fontName);
+    @endphp
+    <link href="https://fonts.googleapis.com/css2?family={{ $fontUrl }}:wght@400;600;700&display=swap" rel="stylesheet">
     
     @if($website->logo)
         <link rel="icon" type="image/png" href="{{ asset('storage/'.$website->logo) }}">
@@ -21,20 +27,43 @@
 
     <style>
         html { scroll-behavior: smooth; }
-        :root {
-            --primary-color: {{ $website->primary_color ?? '#0d6efd' }}; 
-            --secondary-color: {{ $website->secondary_color ?? '#6c757d' }};
-            --font-main: '{{ $website->font_family ?? 'Inter' }}', sans-serif;
-            --ratio-product: {{ $website->product_image_ratio ?? '1/1' }};
-            --hero-bg-color: {{ $website->hero_bg_color ?? '#333333' }};
+       :root {
+            /* Panggil dari JSON, jika kosong gunakan warna bawaan */
+            --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#0d6efd' }}; 
+            --secondary-color: {{ $website->theme_config['colors']['secondary'] ?? '#6c757d' }};
+            --hero-bg-color: {{ $website->theme_config['colors']['bg_hero'] ?? '#333333' }};
+            --font-main: '{{ $website->theme_config['typography']['main'] ?? 'Inter' }}', sans-serif;
+            --ratio-product: {{ $website->theme_config['shapes']['product_ratio'] ?? '1/1' }};
+            /* 👇 TAMBAHAN BARU: Variabel Radius & Shadow */
+            --radius-base: {{ $website->theme_config['shapes']['radius'] ?? '0.5rem' }};
+            --shadow-base: {{ $website->theme_config['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }};
+            --bg-base: {{ $website->theme_config['colors']['bg_base'] ?? '#ffffff' }};
+            --text-base: {{ $website->theme_config['colors']['text_base'] ?? '#212529' }};
         }
         
         body { 
-            font-family: var(--font-main), 'Georgia', serif;
-            background-color: #fcfcfc; 
-            color: #333;
+            font-family: var(--font-main), 'georgia', serif; 
+            background-color: var(--bg-base);
+            color: var(--text-base);
         }
-
+        /* 👇 TRIK AJAIB: Timpa class Bootstrap agar mengikuti tema warna pilihan klien */
+        .bg-white, .bg-light { background-color: var(--bg-base) !important; }
+        .text-dark { color: var(--text-base) !important; }
+        .text-muted { color: var(--secondary-color) !important; opacity: 0.9; }
+        
+        /* Pastikan elemen dalam kartu juga mengikuti warna tema */
+        .card, .accordion-item, .accordion-button, .dropdown-menu { 
+            background-color: var(--bg-base) !important; 
+            color: var(--text-base) !important; 
+        }
+        /* 👇 TAMBAHAN BARU: Paksa Bootstrap menggunakan Radius dan Shadow kustom kita */
+        .card, .accordion-item, .img-fluid.rounded, .btn:not(.rounded-pill) {
+            border-radius: var(--radius-base) !important;
+        }
+        .shadow-sm, .card {
+            box-shadow: var(--shadow-base) !important;
+            border: none !important; /* Hilangkan garis pinggir agar shadow lebih menonjol */
+        }
         .navbar-brand { 
             font-family: 'Helvetica', sans-serif; 
             letter-spacing: 2px; 
@@ -324,7 +353,22 @@
                 
                 // A. UPDATE STYLE (Warna/Font)
                 if (data.type === 'updateStyle') {
-                    document.documentElement.style.setProperty(data.variable, data.value);
+                    // 👇 TAMBAHAN BARU: Jika yang diubah adalah Font
+                    if (data.variable === '--font-main') {
+                        const fontName = data.value.replace(/ /g, '+');
+                        const fontLink = document.getElementById('google-font-link');
+                        if (fontLink) {
+                            // Suruh browser mendownload font yang baru dipilih!
+                            fontLink.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;600;700&display=swap`;
+                        }
+                        
+                        // Set CSS Variable dengan tambahan fallback sans-serif
+                        document.documentElement.style.setProperty(data.variable, `'${data.value}', sans-serif`);
+                    } 
+                    // Jika yang diubah warna (Primary/Secondary)
+                    else {
+                        document.documentElement.style.setProperty(data.variable, data.value);
+                    }
                 }
 
                // B. UPDATE TEXT (Konten Section)

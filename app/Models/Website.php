@@ -23,24 +23,25 @@ class Website extends Model
         'favicon', 
         'icon',      // <-- Untuk Settings
 
-        // 3. Tampilan & Builder (YANG BIKIN MASALAH BUILDER)
-        'primary_color', 
-        'secondary_color', 
-        'hero_bg_color',       // <-- PENTING: Background Banner
-        'font_family',         // <-- PENTING: Font
-        'base_font_size',      // <-- PENTING: Ukuran Font
-        'product_image_ratio', // <-- PENTING: Rasio Gambar
+        // // 3. Tampilan & Builder (YANG BIKIN MASALAH BUILDER)
+        // 'primary_color', 
+        // 'secondary_color', 
+        // 'hero_bg_color',       // <-- PENTING: Background Banner
+        // 'font_family',         // <-- PENTING: Font
+        // 'base_font_size',      // <-- PENTING: Ukuran Font
+        // 'product_image_ratio', // <-- PENTING: Rasio Gambar
 
         // 4. Konten Hero / Banner
         'hero_image', 
-        'hero_title', 
-        'hero_subtitle', 
-        'hero_btn_text', 
-        'hero_btn_url',
+        // 'hero_title', 
+        // 'hero_subtitle', 
+        // 'hero_btn_text', 
+        // 'hero_btn_url',
         
         // 5. Data JSON (Menu & Section)
         'sections', 
         'navigation_menu',
+        'theme_config',
 
         // 6. Kontak & Alamat (YANG BIKIN MASALAH SETTINGS)
         'whatsapp_number', 
@@ -61,6 +62,7 @@ class Website extends Model
         'sections' => 'array',
         'navigation_menu' => 'array', // <--- HAPUS KOMENTARNYA (Aktifkan)
         'is_open' => 'boolean',
+        'theme_config' => 'array',
     ];
 
     // Relasi: Website milik satu User

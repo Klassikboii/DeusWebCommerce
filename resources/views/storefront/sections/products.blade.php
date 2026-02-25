@@ -32,15 +32,17 @@
                      style="{{ $index >= $limit ? 'display: none !important;' : '' }}">
                     
                     <div class="card h-100 border-0 shadow-sm product-card hover-up">
-                        <div class="position-relative overflow-hidden rounded-top">
+                        <div class="position-relative overflow-hidden rounded-top" style="background-color: white">
                             <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
+                                <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
                                 @if($product->image)
-                                    <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
+                                    <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" alt="{{ $product->name }}">
                                 @else
-                                    <div class="bg-light card-img-top d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;">
+                                    <div class="bg-light card-img-top d-flex align-items-center justify-content-center">
                                         <i class="bi bi-image text-muted fs-1"></i>
                                     </div>
                                 @endif
+                            </a>
                             </a>
                             
                             {{-- Badge Stok Habis --}}

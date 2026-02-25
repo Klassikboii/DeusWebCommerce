@@ -13,7 +13,15 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link href="https://fonts.googleapis.com/css2?family={{ $website->font_family ?? 'Inter' }}:wght@400;700&display=swap" rel="stylesheet">
+    @php
+        // Ambil nama font dari JSON
+        $fontName = $website->theme_config['typography']['main'] ?? 'Inter';
+        // Ubah spasi menjadi + untuk URL Google Fonts (misal: "Playfair Display" jadi "Playfair+Display")
+        $fontUrl = str_replace(' ', '+', $fontName);
+    @endphp
+    
+    {{-- PERBAIKAN: Tambahkan ID dan gunakan wght@400;700 saja --}}
+    <link id="google-font-link" href="https://fonts.googleapis.com/css2?family={{ $fontUrl }}:wght@400;600;700&display=swap" rel="stylesheet">
 
     @if($website->favicon)
         <link rel="icon" href="{{ asset('storage/'.$website->favicon) }}">
@@ -22,13 +30,23 @@
     <style>
         html { scroll-behavior: smooth; }
         :root {
-            --primary-color: {{ $website->primary_color ?? '#0d6efd' }}; 
-            --secondary-color: {{ $website->secondary_color ?? '#6c757d' }};
-            --font-main: '{{ $website->font_family ?? 'Inter' }}', sans-serif;
-            --ratio-product: {{ $website->product_image_ratio ?? '1/1' }};
-            --hero-bg-color: {{ $website->hero_bg_color ?? '#333333' }};
+            /* Panggil dari JSON, jika kosong gunakan warna bawaan */
+            --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#0d6efd' }}; 
+            --secondary-color: {{ $website->theme_config['colors']['secondary'] ?? '#6c757d' }};
+            --hero-bg-color: {{ $website->theme_config['colors']['bg_hero'] ?? '#333333' }};
+            --font-main: '{{ $website->theme_config['typography']['main'] ?? 'Inter' }}', sans-serif;
+            --ratio-product: {{ $website->theme_config['shapes']['product_ratio'] ?? '1/1' }};
+            /* 👇 TAMBAHAN BARU: Variabel Radius & Shadow */
+            --radius-base: {{ $website->theme_config['shapes']['radius'] ?? '0.5rem' }};
+            --shadow-base: {{ $website->theme_config['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }};
+            --bg-base: {{ $website->theme_config['colors']['bg_base'] ?? '#ffffff' }};
+            --text-base: {{ $website->theme_config['colors']['text_base'] ?? '#212529' }};
         }
-        body { font-family: var(--font-main); }
+        body { 
+            font-family: var(--font-main); 
+            background-color: var(--bg-base);
+            color: var(--text-base);
+        }
         .text-primary-custom { color: var(--primary-color) !important; }
         .bg-primary-custom { background-color: var(--hero-bg-color) !important; color: white; }
         .btn-primary-custom { background-color: var(--primary-color); border-color: var(--primary-color); color: white; }
@@ -40,6 +58,24 @@
         .no-arrow::-webkit-outer-spin-button, .no-arrow::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-arrow { -moz-appearance: textfield; }
         .hover-white:hover { color: white !important; text-decoration: underline !important; }
+        /* 👇 TRIK AJAIB: Timpa class Bootstrap agar mengikuti tema warna pilihan klien */
+        .bg-white, .bg-light { background-color: var(--bg-base) !important; }
+        .text-dark { color: var(--text-base) !important; }
+        .text-muted { color: var(--secondary-color) !important; opacity: 0.9; }
+        
+        /* Pastikan elemen dalam kartu juga mengikuti warna tema */
+        .card, .accordion-item, .accordion-button, .dropdown-menu { 
+            background-color: var(--bg-base) !important; 
+            color: var(--text-base) !important; 
+        }
+        /* 👇 TAMBAHAN BARU: Paksa Bootstrap menggunakan Radius dan Shadow kustom kita */
+        .card, .accordion-item, .img-fluid.rounded, .btn:not(.rounded-pill) {
+            border-radius: var(--radius-base) !important;
+        }
+        .shadow-sm, .card {
+            box-shadow: var(--shadow-base) !important;
+            border: none !important; /* Hilangkan garis pinggir agar shadow lebih menonjol */
+        }
         
         /* Style Khusus Search Result Dropdown */
         .search-results-dropdown {
@@ -202,90 +238,97 @@
 
     @yield('content')
 
-    <footer class="bg-dark text-white pt-5 pb-4 mt-5">
-        {{-- ... Footer Content Sama Seperti Sebelumnya ... --}}
+    {{-- FOOTER SECTION (Gabungan Desain Lama dengan Sistem Tema Baru) --}}
+    <footer class="pt-5 pb-4 mt-5 border-top" style="background-color: var(--bg-base); color: var(--text-base);">
         <div class="container">
             <div class="row g-4">
+                
+                {{-- Kolom 1: Brand & Tombol CTA --}}
                 <div class="col-md-4">
-                    <h5 class="fw-bold text-primary-custom mb-3">{{ $website->site_name }}</h5>
-                    <p class="small text-secondary">
-                        {{ $website->hero_subtitle ?? 'Platform toko online terpercaya.' }}
+                    <h5 class="fw-bold mb-3" style="color: var(--primary-color);">{{ $website->site_name }}</h5>
+                    <p class="small" style="color: var(--secondary-color); line-height: 1.6;">
+                        {{ $website->address ?: 'Platform toko online terpercaya.' }}
                     </p>
                     
-                    {{-- Social Media / Contact Buttons --}}
-                    <div class="d-flex gap-2 mt-3">
+                    {{-- Tombol Sosial Media / Contact (Dari desain lama Anda) --}}
+                    <div class="d-flex gap-2 mt-4">
                         @if($website->whatsapp_number)
-                            <a href="https://wa.me/62{{ $website->whatsapp_number }}?text=Halo%20{{ $website->site_name }},%20saya%20tertarik%20dengan%20produk%20Anda." 
-                               target="_blank" class="btn btn-sm btn-success rounded-pill">
-                                <i class="bi bi-whatsapp"></i> Chat WA
+                            <a href="https://wa.me/62{{ $website->whatsapp_number }}?text=Halo%20{{ urlencode($website->site_name) }},%20saya%20tertarik%20dengan%20produk%20Anda." 
+                               target="_blank" class="btn btn-sm text-white rounded-pill px-3 shadow-sm" style="background-color: #25D366; border: none;">
+                                <i class="bi bi-whatsapp me-1"></i> Chat WA
                             </a>
                         @endif
                         @if($website->email_contact)
-                            <a href="mailto:{{ $website->email_contact }}" class="btn btn-sm btn-outline-light rounded-pill">
-                                <i class="bi bi-envelope"></i> Email
+                            <a href="mailto:{{ $website->email_contact }}" class="btn btn-sm btn-outline-secondary-custom rounded-pill px-3 shadow-sm">
+                                <i class="bi bi-envelope me-1"></i> Email
                             </a>
                         @endif
                     </div>
-                    
                 </div>
                 
+                {{-- Kolom 2: Kontak --}}
                 <div class="col-md-4">
                     <h6 class="fw-bold mb-3">Hubungi Kami</h6>
-                    <ul class="list-unstyled small text-secondary">
+                    <ul class="list-unstyled small" style="color: var(--secondary-color);">
                         @if($website->address)
                             <li class="mb-3 d-flex">
-                                <i class="bi bi-geo-alt me-2 mt-1 text-primary-custom"></i> 
+                                <i class="bi bi-geo-alt me-2 mt-1" style="color: var(--primary-color);"></i> 
                                 <span>{{ $website->address }}</span>
                             </li>
                         @endif
                         
                         @if($website->whatsapp_number)
                             <li class="mb-2">
-                                <i class="bi bi-telephone me-2 text-primary-custom"></i> 
+                                <i class="bi bi-telephone me-2" style="color: var(--primary-color);"></i> 
                                 +62 {{ $website->whatsapp_number }}
                             </li>
                         @endif
                         
                         @if($website->email_contact)
                             <li class="mb-2">
-                                <i class="bi bi-envelope-at me-2 text-primary-custom"></i> 
+                                <i class="bi bi-envelope-at me-2" style="color: var(--primary-color);"></i> 
                                 {{ $website->email_contact }}
                             </li>
                         @endif
-                       
                     </ul>
                 </div>
 
+                {{-- Kolom 3: Menu Cepat --}}
                 <div class="col-md-4">
                     <h6 class="fw-bold mb-3">Menu</h6>
                     <ul class="list-unstyled small">
                         @php
                             $footerMenus = $website->navigation_menu ?? [
                                 ['label' => 'Beranda', 'url' => '/'],
-                                ['label' => 'Produk', 'url' => '#products']
+                                ['label' => 'Katalog Produk', 'url' => route('store.products', $website->subdomain ?? '')],
+                                ['label' => 'Cek Pesanan', 'url' => '#']
                             ];
                         @endphp
 
                         @foreach($footerMenus as $menu)
                             <li class="mb-2">
-                                <a href="{{ $menu['url'] }}" class="text-secondary text-decoration-none hover-white">
+                                <a href="{{ $menu['url'] }}" class="text-decoration-none hover-primary" style="color: var(--secondary-color);">
                                     {{ $menu['label'] }}
                                 </a>
                             </li>
                         @endforeach
-                        <li class="mb-2"><a href="#" class="text-secondary text-decoration-none hover-white">Beranda</a></li>
                     </ul>
                 </div>
+                
             </div>
             
-            <hr class="border-secondary mt-4">
+            <hr class="mt-4" style="border-color: var(--secondary-color); opacity: 0.3;">
             
-            <div class="text-center small text-secondary">
+            <div class="text-center small" style="color: var(--secondary-color);">
                 &copy; {{ date('Y') }} {{ $website->site_name }}. Powered by WebCommerce.
             </div>
-            <div class="text-center small text-secondary">&copy; {{ date('Y') }} {{ $website->site_name }}.</div>
         </div>
     </footer>
+    
+    <style>
+        .hover-primary { transition: color 0.2s ease; }
+        .hover-primary:hover { color: var(--primary-color) !important; }
+    </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -420,7 +463,22 @@
                 
                 // A. UPDATE STYLE (Warna/Font)
                 if (data.type === 'updateStyle') {
-                    document.documentElement.style.setProperty(data.variable, data.value);
+                    // 👇 TAMBAHAN BARU: Jika yang diubah adalah Font
+                    if (data.variable === '--font-main') {
+                        const fontName = data.value.replace(/ /g, '+');
+                        const fontLink = document.getElementById('google-font-link');
+                        if (fontLink) {
+                            // Suruh browser mendownload font yang baru dipilih!
+                            fontLink.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;600;700&display=swap`;
+                        }
+                        
+                        // Set CSS Variable dengan tambahan fallback sans-serif
+                        document.documentElement.style.setProperty(data.variable, `'${data.value}', sans-serif`);
+                    } 
+                    // Jika yang diubah warna (Primary/Secondary)
+                    else {
+                        document.documentElement.style.setProperty(data.variable, data.value);
+                    }
                 }
 
                // B. UPDATE TEXT (Konten Section)

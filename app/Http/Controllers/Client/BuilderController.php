@@ -32,15 +32,35 @@ class BuilderController extends Controller
             'favicon' => 'nullable|image|mimes:ico,png,webp|max:1024',
         ]);
 
-        // 2. Simpan Config Dasar
-        $website->fill([
-            'primary_color' => $request->primary_color ?? '#0d6efd', // Default Bootstrap Blue
-            'secondary_color' => $request->secondary_color ?? '#6c757d', // Default Grey
-            'hero_bg_color' => $request->hero_bg_color ?? '#333333',
-            'font_family' => $request->font_family ?? 'Inter',
-            'base_font_size' => $request->base_font_size ?? 16,
-            'product_image_ratio' => $request->product_image_ratio ?? '1/1',
-        ]);
+        // 2. Simpan Config Dasar (Dibungkus ke dalam JSON theme_config)
+        
+        // Ambil konfigurasi yang sudah ada (jika ada), atau array kosong
+        $themeConfig = $website->theme_config ?? []; 
+
+        // Susun ulang menjadi struktur JSON yang rapi
+        $themeConfig['colors'] = [
+            'primary' => $request->primary_color ?? ($themeConfig['colors']['primary'] ?? '#0d6efd'),
+            'secondary' => $request->secondary_color ?? ($themeConfig['colors']['secondary'] ?? '#6c757d'),
+            'bg_hero' => $request->hero_bg_color ?? ($themeConfig['colors']['bg_hero'] ?? '#333333'),
+
+            'bg_base' => $request->bg_base_color ?? ($themeConfig['colors']['bg_base'] ?? '#ffffff'),
+            'text_base' => $request->text_base_color ?? ($themeConfig['colors']['text_base'] ?? '#212529'),
+        ];
+
+        $themeConfig['typography'] = [
+            'main' => $request->font_family ?? ($themeConfig['typography']['main'] ?? 'Inter'),
+        ];
+
+        // 👇 PERUBAHAN DI SINI: Tambah Radius & Shadow
+        $themeConfig['shapes'] = [
+            'product_ratio' => $request->product_image_ratio ?? ($themeConfig['shapes']['product_ratio'] ?? '1/1'),
+            'radius' => $request->border_radius ?? ($themeConfig['shapes']['radius'] ?? '0.5rem'),
+            'shadow' => $request->box_shadow ?? ($themeConfig['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)'),
+        ];
+        
+
+        // Masukkan kembali ke variabel model
+        $website->theme_config = $themeConfig;
 
         // 3. Simpan Sections JSON
         // 3. Simpan Sections JSON

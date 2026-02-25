@@ -47,35 +47,73 @@
                         <h6 class="fw-bold mb-3">Warna</h6>
                         <div class="mb-3">
                             <label class="form-label small">Primary Color</label>
-                            <input type="color" name="primary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--primary-color" value="{{ $website->primary_color }}">
-                        </div>
+                            <input type="color" name="primary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--primary-color" value="{{ $website->theme_config['colors']['primary'] ?? $website->primary_color ?? '#0d6efd' }}">                        </div>
                         <div class="mb-3">
                             <label class="form-label small">Secondary Color</label>
-                            <input type="color" name="secondary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--secondary-color" value="{{ $website->secondary_color }}">
+                            <input type="color" name="secondary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--secondary-color" value="{{ $website->theme_config['colors']['secondary'] ?? $website->secondary_color ?? '#6c757d' }}">
                         </div>
                         <div class="mb-3">
                             <label class="form-label small">Background Banner</label>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="color" name="hero_bg_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--hero-bg-color" value="{{ $website->hero_bg_color ?? '#333333' }}">
+                                <input type="color" name="hero_bg_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--hero-bg-color" value="{{ $website->theme_config['colors']['bg_hero'] ??  $website->hero_bg_color ?? '#333333' }}">
                             </div>
                         </div>
+                        <hr>
+                        <div class="mb-3">
+                              <div id="contrast-warning" class="text-danger mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded d-none" style="font-size: 11px; font-weight: 600;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Peringatan: Kontras terlalu rendah! Teks akan sangat sulit dibaca oleh pengunjung.
+                            </div>
+                             <div class="mb-3">
+                                <label class="form-label small">Warna Background</label>
+                                <input type="color" name="bg_base_color" id="input_bg_base" class="form-control form-control-color w-100 live-update-style" data-style-var="--bg-base" value="{{ $website->theme_config['colors']['bg_base'] ?? '#ffffff' }}">
+                            </div>
+                            <label class="form-label small">Warna Teks Utama</label>
+                            <input type="color" name="text_base_color" id="input_text_base" class="form-control form-control-color w-100 live-update-style" data-style-var="--text-base" value="{{ $website->theme_config['colors']['text_base'] ?? '#212529' }}">
+
+                          
+                        </div>
+                       
                         <hr>
                         <h6 class="fw-bold mb-3">Tipografi</h6>
                         <div class="mb-3">
                             <label class="form-label small">Jenis Font</label>
                             <select name="font_family" class="form-select live-update-style" data-style-var="--font-main">
-                                <option value="Inter" {{ $website->font_family == 'Inter' ? 'selected' : '' }}>Inter (Modern)</option>
-                                <option value="Playfair Display" {{ $website->font_family == 'Playfair Display' ? 'selected' : '' }}>Playfair (Elegant)</option>
-                                <option value="Roboto" {{ $website->font_family == 'Roboto' ? 'selected' : '' }}>Roboto (Neutral)</option>
-                                <option value="Courier Prime" {{ $website->font_family == 'Courier Prime' ? 'selected' : '' }}>Courier (Retro)</option>
+                                @php $currentFont = $website->theme_config['typography']['main'] ?? $website->font_family ?? 'Inter'; @endphp
+                                <option value="Inter" {{ $currentFont == 'Inter' ? 'selected' : '' }} style="font-family: Inter;">Inter (Modern)</option>
+                                <option value="Playfair Display" {{ $currentFont == 'Playfair Display' ? 'selected' : '' }} style="font-family: Playfair Display;">Playfair (Elegant)</option>
+                                <option value="Roboto" {{ $currentFont == 'Roboto' ? 'selected' : '' }} style="font-family: Roboto;">Roboto (Neutral)</option>
+                                <option value="Courier Prime" {{ $currentFont == 'Courier Prime' ? 'selected' : '' }} style="font-family: Courier Prime;">Courier (Retro)</option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label small">Rasio Gambar Produk</label>
                             <select name="product_image_ratio" class="form-select live-update-style" data-style-var="--ratio-product">
-                                <option value="1/1" {{ $website->product_image_ratio == '1/1' ? 'selected' : '' }}>Kotak (1:1)</option>
-                                <option value="3/4" {{ $website->product_image_ratio == '3/4' ? 'selected' : '' }}>Portrait (3:4)</option>
-                                <option value="4/3" {{ $website->product_image_ratio == '4/3' ? 'selected' : '' }}>Landscape (4:3)</option>
+                                @php $currentRatio = $website->theme_config['shapes']['product_ratio'] ?? $website->product_image_ratio ?? '1/1'; @endphp
+                                <option value="1/1" {{ $currentRatio == '1/1' ? 'selected' : '' }}>Kotak (1:1)</option>
+                                <option value="3/4" {{ $currentRatio == '3/4' ? 'selected' : '' }}>Portrait (3:4)</option>
+                                <option value="4/3" {{ $currentRatio == '4/3' ? 'selected' : '' }}>Landscape (4:3)</option>
+                            </select>
+                        </div>
+                        <hr>
+                        
+                        <h6 class="fw-bold mb-3">Bentuk & Dimensi</h6>
+                        <div class="mb-3">
+                            <label class="form-label small">Kelengkungan (Border Radius)</label>
+                            <select name="border_radius" class="form-select live-update-style" data-style-var="--radius-base">
+                                @php $currentRadius = $website->theme_config['shapes']['radius'] ?? '0.5rem'; @endphp
+                                <option value="0px" {{ $currentRadius == '0px' ? 'selected' : '' }}>Kotak Tajam (0px)</option>
+                                <option value="0.5rem" {{ $currentRadius == '0.5rem' ? 'selected' : '' }}>Membulat Halus (8px)</option>
+                                <option value="1.5rem" {{ $currentRadius == '1.5rem' ? 'selected' : '' }}>Sangat Bulat (24px)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Ketebalan Bayangan (Shadow)</label>
+                            <select name="box_shadow" class="form-select live-update-style" data-style-var="--shadow-base">
+                                @php $currentShadow = $website->theme_config['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)'; @endphp
+                                <option value="none" {{ $currentShadow == 'none' ? 'selected' : '' }}>Tanpa Bayangan (Flat)</option>
+                                <option value="0 0.125rem 0.25rem rgba(0,0,0,0.075)" {{ $currentShadow == '0 0.125rem 0.25rem rgba(0,0,0,0.075)' ? 'selected' : '' }}>Halus (Soft)</option>
+                                <option value="0 0.5rem 1rem rgba(0,0,0,0.15)" {{ $currentShadow == '0 0.5rem 1rem rgba(0,0,0,0.15)' ? 'selected' : '' }}>Kuat (Bold)</option>
                             </select>
                         </div>
                     </div>
@@ -101,6 +139,8 @@
 
                         <div id="dynamicAccordionContainer" class="accordion d-flex flex-column gap-2 mb-4">
                             </div>
+                        <hr>
+                        
                     </div>
                            
                     <div class="tab-pane fade" id="tab-assets">
@@ -200,7 +240,16 @@
     document.querySelectorAll('.live-update-style').forEach(input => {
         input.addEventListener('input', function() {
             sendUpdate('updateStyle', { variable: this.dataset.styleVar, value: this.value });
+
+            // 👇 TAMBAHAN: Cek kontras tiap kali warna digeser
+            if (this.id === 'input_bg_base' || this.id === 'input_text_base') {
+                checkContrast();
+            }
         });
+    });
+    window.addEventListener('load', () => { 
+        renderSectionList(); 
+        checkContrast(); // <--- TAMBAHAN
     });
 
     // --- FUNGSI SAVE ---
@@ -654,6 +703,41 @@
         if (mode === 'desktop') container.style.maxWidth = '100%';
         if (mode === 'tablet') container.style.maxWidth = '768px';
         if (mode === 'mobile') container.style.maxWidth = '375px';
+    }
+
+    // === SISTEM SENSOR KONTRAS (WCAG STANDARD) ===
+    function checkContrast() {
+        const bgInput = document.getElementById('input_bg_base');
+        const textInput = document.getElementById('input_text_base');
+        const warningBox = document.getElementById('contrast-warning');
+
+        if (!bgInput || !textInput || !warningBox) return;
+
+        const hexToRgb = (hex) => {
+            let r = parseInt(hex.slice(1, 3), 16) / 255;
+            let g = parseInt(hex.slice(3, 5), 16) / 255;
+            let b = parseInt(hex.slice(5, 7), 16) / 255;
+            return [r, g, b].map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+        };
+
+        const bgRgb = hexToRgb(bgInput.value);
+        const textRgb = hexToRgb(textInput.value);
+
+        const lum1 = bgRgb[0] * 0.2126 + bgRgb[1] * 0.7152 + bgRgb[2] * 0.0722;
+        const lum2 = textRgb[0] * 0.2126 + textRgb[1] * 0.7152 + textRgb[2] * 0.0722;
+
+        const brightest = Math.max(lum1, lum2);
+        const darkest = Math.min(lum1, lum2);
+        
+        // Rumus Rasio Kontras Web Accessibility
+        const contrast = (brightest + 0.05) / (darkest + 0.05);
+
+        // Jika rasio di bawah 4.5 (Standar minimum teks bisa dibaca) -> Munculkan Warning!
+        if (contrast < 4.5) {
+            warningBox.classList.remove('d-none');
+        } else {
+            warningBox.classList.add('d-none');
+        }
     }
     // --- FUNGSI UPLOAD GAMBAR SECTION VIA AJAX ---
     // --- FUNGSI UPLOAD GAMBAR SECTION VIA AJAX ---
