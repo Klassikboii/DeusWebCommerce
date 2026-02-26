@@ -124,4 +124,11 @@ class Website extends Model
                     ->orderBy('destination_city', 'asc')
                     ->pluck('destination_city');
     }
+    // ... relasi lain yang sudah ada ...
+
+    // TAMBAHKAN INI: Relasi ke tabel integrasi Accurate
+    public function accurateIntegration()
+    {
+        return $this->hasOne(AccurateIntegration::class);
+    }
 }

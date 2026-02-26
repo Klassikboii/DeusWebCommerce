@@ -155,6 +155,12 @@ Route::middleware(['auth'])->group(function () {
                 // Route untuk Hapus Semua Data Ongkir
         
         });
+
+        // Accurate Integration Routes
+        Route::get('/{website}/accurate/redirect', [\App\Http\Controllers\Client\AccurateController::class, 'redirect'])->name('client.accurate.redirect');
+        Route::get('/accurate/callback', [\App\Http\Controllers\Client\AccurateController::class, 'callback'])
+            ->name('accurate.callback')
+            ->middleware('auth'); // Pastikan user sedang login
 });
 // --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
 
