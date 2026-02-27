@@ -147,7 +147,30 @@ class ProductController extends Controller
             ]);
         }
 
-        DB::commit();
+      DB::commit();
+
+        // --- MULAI: SINKRONISASI KE ACCURATE ---
+        try {
+            $accurateService = new \App\Services\AccurateService($website);
+            
+            if ($request->has_variants && is_array($request->variants)) {
+                foreach ($product->variants as $variant) {
+                    $accurateService->syncProductVariant($variant);
+                }
+            } else {
+                $singleItem = (object)[
+                    'sku' => $product->sku,
+                    'price' => $product->price,
+                    'name' => '', 
+                    'product' => $product
+                ];
+                $accurateService->syncProductVariant($singleItem);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Accurate Sync Gagal: ' . $e->getMessage());
+        }
+        // --- SELESAI: SINKRONISASI KE ACCURATE ---
+
         return redirect()->route('client.products.index', $website->id)->with('success', 'Produk berhasil ditambahkan!');
 
     } catch (\Exception $e) {
@@ -272,7 +295,37 @@ class ProductController extends Controller
             $product->variants()->delete();
         }
 
-        DB::commit();
+      // --- MULAI: SINKRONISASI KE ACCURATE ---
+        try {
+            $accurateService = new \App\Services\AccurateService($website);
+            
+            // Karena relasi varian di-update/delete, kita ambil ulang dari database (fresh)
+            $product->refresh(); 
+
+            if ($product->variants->count() > 0) {
+                foreach ($product->variants as $variant) {
+                    $accurateService->syncProductVariant($variant);
+                }
+            } else {
+                $singleItem = (object)[
+                    'sku' => $product->sku,
+                    'price' => $product->price,
+                    'name' => '', 
+                    'product' => $product
+                ];
+                $accurateService->syncProductVariant($singleItem);
+            }
+        } catch (\Exception $e) {
+            // KITA UBAH BAGIAN INI SEMENTARA UNTUK DEBUGGING
+            dd([
+                'STATUS' => 'ERROR SISTEM PHP (BUKAN DARI ACCURATE)',
+                'PESAN_ERROR' => $e->getMessage(),
+                'BARIS_KE' => $e->getLine(),
+                'NAMA_FILE' => $e->getFile()
+            ]);
+        }
+        // --- SELESAI: SINKRONISASI KE ACCURATE ---
+
         return redirect()->route('client.products.index', $website->id)->with('success', 'Produk berhasil diperbarui!');
 
     } catch (\Exception $e) {

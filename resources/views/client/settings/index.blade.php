@@ -1,5 +1,14 @@
 @extends('layouts.client')
+@php
+    $accurateDatabases = [];
+    $isAccurateConnected = $website->accurateIntegration && $website->accurateIntegration->access_token;
+    $selectedDbId = $website->accurateIntegration->accurate_database_id ?? null;
 
+    if ($isAccurateConnected && !$selectedDbId) {
+        $accurateService = new \App\Services\AccurateService($website);
+        $accurateDatabases = $accurateService->getDatabaseList();
+    }
+@endphp
 @section('title', 'Pengaturan Toko')
 
 @section('content')
@@ -106,6 +115,11 @@
                                 value="{{ old('bank_account_holder', $website->bank_account_holder) }}">
                         </div>
                     </div>
+                    {{-- ... Di dalam Form Settings, di bawah blok Informasi Rekening Bank ... --}}
+
+        
+
+        {{-- ... Lanjut ke tombol Save Pengaturan yang sudah ada ... --}}
 
 {{-- ... Lanjut ke tombol Save ... --}}
             </div>
@@ -117,5 +131,64 @@
             </button>
         </div>
     </form>
+
+    <hr class="my-5">
+        
+        <div class="card border-0 shadow-sm mb-4" style="background-color: #f8fbff; border-left: 4px solid #0052cc !important;">
+            <div class="card-header py-3 bg-transparent border-0">
+                <h5 class="fw-bold mb-0" style="color: #0052cc;">
+                    <i class="bi bi-box-seam me-2"></i>Integrasi Accurate Online
+                </h5>
+            </div>
+            <div class="card-body p-4 pt-0">
+                <p class="text-muted mb-3">
+                    Hubungkan toko Anda dengan Accurate Online untuk mempermudah sinkronisasi produk (Barang & Jasa). Saat Anda mengunggah produk baru di toko ini, data akan otomatis terkirim ke sistem pembukuan Accurate Anda.
+                </p>
+
+                @php
+                    // Cek apakah website ini sudah terhubung (punya token)
+                    $isAccurateConnected = $website->accurateIntegration && $website->accurateIntegration->access_token;
+                @endphp
+
+                @if($isAccurateConnected)
+                    
+                    @if(!$selectedDbId)
+                        {{-- JIKA SUDAH LOGIN TAPI BELUM PILIH DATABASE --}}
+                        <div class="alert alert-warning mb-0">
+                            <h6 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Satu Langkah Lagi!</h6>
+                            <p class="small mb-2">Pilih database Accurate mana yang akan dihubungkan dengan toko ini:</p>
+                            
+                            <form action="{{ route('client.accurate.save_db', $website->id) }}" method="POST" class="d-flex gap-2">
+                                @csrf
+                                <select name="accurate_database_id" class="form-select form-select-sm" required>
+                                    <option value="">-- Pilih Database Accurate --</option>
+                                    @foreach($accurateDatabases as $db)
+                                        <option value="{{ $db['id'] }}">{{ $db['alias'] }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-primary text-nowrap">Simpan Database</button>
+                            </form>
+                        </div>
+                    @else
+                        {{-- JIKA DATABASE SUDAH DIPILIH --}}
+                        <div class="alert alert-success d-flex align-items-center mb-0">
+                            <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+                            <div>
+                                <strong>Status: Terhubung Aktif</strong><br>
+                                <span class="small">Toko Anda terhubung dengan Database ID: {{ $selectedDbId }}</span>
+                            </div>
+                            <a href="{{ route('client.accurate.redirect', $website->id) }}" class="btn btn-sm btn-outline-success ms-auto">
+                                <i class="bi bi-arrow-repeat me-1"></i> Ganti Akun
+                            </a>
+                        </div>
+                    @endif
+
+                @else
+                    <a href="{{ route('client.accurate.redirect', $website->id) }}" class="btn btn-primary px-4">
+                        <i class="bi bi-link-45deg me-1"></i> Hubungkan ke Accurate Sekarang
+                    </a>
+                @endif
+            </div>
+        </div>
 </div>
 @endsection

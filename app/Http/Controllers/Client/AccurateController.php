@@ -70,4 +70,22 @@ class AccurateController extends Controller
         Log::error('Accurate Token Error: ', $response->json());
         return redirect()->route('client.settings.index', $website)->with('error', 'Gagal menukar token dengan Accurate.');
     }
+
+    // 3. Menyimpan ID Database yang dipilih user
+    public function saveDatabase(Request $request, Website $website)
+    {
+        $this->authorize('update', $website);
+        
+        $request->validate([
+            'accurate_database_id' => 'required|string'
+        ]);
+
+        if ($website->accurateIntegration) {
+            $website->accurateIntegration->update([
+                'accurate_database_id' => $request->accurate_database_id
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Database Accurate berhasil dihubungkan ke toko ini!');
+    }
 }

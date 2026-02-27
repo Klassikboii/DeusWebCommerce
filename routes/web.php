@@ -161,6 +161,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/accurate/callback', [\App\Http\Controllers\Client\AccurateController::class, 'callback'])
             ->name('accurate.callback')
             ->middleware('auth'); // Pastikan user sedang login
+        Route::post('/{website}/accurate/database', [\App\Http\Controllers\Client\AccurateController::class, 'saveDatabase'])->name('client.accurate.save_db');
 });
 // --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
 
