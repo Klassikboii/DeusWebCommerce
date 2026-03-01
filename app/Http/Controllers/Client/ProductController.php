@@ -150,12 +150,14 @@ class ProductController extends Controller
       DB::commit();
 
         // --- MULAI: SINKRONISASI KE ACCURATE ---
+        $accurateSyncFailed = false; // Flag penanda error
         try {
             $accurateService = new \App\Services\AccurateService($website);
             
             if ($request->has_variants && is_array($request->variants)) {
                 foreach ($product->variants as $variant) {
-                    $accurateService->syncProductVariant($variant);
+                    $status = $accurateService->syncProductVariant($variant);
+                    if (!$status) $accurateSyncFailed = true;
                 }
             } else {
                 $singleItem = (object)[
@@ -164,14 +166,23 @@ class ProductController extends Controller
                     'name' => '', 
                     'product' => $product
                 ];
-                $accurateService->syncProductVariant($singleItem);
+                $status = $accurateService->syncProductVariant($singleItem);
+                if (!$status) $accurateSyncFailed = true;
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Accurate Sync Gagal: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Accurate Sync Exception: ' . $e->getMessage());
+            $accurateSyncFailed = true;
         }
         // --- SELESAI: SINKRONISASI KE ACCURATE ---
 
-        return redirect()->route('client.products.index', $website->id)->with('success', 'Produk berhasil ditambahkan!');
+        // Penentuan Notifikasi
+        if ($accurateSyncFailed) {
+            return redirect()->route('client.products.index', $website->id)
+                ->with('warning', 'Produk tersimpan di toko, namun gagal disinkronkan ke Accurate (Pastikan SKU terisi & belum pernah dipakai).');
+        }
+
+        return redirect()->route('client.products.index', $website->id)
+            ->with('success', 'Produk berhasil ditambahkan dan tersinkronisasi dengan Accurate!');
 
     } catch (\Exception $e) {
         DB::rollBack();
@@ -296,15 +307,15 @@ class ProductController extends Controller
         }
 
       // --- MULAI: SINKRONISASI KE ACCURATE ---
+        $accurateSyncFailed = false;
         try {
             $accurateService = new \App\Services\AccurateService($website);
-            
-            // Karena relasi varian di-update/delete, kita ambil ulang dari database (fresh)
             $product->refresh(); 
 
             if ($product->variants->count() > 0) {
                 foreach ($product->variants as $variant) {
-                    $accurateService->syncProductVariant($variant);
+                    $status = $accurateService->syncProductVariant($variant);
+                    if (!$status) $accurateSyncFailed = true;
                 }
             } else {
                 $singleItem = (object)[
@@ -313,20 +324,22 @@ class ProductController extends Controller
                     'name' => '', 
                     'product' => $product
                 ];
-                $accurateService->syncProductVariant($singleItem);
+                $status = $accurateService->syncProductVariant($singleItem);
+                if (!$status) $accurateSyncFailed = true;
             }
         } catch (\Exception $e) {
-            // KITA UBAH BAGIAN INI SEMENTARA UNTUK DEBUGGING
-            dd([
-                'STATUS' => 'ERROR SISTEM PHP (BUKAN DARI ACCURATE)',
-                'PESAN_ERROR' => $e->getMessage(),
-                'BARIS_KE' => $e->getLine(),
-                'NAMA_FILE' => $e->getFile()
-            ]);
+            \Illuminate\Support\Facades\Log::error('Accurate Sync Exception: ' . $e->getMessage());
+            $accurateSyncFailed = true;
         }
         // --- SELESAI: SINKRONISASI KE ACCURATE ---
 
-        return redirect()->route('client.products.index', $website->id)->with('success', 'Produk berhasil diperbarui!');
+        if ($accurateSyncFailed) {
+            return redirect()->route('client.products.index', $website->id)
+                ->with('warning', 'Produk diperbarui di toko, namun pembaruan ke Accurate gagal.');
+        }
+
+        return redirect()->route('client.products.index', $website->id)
+            ->with('success', 'Produk berhasil diperbarui di Toko dan Accurate!');  
 
     } catch (\Exception $e) {
         DB::rollBack();

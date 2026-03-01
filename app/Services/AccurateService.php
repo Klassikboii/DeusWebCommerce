@@ -127,14 +127,14 @@ class AccurateService
             return true;
         }
 
-        // ==========================================
-        // DEBUG: MUNCULKAN ERROR JIKA MASIH GAGAL
-        // ==========================================
-        dd([
-            'STATUS_API' => 'DITOLAK OLEH ACCURATE',
-            'PESAN_ERROR' => $responseData['d'] ?? $responseData,
-            'DATA_KIRIMAN' => $itemData
-        ]);
+        // // ==========================================
+        // // DEBUG: MUNCULKAN ERROR JIKA MASIH GAGAL
+        // // ==========================================
+        // dd([
+        //     'STATUS_API' => 'DITOLAK OLEH ACCURATE',
+        //     'PESAN_ERROR' => $responseData['d'] ?? $responseData,
+        //     'DATA_KIRIMAN' => $itemData
+        // ]);
 
         Log::error("Gagal Sync SKU {$variant->sku} ke Accurate: ", $responseData ?? []);
         return false;
