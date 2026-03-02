@@ -89,14 +89,8 @@
             </div>
 
             <div class="col-md-5">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white py-3 fw-bold">Data Pengiriman</div>
-                    <div class="card-body">
-                        <form action="{{ route('store.checkout', ['subdomain' => $website->subdomain]) }}" method="POST">
-                            @csrf
-                           
-
-                                                            {{-- FORM CHECKOUT --}}
+                                             
+                                          {{-- FORM CHECKOUT --}}
                                 <div class="card border-0 shadow-sm bg-light">
                                     <div class="card-body">
                                         <h5 class="fw-bold mb-3">Informasi Pengiriman</h5>
@@ -173,9 +167,9 @@
 
                                             {{-- CEK APAKAH TOKO BUKA --}}
                                                 @if($website->is_open)
-                                                    <a href="{{ route('store.checkout', $website->subdomain) }}" class="btn btn-primary w-100 py-3 fw-bold">
+                                                    <button type="submit" id="btn-checkout" class="btn btn-primary w-100 py-3 fw-bold" disabled>
                                                         Lanjut ke Pembayaran <i class="bi bi-arrow-right ms-2"></i>
-                                                    </a>
+                                                    </button>
                                                 @else
                                                     <div class="alert alert-danger text-center mb-0">
                                                         Toko Sedang Tutup. Silakan kembali lagi nanti.
@@ -188,10 +182,7 @@
                                     </div>
                                 </div>
                             
-                            <hr>
-                            
-                        </form>
-                    </div>
+                    
                 </div>
             </div>
         </div>

@@ -36,9 +36,9 @@
                             <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
                                 <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
                                 @if($product->image)
-                                    <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" alt="{{ $product->name }}">
+                                    <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" alt="{{ $product->name }}"  style="padding: 20px;">
                                 @else
-                                    <div class="bg-light card-img-top d-flex align-items-center justify-content-center">
+                                    <div class="bg-light card-img-top d-flex align-items-center justify-content-center"  style="padding: 20px;">
                                         <i class="bi bi-image text-muted fs-1"></i>
                                     </div>
                                 @endif

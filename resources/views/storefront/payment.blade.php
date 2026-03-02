@@ -27,7 +27,7 @@
                     {{-- TOTAL TAGIHAN --}}
                     <div class="text-center mb-4 bg-light rounded p-3">
                         <p class="text-muted mb-1 small text-uppercase fw-bold">Total Tagihan</p>
-                        <h2 class="text-primary fw-bold mb-0">
+                        <h2 class="fw-bold mb-0"  style="color: var(--primary-color);">
                             Rp {{ number_format($grandtotal, 0, ',', '.') }}
                         </h2>
                         <span class="badge bg-secondary mt-2">{{ $order->order_number }}</span>
@@ -45,7 +45,7 @@
 
                     {{-- INFO REKENING --}}
                     <div class="alert alert-info border-0 d-flex align-items-start gap-3">
-                        <i class="bi bi-bank fs-4 text-primary"></i>
+                        <i class="bi bi-bank fs-4"  style="color: var(--primary-color);"></i>
                         <div>
                             <p class="mb-1 small text-muted">Silakan transfer ke:</p>
                             @if($website->bank_name && $website->bank_account_number)
@@ -129,7 +129,7 @@
                                 <div class="form-text small">Format: JPG/PNG. Max 2MB.</div>
                             </div>
 
-                            <button type="submit" class="btn btn-primary w-100 fw-bold">
+                            <button type="submit" class="btn w-100 fw-bold btn-primary">
                                 <i class="bi bi-cloud-upload me-2"></i> 
                                 {{ $order->payment_proof ? 'Kirim Ulang Bukti' : 'Upload Bukti Pembayaran' }}
                             </button>

@@ -140,6 +140,29 @@ public function update(Request $request, Website $website, Order $order)
         'courier_name' => $request->courier_name,
         'tracking_number' => $request->tracking_number,
     ]);
+    // ====================================================
+    // PELATUK ACCURATE: BIKIN FAKTUR
+    // ====================================================
+    if ($request->status === 'processing') {
+        try {
+            $accurateService = new \App\Services\AccurateService($website);
+            $accurateService->syncSalesInvoice($order);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Accurate Sync Error: ' . $e->getMessage());
+        }
+    }
+
+    // ====================================================
+    // PELATUK ACCURATE: HAPUS FAKTUR (CANCEL)
+    // ====================================================
+    if ($request->status === 'cancelled') {
+        try {
+            $accurateService = new \App\Services\AccurateService($website);
+            $accurateService->deleteSalesInvoice($order);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Accurate Delete Error: ' . $e->getMessage());
+        }
+    }
 
     // --- SIMPAN HISTORY (LOGIKA CUSTOM ANDA) ---
     

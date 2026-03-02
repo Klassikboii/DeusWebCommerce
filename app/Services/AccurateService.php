@@ -139,4 +139,108 @@ class AccurateService
         Log::error("Gagal Sync SKU {$variant->sku} ke Accurate: ", $responseData ?? []);
         return false;
     }
+    /**
+     * 5. Mengirim Pesanan (Sales Invoice) ke Accurate
+     */
+    public function syncSalesInvoice($order)
+    {
+        // 1. Buka pintu database
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return false;
+
+        // 2. Siapkan array keranjang belanja (Detail Barang)
+        $detailItems = [];
+        
+        // Asumsi relasi di model Order adalah $order->items()
+        foreach ($order->items as $item) {
+            // Kita harus cari SKU-nya, karena API Accurate sangat bergantung pada SKU
+            $sku = '';
+            
+            // Cek apakah ini varian atau produk biasa
+            if ($item->variant_id && $item->variant) {
+                $sku = $item->variant->sku;
+            } elseif ($item->product_id && $item->product) {
+                $sku = $item->product->sku;
+            }
+
+            // Jika SKU tidak ditemukan, lompati barang ini
+            if (empty($sku)) continue; 
+
+            // Masukkan ke format Accurate
+            $detailItems[] = [
+                'itemNo' => $sku,
+                'unitPrice' => $item->price,
+                'quantity' => $item->qty,
+            ];
+        }
+
+        // Jika tidak ada barang yang punya SKU, batalkan pengiriman agar tidak error
+        if (empty($detailItems)) {
+            Log::warning("Gagal Sync Invoice {$order->order_number}: Tidak ada item dengan SKU yang valid.");
+            return false;
+        }
+        // ==========================================
+        // TAMBAHAN BARU: MASUKKAN ONGKOS KIRIM JIKA ADA
+        // ==========================================
+        if ($order->shipping_cost > 0) {
+            $detailItems[] = [
+                'itemNo' => 'ONGKIR', // Pastikan SKU ini ada di Accurate klien
+                'unitPrice' => $order->shipping_cost,
+                'quantity' => 1,
+            ];
+        }
+
+        // 3. Rakit Data Faktur Penjualan
+        $invoiceData = [
+            'customerNo' => 'C.00001', // 🚨 GANTI DENGAN NOMOR PELANGGAN DARI ACCURATE ANDA
+            'transDate' => $order->created_at->format('d/m/Y'),
+            'description' => "Pesanan Web: " . $order->order_number . " - " . $order->customer_name,
+            'detailItem' => $detailItems, // Masukkan keranjang belanja tadi
+        ];
+
+        // 4. Tembak API Save Sales Invoice
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->post($sessionData['host'] . '/accurate/api/sales-invoice/save.do', $invoiceData);
+
+        $responseData = $response->json();
+
+        // 5. Cek apakah sukses
+        if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
+            Log::info("Sukses Sync Invoice {$order->order_number} ke Accurate.");
+            return true;
+        }
+
+        // Catat error jika gagal
+        Log::error("Gagal Sync Invoice {$order->order_number} ke Accurate: ", $responseData ?? []);
+        return false;
+    }
+    /**
+     * 6. Menghapus / Membatalkan Faktur Penjualan di Accurate
+     */
+    public function deleteSalesInvoice($order)
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return false;
+
+        // Tembak API Hapus Faktur menggunakan Nomor Order kita
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->post($sessionData['host'] . '/accurate/api/sales-invoice/delete.do', [
+            'number' => $order->order_number // Karena tadi kita set 'number' pakai order_number
+        ]);
+
+        $responseData = $response->json();
+
+        if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
+            Log::info("Sukses Menghapus Invoice {$order->order_number} di Accurate.");
+            return true;
+        }
+
+        Log::error("Gagal Menghapus Invoice {$order->order_number}: ", $responseData ?? []);
+        return false;
+    }
+
 }

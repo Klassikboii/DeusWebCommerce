@@ -74,120 +74,124 @@ class ProductController extends Controller
         $subscription = $website->activeSubscription;
 
         if ($subscription) {
-            // Skenario A: Punya paket aktif (Pro/Business/Starter)
             $limit = $subscription->package->max_products;
         } else {
-            // Skenario B: Tidak punya paket / Expired -> JATUH KE PAKET FREE
             $freePackage = \App\Models\Package::where('price', 0)->first();
-            $limit = $freePackage ? $freePackage->max_products : 2; // Default angka 2 jika DB gagal
+            $limit = $freePackage ? $freePackage->max_products : 2; 
         }
 
         // --- 2. CEK JUMLAH PRODUK VS LIMIT ---
         $currentCount = $website->products()->count();
-        
         if ($currentCount >= $limit) {
             return redirect()->back()->with('error', "Ups! Batas produk tercapai ({$limit} item). Paket Anda mungkin telah berakhir. Silakan upgrade.");
         }
-        // 1. Validasi Input
-      $this->authorize('create', $website);
 
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'category_id' => 'nullable|exists:categories,id',
-        'description' => 'nullable',
-        'image' => 'nullable|image|max:2048',
-        // Validasi Kondisional (Akan kita handle manual atau pakai 'required_without')
-    ]);
+        $this->authorize('create', $website);
 
-    // DB Transaction agar aman (Produk + Varian harus sukses bareng)
-    DB::beginTransaction();
+        // --- 3. VALIDASI INPUT YANG BENAR ---
+        $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
 
-    try {
-        // 1. Simpan Data Produk Utama
-        $product = $website->products()->create([
-            'category_id' => $request->category_id,
-            'name'        => $request->name,
-            'slug'        => Str::slug($request->name) . '-' . Str::random(4),
-            'description' => $request->description,
-            'image'       => $request->file('image') ? $request->file('image')->store('products', 'public') : null,
-            // Jika punya varian, set harga/stok utama jadi 0 atau ambil dari varian pertama (opsional)
-            'price'       => $request->has_variants ? 0 : $request->price,
-            'stock'       => $request->has_variants ? 0 : $request->stock,
-            'weight'      => $request->weight ?? 1000,
-            'sku'         => $request->sku,
-            // 'status'      => 'active'
-        ]);
+        $rules = [
+            'name' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'description' => 'nullable',
+            'image' => 'nullable|image|max:2048',
+            'sku' => 'nullable|string|max:50',
+            'weight' => 'nullable|numeric|min:0',
+        ];
 
-        // 2. Simpan Varian (Jika dicentang)
-        if ($request->has_variants && is_array($request->variants)) {
-            
-            foreach ($request->variants as $variantData) {
-                // Skip jika nama kosong (baris sampah)
-                if (empty($variantData['name'])) continue;
+        // Jika TIDAK pakai varian, Harga & Stok Utama WAJIB diisi
+        if (!$hasVariants) {
+            $rules['price'] = 'required|numeric|min:0';
+            $rules['stock'] = 'required|numeric|min:0';
+        }
 
-                $product->variants()->create([
-                    'name'    => $variantData['name'],
-                    // Kita simpan opsi sederhana dulu: {"name": "Merah - XL"}
-                    // Nanti bisa dikembangkan jadi Key-Value terpisah
-                    'options' => ['name' => $variantData['name']], 
-                    'price'   => $variantData['price'],
-                    'stock'   => $variantData['stock'],
-                    'sku'     => $variantData['sku'] ?? null,
-                    'weight'  => $request->weight, // Warisi berat induk sementara
+        $request->validate($rules);
+
+        // DB Transaction agar aman
+        DB::beginTransaction();
+
+        try {
+            // 4. Simpan Data Produk Utama
+            $product = $website->products()->create([
+                'category_id' => $request->category_id,
+                'name'        => $request->name,
+                'slug'        => Str::slug($request->name) . '-' . Str::random(4),
+                'description' => $request->description,
+                'image'       => $request->file('image') ? $request->file('image')->store('products', 'public') : null,
+                // Gunakan flag $hasVariants yang sudah pasti akurat
+                'price'       => $hasVariants ? 0 : $request->price,
+                'stock'       => $hasVariants ? 0 : $request->stock,
+                'weight'      => $request->weight ?? 1000,
+                'sku'         => $request->sku,
+            ]);
+
+            // 5. Simpan Varian (Jika dicentang)
+            if ($hasVariants && is_array($request->variants)) {
+                
+                foreach ($request->variants as $variantData) {
+                    if (empty($variantData['name'])) continue;
+
+                    $product->variants()->create([
+                        'name'    => $variantData['name'],
+                        'options' => ['name' => $variantData['name']], 
+                        'price'   => $variantData['price'] ?? 0,
+                        'stock'   => $variantData['stock'] ?? 0,
+                        'sku'     => $variantData['sku'] ?? null,
+                        'weight'  => $request->weight ?? 1000, 
+                    ]);
+                }
+                
+                // Update harga display dduk (ambil harga terendah varian)
+                $minPrice = $product->variants()->min('price');
+                $totalStock = $product->variants()->sum('stock');
+                
+                $product->update([
+                    'price' => $minPrice ?? 0,
+                    'stock' => $totalStock
                 ]);
             }
-            
-            // Update harga display dduk (ambil harga terendah varian)
-            $minPrice = $product->variants()->min('price');
-            $totalStock = $product->variants()->sum('stock');
-            
-            $product->update([
-                'price' => $minPrice,
-                'stock' => $totalStock
-            ]);
-        }
 
-      DB::commit();
+            DB::commit();
 
-        // --- MULAI: SINKRONISASI KE ACCURATE ---
-        $accurateSyncFailed = false; // Flag penanda error
-        try {
-            $accurateService = new \App\Services\AccurateService($website);
-            
-            if ($request->has_variants && is_array($request->variants)) {
-                foreach ($product->variants as $variant) {
-                    $status = $accurateService->syncProductVariant($variant);
+            // --- MULAI: SINKRONISASI KE ACCURATE ---
+            $accurateSyncFailed = false; 
+            try {
+                $accurateService = new \App\Services\AccurateService($website);
+                $product->refresh(); // <--- 🚨 TAMBAHKAN BARIS INI! (Agar memori data segar) 🚨
+                if ($hasVariants && $product->variants->count() > 0) {
+                    foreach ($product->variants as $variant) {
+                        $status = $accurateService->syncProductVariant($variant);
+                        if (!$status) $accurateSyncFailed = true;
+                    }
+                } else {
+                    $singleItem = (object)[
+                        'sku' => $product->sku,
+                        'price' => $product->price,
+                        'name' => '', 
+                        'product' => $product
+                    ];
+                    $status = $accurateService->syncProductVariant($singleItem);
                     if (!$status) $accurateSyncFailed = true;
                 }
-            } else {
-                $singleItem = (object)[
-                    'sku' => $product->sku,
-                    'price' => $product->price,
-                    'name' => '', 
-                    'product' => $product
-                ];
-                $status = $accurateService->syncProductVariant($singleItem);
-                if (!$status) $accurateSyncFailed = true;
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Accurate Sync Exception: ' . $e->getMessage());
+                $accurateSyncFailed = true;
             }
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Accurate Sync Exception: ' . $e->getMessage());
-            $accurateSyncFailed = true;
-        }
-        // --- SELESAI: SINKRONISASI KE ACCURATE ---
+            // --- SELESAI: SINKRONISASI KE ACCURATE ---
 
-        // Penentuan Notifikasi
-        if ($accurateSyncFailed) {
+            if ($accurateSyncFailed) {
+                return redirect()->route('client.products.index', $website->id)
+                    ->with('warning', 'Produk tersimpan di toko, namun gagal disinkronkan ke Accurate (Pastikan SKU terisi & belum pernah dipakai).');
+            }
+
             return redirect()->route('client.products.index', $website->id)
-                ->with('warning', 'Produk tersimpan di toko, namun gagal disinkronkan ke Accurate (Pastikan SKU terisi & belum pernah dipakai).');
+                ->with('success', 'Produk berhasil ditambahkan dan tersinkronisasi dengan Accurate!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal menyimpan produk: ' . $e->getMessage())->withInput();
         }
-
-        return redirect()->route('client.products.index', $website->id)
-            ->with('success', 'Produk berhasil ditambahkan dan tersinkronisasi dengan Accurate!');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()->with('error', 'Gagal menyimpan produk: ' . $e->getMessage())->withInput();
-    }
     }
 
     // 1. TAMPILKAN FORM EDIT
@@ -305,6 +309,7 @@ class ProductController extends Controller
             // Hapus semua varian yang mungkin tersisa
             $product->variants()->delete();
         }
+        DB::commit(); // <--- 🚨 TAMBAHKAN BARIS INI DI SINI! 🚨
 
       // --- MULAI: SINKRONISASI KE ACCURATE ---
         $accurateSyncFailed = false;
