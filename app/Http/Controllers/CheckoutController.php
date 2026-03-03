@@ -79,8 +79,10 @@ class CheckoutController extends Controller
         foreach ($cart as $item) {
             $total += $item['price'] * $item['quantity'];
         }
+        // Tarik semua data kota, sertakan nama provinsinya agar jelas
+     $cities = \App\Models\City::with('province')->orderBy('name', 'asc')->get();
 
-        return view('storefront.cart', compact('website', 'cart', 'total'));
+        return view('storefront.cart', compact('website', 'cart', 'total', 'cities'));
     }
 
     // 3. PROCESS CHECKOUT
@@ -269,48 +271,89 @@ class CheckoutController extends Controller
 
     // Tambahkan method ini di CheckoutController.php
 
-public function checkShipping(Request $request, $subdomain)
-{
-    $website = $request->get('website'); // Middleware sudah set ini
-    if (!$website) $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
+public function checkShipping(Request $request, \App\Models\Website $website)
+    {
+        // 1. Validasi Input (Pastikan destination adalah ID Kota berupa angka)
+        $request->validate([
+            'destination' => 'required|integer', 
+            'weight' => 'required|numeric|min:1',
+        ]);
 
-    $destination = $request->destination;
-    $totalWeight = $request->weight; // Berat dalam gram
-
-    // Ambil data ongkir yang cocok
-    // Logic: Cari kota tujuan yg sama, dan min_weight <= berat keranjang
-    // (Opsional: Jika berat < 1kg, dianggap 1kg)
-    $weightInKg = ceil($totalWeight / 1000); // Pembulatan ke atas (1.2kg jadi 2kg)
-    
-    $rates = $website->shippingRates()
-                    ->where('destination_city', $destination)
-                    // ->where('min_weight', '<=', $weightInKg) // Opsional: jika ingin strict
-                    ->get();
-
-    if ($rates->isEmpty()) {
-        return response()->json(['status' => 'empty', 'message' => 'Maaf, pengiriman ke lokasi ini belum tersedia.']);
-    }
-
-    // Format data untuk dikirim balik ke JS
-    $options = [];
-    foreach ($rates as $rate) {
-        $finalCost = $rate->rate_per_kg * $weightInKg;
+        // 2. Siapkan Data API
+        // 🚨 SEMENTARA KITA HARDCODE ID 152 (Jakarta Pusat) SEBAGAI LOKASI TOKO. 
+        // Nanti Anda bisa menambahkan kolom origin_city_id di tabel websites agar klien bisa mengatur kota asalnya sendiri.
+        $originCityId = 152; 
         
-        $est = "";
-        if($rate->min_day) {
-            $est = "({$rate->min_day}" . ($rate->max_day ? "-{$rate->max_day}" : "") . " Hari)";
+        $destinationCityId = $request->destination;
+        $weight = $request->weight;
+        $couriers = 'jne,sicepat,jnt'; // Kita cek 3 kurir sekaligus!
+
+        $apiKey = env('RAJAONGKIR_API_KEY');
+
+        // 3. Tembak API Komerce V2 (Domestic Cost)
+        $response = \Illuminate\Support\Facades\Http::withHeaders(['key' => $apiKey])
+            ->post('https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost', [
+                'origin' => $originCityId,
+                'destination' => $destinationCityId,
+                'weight' => $weight,
+                'courier' => $couriers
+            ]);
+
+        if (!$response->successful()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal terhubung ke server ekspedisi. Coba beberapa saat lagi.'
+            ]);
         }
 
-        $options[] = [
-            'id' => $rate->id,
-            'courier' => $rate->courier_name,
-            'service' => $rate->service_name,
-            'cost' => $finalCost,
-            'cost_formatted' => number_format($finalCost, 0, ',', '.'),
-            'estimation' => $est
-        ];
-    }
+        $apiData = $response->json()['data'] ?? [];
+        if (empty($apiData)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Tidak ada layanan kurir yang tersedia untuk rute ini.'
+            ]);
+        }
 
-    return response()->json(['status' => 'success', 'options' => $options]);
-}
+        // 4. CEK APAKAH ADA MARKUP (KEUNTUNGAN BOS) UNTUK KOTA INI
+        $markup = \App\Models\ShippingMarkup::where('website_id', $website->id)
+                    ->where('city_id', $destinationCityId)
+                    ->first();
+
+        // 5. Rakit Data untuk ditampilkan di HTML
+        $options = [];
+        foreach ($apiData as $courierData) {
+            $courierCode = strtoupper($courierData['code']); // JNE, SICEPAT, dll
+            
+            // Looping layanan (REG, YES, dll)
+            foreach ($courierData['costs'] as $service) {
+                $originalCost = $service['cost'][0]['value'];
+                $estimation = $service['cost'][0]['etd'] ?? '-';
+                
+                // === LOGIKA SUNTIK KEUNTUNGAN (MARKUP) ===
+                $finalCost = $originalCost;
+                if ($markup) {
+                    if ($markup->markup_type == 'nominal') {
+                        $finalCost += $markup->markup_value; // Tambah Rupiah
+                    } elseif ($markup->markup_type == 'percent') {
+                        $finalCost += ($originalCost * ($markup->markup_value / 100)); // Tambah Persen
+                    }
+                }
+                
+                // Masukkan ke array options
+                $options[] = [
+                    'id' => $courierCode . '_' . str_replace(' ', '', $service['service']), // Contoh: JNE_REG
+                    'courier' => $courierCode,
+                    'service' => $service['service'],
+                    'cost' => $finalCost, // 🚨 INI HARGA YANG SUDAH DI-MARKUP (Pembeli tidak tahu harga aslinya)
+                    'cost_formatted' => number_format($finalCost, 0, ',', '.'),
+                    'estimation' => 'Estimasi: ' . $estimation . ' Hari'
+                ];
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'options' => $options
+        ]);
+    }
 }

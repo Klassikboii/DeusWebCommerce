@@ -116,12 +116,11 @@
 
                                             {{-- PILIH KOTA (Dropdown dari Database Ongkir) --}}
                                             <div class="mb-3">
-                                                <label class="form-label small fw-bold">Kota / Kecamatan Tujuan</label>
-                                                <select id="destination_city" name="destination_city" class="form-select" required onchange="getShippingRates()">
-                                                    <option value="" selected disabled>-- Pilih Lokasi --</option>
-                                                    {{-- Ambil daftar kota unik dari Website Model --}}
-                                                    @foreach($website->available_cities as $city)
-                                                        <option value="{{ $city }}">{{ $city }}</option>
+                                                <label class="form-label small fw-bold">Kota / Kabupaten Tujuan</label>
+                                                <select id="destination_city" name="destination_city" class="form-select select2" required onchange="getShippingRates()">
+                                                    <option value="" selected disabled>-- Ketik / Pilih Lokasi --</option>
+                                                    @foreach($cities as $city)
+                                                        <option value="{{ $city->id }}">{{ $city->type }} {{ $city->name }} - Prov. {{ $city->province->name }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>

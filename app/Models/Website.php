@@ -131,4 +131,9 @@ class Website extends Model
     {
         return $this->hasOne(AccurateIntegration::class);
     }
+    // Relasi ke tabel pengaturan keuntungan ongkir
+    public function shippingMarkups()
+    {
+        return $this->hasMany(ShippingMarkup::class);
+    }
 }

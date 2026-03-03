@@ -153,7 +153,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/shipping/template', [App\Http\Controllers\Client\ShippingController::class, 'downloadTemplate'])->name('client.shipping.template');
         Route::post('/shipping/import', [App\Http\Controllers\Client\ShippingController::class, 'import'])->name('client.shipping.import');
                 // Route untuk Hapus Semua Data Ongkir
-        
+                // PENGATURAN MARKUP ONGKIR
+        Route::get('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'index'])->name('client.shipping_markups.index');
+        Route::post('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'store'])->name('client.shipping_markups.store');
+        Route::delete('shipping-markups/{id}', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'destroy'])->name('client.shipping_markups.destroy');
         });
 
         // Accurate Integration Routes
