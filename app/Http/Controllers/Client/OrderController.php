@@ -133,13 +133,26 @@ public function update(Request $request, Website $website, Order $order)
         }
     }
 
-    // --- UPDATE DATA ---
+   // --- UPDATE DATA ---
     
-    $order->update([
+    // 1. Siapkan data yang PASTI diupdate (Status)
+    $updateData = [
         'status' => $request->status,
-        'courier_name' => $request->courier_name,
-        'tracking_number' => $request->tracking_number,
-    ]);
+    ];
+
+    // 2. Hanya update Resi & Kurir JIKA Admin benar-benar mengisinya di form
+    if ($request->filled('tracking_number')) {
+        $updateData['tracking_number'] = $request->tracking_number;
+    }
+    if ($request->filled('courier_name')) {
+        $updateData['courier_name'] = $request->courier_name;
+    }
+    if ($request->filled('courier_service')) {
+        $updateData['courier_service'] = $request->courier_service;
+    }
+
+    $order->update($updateData);
+
     // ====================================================
     // PELATUK ACCURATE: BIKIN FAKTUR
     // ====================================================
@@ -164,18 +177,18 @@ public function update(Request $request, Website $website, Order $order)
         }
     }
 
-    // --- SIMPAN HISTORY (LOGIKA CUSTOM ANDA) ---
+    // --- SIMPAN HISTORY ---
     
-    // Gunakan note dari request jika ada, jika tidak pakai template default
     $note = $request->note;
     
     if(!$note) {
         if($newStatus == 'shipped') {
-            $note = "Pesanan dikirim via {$request->courier_name}. Resi: {$request->tracking_number}";
+            // Ambil nama kurir dari form, kalau kosong ambil dari database
+            $namaKurir = $request->courier_name ?? $order->courier_name; 
+            $note = "Pesanan dikirim via {$namaKurir}. Resi: {$request->tracking_number}";
         } elseif ($newStatus == 'cancelled') {
             $note = "Pesanan dibatalkan oleh Admin. Stok dikembalikan.";
         } else {
-            // Ubah 'pending' jadi 'Pending', dll
             $note = "Status diperbarui menjadi " . ucfirst($request->status);
         }
     }

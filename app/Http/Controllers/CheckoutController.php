@@ -96,68 +96,73 @@ class CheckoutController extends Controller
 
         if (!$cart) return redirect()->back()->with('error', 'Keranjang kosong!');
 
-        // 1. VALIDASI INPUT TAMBAHAN (ONGKIR)
+        // 1. VALIDASI
         $request->validate([
             'customer_name'     => 'required|string|max:100',
             'customer_whatsapp' => 'required|numeric',
             'customer_address'  => 'required|string',
-            'destination_city'  => 'required|string', // Kota wajib dipilih
-            'shipping_cost'     => 'required|numeric|min:0', // Dari Hidden Input
-            'shipping_courier'  => 'required|string', // Dari Hidden Input
+            'destination_city'  => 'required|integer', // 🚨 UBAH KE INTEGER (Karena sekarang isinya ID Kota)
+            'shipping_cost'     => 'required|numeric|min:0', 
+            'shipping_courier'  => 'required|string', 
         ]);
 
-        // 2. HITUNG TOTAL PRODUK
+        // 2. TERJEMAHKAN ID KOTA MENJADI NAMA LENGKAP
+        $city = \App\Models\City::with('province')->find($request->destination_city);
+        $cityName = $city ? $city->type . ' ' . $city->name . ' - Prov. ' . $city->province->name : 'Kota Tidak Diketahui';
+
+        // 3. HITUNG TOTAL PRODUK
         $productTotal = 0;
         foreach ($cart as $item) {
             $productTotal += $item['price'] * $item['quantity'];
         }
 
-        // 3. AMBIL ONGKIR DARI REQUEST
-        // (Catatan: Untuk keamanan tingkat tinggi, seharusnya kita hitung ulang ongkir di backend 
-        // berdasarkan destination_city untuk mencegah manipulasi HTML. 
-        // Tapi untuk tahap ini, kita percaya input frontend dulu).
         $shippingCost = $request->shipping_cost;
-        $grandTotal = $productTotal + $shippingCost;
 
         DB::beginTransaction();
 
+        // Membelah "JNE REG" menjadi dua bagian
+            $courierParts = explode(' ', $request->shipping_courier, 2);
+            $courierName = $courierParts[0] ?? null; // Bagian depan: JNE
+            $courierService = $courierParts[1] ?? null; // Bagian belakang: REG
+
         try {
-            // 4. SIMPAN ORDER
+           // 4. SIMPAN ORDER (DATA INDUK)
             $order = Order::create([
                 'website_id'        => $website->id,
                 'order_number'      => 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
                 'customer_name'     => $request->customer_name,
                 'customer_whatsapp' => $request->customer_whatsapp,
-                
-                // Gabungkan Alamat dengan Kota Tujuan agar lengkap
-                'customer_address'  => $request->customer_address . ", " . $request->destination_city,
-                
-                // Simpan Data Ongkir
+                'customer_address'  => $request->customer_address . ", " . $cityName,
                 'shipping_cost'     => $shippingCost,
-                'courier_name'      => $request->shipping_courier, // Contoh: "JNE REG"
                 
-                'total_amount'      => $productTotal, // Harga Barang saja (Nanti di view dijumlahkan)
-                // ATAU jika Anda ingin total_amount adalah grand total:
-                // 'total_amount'   => $grandTotal, 
+                // 🚨 MASUKKAN DATA YANG SUDAH DIBELAH
+                'courier_name'      => $courierName,
+                'courier_service'   => $courierService,
                 
+                'total_amount'      => $productTotal, 
                 'status'            => 'pending',
             ]);
 
-            // 5. SIMPAN ITEM & KURANGI STOK (SAMA SEPERTI SEBELUMNYA)
+            // 5. SIMPAN DETAIL ITEM & POTONG STOK (Aturan Anti-Pesanan Hantu)
             foreach ($cart as $key => $item) {
-                // ... (Logika stok varian/produk tetap sama, copy paste dari kode sebelumnya) ...
                 
-                // Code stok reduction logic here...
+                // Potong Stok
                 if (!empty($item['variant_id'])) {
-                    $variant = ProductVariant::find($item['variant_id']);
-                    $variant->decrement('stock', $item['quantity']);
-                    if($variant->product) $variant->product->decrement('stock', $item['quantity']);
+                    $variant = \App\Models\ProductVariant::find($item['variant_id']);
+                    if($variant) {
+                        $variant->decrement('stock', $item['quantity']);
+                        // Jika varian punya relasi ke produk induk, potong juga stok induknya
+                        if($variant->product) $variant->product->decrement('stock', $item['quantity']);
+                    }
                 } else {
-                    $product = Product::find($item['product_id']);
-                    $product->decrement('stock', $item['quantity']);
+                    $product = \App\Models\Product::find($item['product_id']);
+                    if($product) {
+                        $product->decrement('stock', $item['quantity']);
+                    }
                 }
 
-                OrderItem::create([
+                // Simpan Riwayat Item
+                \App\Models\OrderItem::create([
                     'order_id'      => $order->id,
                     'product_id'    => $item['product_id'],
                     'product_name'  => $item['name'],
@@ -170,9 +175,11 @@ class CheckoutController extends Controller
             }
 
             DB::commit();
+            
+            // Bersihkan Keranjang Setelah Berhasil Checkout
             session()->forget($cartKey);
 
-            // Redirect
+            // Redirect ke Halaman Pembayaran
             return redirect()->route('store.payment', [
                 'subdomain' => $website->subdomain,
                 'order_number' => $order->order_number
@@ -180,7 +187,7 @@ class CheckoutController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
         }
     }
 
@@ -271,89 +278,80 @@ class CheckoutController extends Controller
 
     // Tambahkan method ini di CheckoutController.php
 
-public function checkShipping(Request $request, \App\Models\Website $website)
+public function checkShipping(Request $request, $subdomain)
     {
-        // 1. Validasi Input (Pastikan destination adalah ID Kota berupa angka)
         $request->validate([
             'destination' => 'required|integer', 
             'weight' => 'required|numeric|min:1',
         ]);
 
-        // 2. Siapkan Data API
-        // 🚨 SEMENTARA KITA HARDCODE ID 152 (Jakarta Pusat) SEBAGAI LOKASI TOKO. 
-        // Nanti Anda bisa menambahkan kolom origin_city_id di tabel websites agar klien bisa mengatur kota asalnya sendiri.
-        $originCityId = 152; 
-        
-        $destinationCityId = $request->destination;
-        $weight = $request->weight;
-        $couriers = 'jne,sicepat,jnt'; // Kita cek 3 kurir sekaligus!
+        // 🚨 TANGKAP DATA WEBSITE BERDASARKAN SUBDOMAIN (Ini kunci agar markup terbaca!)
+        $website = $request->get('website');
+        if (!$website) {
+            $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
+        }
 
         $apiKey = env('RAJAONGKIR_API_KEY');
+        
+        // 1. Ambil data markup (Keuntungan Bos)
+        $markup = \App\Models\ShippingMarkup::where('website_id', $website->id)
+                    ->where('city_id', $request->destination)
+                    ->first();
 
-        // 3. Tembak API Komerce V2 (Domestic Cost)
-        $response = \Illuminate\Support\Facades\Http::withHeaders(['key' => $apiKey])
+        // 2. Tembak API Komerce V2 (Langsung pakai ID Kota)
+        $originCityId = 152; // Hardcode Jakarta Pusat
+        $destinationCityId = $request->destination;
+
+        $response = \Illuminate\Support\Facades\Http::asForm()
+            ->withHeaders(['key' => $apiKey])
             ->post('https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost', [
-                'origin' => $originCityId,
-                'destination' => $destinationCityId,
-                'weight' => $weight,
-                'courier' => $couriers
+                'origin' => (string) $originCityId,
+                'destination' => (string) $destinationCityId,
+                'weight' => (int) $request->weight,
+                'courier' => 'jne:sicepat:jnt' // Tembak 3 kurir sekaligus
             ]);
 
         if (!$response->successful()) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Gagal terhubung ke server ekspedisi. Coba beberapa saat lagi.'
-            ]);
+            return response()->json(['status' => 'error', 'message' => 'API Error: ' . $response->body()]);
         }
 
         $apiData = $response->json()['data'] ?? [];
-        if (empty($apiData)) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Tidak ada layanan kurir yang tersedia untuk rute ini.'
-            ]);
-        }
-
-        // 4. CEK APAKAH ADA MARKUP (KEUNTUNGAN BOS) UNTUK KOTA INI
-        $markup = \App\Models\ShippingMarkup::where('website_id', $website->id)
-                    ->where('city_id', $destinationCityId)
-                    ->first();
-
-        // 5. Rakit Data untuk ditampilkan di HTML
         $options = [];
-        foreach ($apiData as $courierData) {
-            $courierCode = strtoupper($courierData['code']); // JNE, SICEPAT, dll
+
+        // 3. Mapping Data sesuai struktur BARU Komerce
+        foreach ($apiData as $service) {
+            $courierCode = strtoupper($service['code'] ?? 'UNKNOWN'); 
+            $originalCost = $service['cost'] ?? 0;
+            $estimation = $service['etd'] ?? '-';
+            $serviceName = $service['service'] ?? 'REG';
             
-            // Looping layanan (REG, YES, dll)
-            foreach ($courierData['costs'] as $service) {
-                $originalCost = $service['cost'][0]['value'];
-                $estimation = $service['cost'][0]['etd'] ?? '-';
-                
-                // === LOGIKA SUNTIK KEUNTUNGAN (MARKUP) ===
-                $finalCost = $originalCost;
-                if ($markup) {
-                    if ($markup->markup_type == 'nominal') {
-                        $finalCost += $markup->markup_value; // Tambah Rupiah
-                    } elseif ($markup->markup_type == 'percent') {
-                        $finalCost += ($originalCost * ($markup->markup_value / 100)); // Tambah Persen
-                    }
+            // Gembok pengaman: jika harga kosong/0, lewati
+            if ($originalCost <= 0) continue;
+
+            // Suntikkan Markup
+            $finalCost = $originalCost;
+            if ($markup) {
+                if ($markup->markup_type == 'nominal') {
+                    $finalCost += $markup->markup_value; 
+                } elseif ($markup->markup_type == 'percent') {
+                    $finalCost += ($originalCost * ($markup->markup_value / 100)); 
                 }
-                
-                // Masukkan ke array options
-                $options[] = [
-                    'id' => $courierCode . '_' . str_replace(' ', '', $service['service']), // Contoh: JNE_REG
-                    'courier' => $courierCode,
-                    'service' => $service['service'],
-                    'cost' => $finalCost, // 🚨 INI HARGA YANG SUDAH DI-MARKUP (Pembeli tidak tahu harga aslinya)
-                    'cost_formatted' => number_format($finalCost, 0, ',', '.'),
-                    'estimation' => 'Estimasi: ' . $estimation . ' Hari'
-                ];
             }
+            
+            $options[] = [
+                'id' => $courierCode . '_' . str_replace(' ', '', $serviceName), 
+                'courier' => $courierCode,
+                'service' => $serviceName,
+                'cost' => $finalCost, 
+                'cost_formatted' => number_format($finalCost, 0, ',', '.'),
+                'estimation' => 'Estimasi: ' . $estimation . ' Hari'
+            ];
         }
 
-        return response()->json([
-            'status' => 'success',
-            'options' => $options
-        ]);
+        if (empty($options)) {
+            return response()->json(['status' => 'error', 'message' => 'Tidak ada layanan kurir yang tersedia untuk rute ini.']);
+        }
+
+        return response()->json(['status' => 'success', 'options' => $options]);
     }
 }

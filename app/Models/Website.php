@@ -48,6 +48,9 @@ class Website extends Model
         'email_contact', 
         'address',
 
+        'courier_name',      // <--- TAMBAHKAN INI
+        'courier_service',
+
         // 7. SEO
         'meta_title', 
         'meta_description', 
