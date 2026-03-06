@@ -10,8 +10,9 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('cities', function (Blueprint $table) {
+    {   
+        if(!Schema::hasTable('cities')){
+            Schema::create('cities', function (Blueprint $table) {
             $table->unsignedBigInteger('id')->primary(); // ID asli RajaOngkir
             $table->unsignedBigInteger('province_id');
             $table->string('type'); // Menyimpan tipe: 'Kabupaten' atau 'Kota'
@@ -22,6 +23,8 @@ return new class extends Migration
             // Relasi ke tabel provinces
             $table->foreign('province_id')->references('id')->on('provinces')->onDelete('cascade');
         });
+        }
+        
     }
 
     /**

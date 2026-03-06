@@ -48,8 +48,9 @@ class DashboardController extends Controller
         }
 
         // 3. STATISTIK COUNTER
+        $statuses = ['pending', 'awaiting_confirmation', 'processing', 'shipped'];
         $totalOrder = Order::where('website_id', $website->id)->count();
-        $pendingOrders = Order::where('website_id', $website->id)->where('status', 'pending')->count();
+        $pendingOrders = Order::where('website_id', $website->id)->whereIn('status', $statuses)->count();
         $totalProduk = Product::where('website_id', $website->id)->count();
 
         // 4. GRAFIK (30 HARI TERAKHIR)

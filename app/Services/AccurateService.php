@@ -93,7 +93,62 @@ class AccurateService
         Log::error("Gagal Buka Database Accurate ID {$this->integration->accurate_database_id}: ", $response->json());
         return null;
     }
+   /**
+     * 4.5. Mencari atau Membuat Pelanggan Baru di Accurate
+     */
+    private function findOrCreateCustomer($order, $sessionData)
+    {
+        // 1. GEMBOK ANTI-DUPLIKAT: Cek Database Lokal Dulu!
+        // Jika pesanan ini sudah punya ID Accurate, langsung gunakan itu.
+        if (!empty($order->accurate_customer_no)) {
+            return $order->accurate_customer_no;
+        }
 
+        $customerName = $order->customer_name . ' (' . $order->customer_whatsapp . ')';
+        $keywords = $order->customer_whatsapp;
+
+        // 2. CARI DI ACCURATE (Siapa tahu pelanggan ini pernah belanja di nomor order lain)
+        $searchResponse = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->get($sessionData['host'] . '/accurate/api/customer/list.do', [
+            'keywords' => $keywords
+        ]);
+
+        if ($searchResponse->successful()) {
+            $data = $searchResponse->json('d');
+            if (!empty($data) && isset($data[0]['customerNo'])) {
+                return $data[0]['customerNo']; // Ketemu!
+            }
+        }
+
+        // 3. JIKA BENAR-BENAR BARU, BUATKAN DI ACCURATE
+        $createResponse = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->post($sessionData['host'] . '/accurate/api/customer/save.do', [
+            'name' => $customerName,
+            'mobilePhone' => $order->customer_whatsapp,
+            'shipStreet' => $order->customer_address,
+        ]);
+
+        $createData = $createResponse->json();
+
+        // 4. AMBIL ID DARI KOTAK "r" (RECORD)
+        if ($createResponse->successful() && isset($createData['s']) && $createData['s'] === true) {
+            
+            // Inilah kunci rahasianya: kita ambil dari ['r']['customerNo']
+            $newCustomerNo = $createData['r']['customerNo'] ?? null; 
+            
+            if ($newCustomerNo) {
+                Log::info("Berhasil membuat pelanggan di Accurate: {$customerName} ({$newCustomerNo})");
+                return $newCustomerNo;
+            }
+        }
+
+        Log::error("Gagal membuat customer di Accurate untuk Order {$order->order_number}: ", $createData ?? []);
+        return null;
+    }
     /**
      * 4. Mengirim Produk ke Accurate (SUDAH DISEMPURNAKAN)
      */
@@ -191,10 +246,30 @@ class AccurateService
         }
 
         // 3. Rakit Data Faktur Penjualan
+        // ... (Kode keranjang/detailItems tetap sama) ...
+
+       // ==========================================
+        // PANGGIL DETEKTIF PELANGGAN SEBELUM BIKIN FAKTUR
+        // ==========================================
+        $customerNo = $this->findOrCreateCustomer($order, $sessionData);
+        
+        if (!$customerNo) {
+            Log::error("Batal membuat Faktur {$order->order_number}: Data Pelanggan tidak valid.");
+            return false;
+        }
+
+        // 🚨 SIMPAN ID ACCURATE KE DATABASE LOKAL (Ini Mencegah Duplikat!)
+        if (empty($order->accurate_customer_no)) {
+            $order->update(['accurate_customer_no' => $customerNo]);
+        }
+
+        
+
+        // 3. Rakit Data Faktur Penjualan
         $invoiceData = [
-            'customerNo' => 'C.00001', // 🚨 GANTI DENGAN NOMOR PELANGGAN DARI ACCURATE ANDA
+            'customerNo' => $customerNo, // <-- SEKARANG MENGGUNAKAN VARIABEL DINAMIS!
             'transDate' => $order->created_at->format('d/m/Y'),
-            'description' => "Pesanan Web: " . $order->order_number . " - " . $order->customer_name,
+            'description' => "Pesanan Web: " . $order->order_number,
             'detailItem' => $detailItems, // Masukkan keranjang belanja tadi
         ];
 

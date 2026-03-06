@@ -90,6 +90,18 @@
                     <textarea name="address" class="form-control" rows="3" placeholder="Jl. Contoh No. 123, Kota...">{{ old('address', $website->address) }}</textarea>
                     <small class="text-muted">Akan ditampilkan di bagian Footer website.</small>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Kota Asal Pengiriman (Lokasi Toko)</label>
+                    <select name="city_id" class="form-select select2" required>
+                        <option value="">-- Pilih Kota Asal Toko --</option>
+                        @foreach($cities as $city)
+                            <option value="{{ $city->id }}" {{ $website->city_id == $city->id ? 'selected' : '' }}>
+                                {{ $city->type }} {{ $city->name }} - Prov. {{ $city->province->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="text-muted">Kota ini akan digunakan sebagai titik awal perhitungan ongkos kirim.</small>
+                </div>
 
                 {{-- ... Di dalam Form Settings, setelah input Address ... --}}
 
@@ -191,4 +203,22 @@
             </div>
         </div>
 </div>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Aktifkan Select2
+        $('.select2').select2({
+            placeholder: "-- Ketik / Pilih Lokasi --",
+            width: '100%' // Agar lebarnya rapi mengikuti form
+        });
+
+        // Paksa fungsi ongkir berjalan otomatis ketika kota dipilih lewat Select2
+        $('#destination_city').on('select2:select', function (e) {
+            getShippingRates(); 
+        });
+    });
+</script>
 @endsection

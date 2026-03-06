@@ -59,6 +59,8 @@ class Website extends Model
         'bank_name',
         'bank_account_number',
         'bank_account_holder',
+
+        'city_id'
     ];
 
     protected $casts = [
@@ -138,5 +140,10 @@ class Website extends Model
     public function shippingMarkups()
     {
         return $this->hasMany(ShippingMarkup::class);
+    }
+    // Tambahkan relasi ini
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id');
     }
 }

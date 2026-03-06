@@ -12,8 +12,8 @@ class SettingController extends Controller
     public function index(Website $website)
     {
         $this->authorize('viewAny', $website);
-        
-        return view('client.settings.index', compact('website'));
+        $cities = \App\Models\City::with('province')->orderBy('name', 'asc')->get();
+        return view('client.settings.index', compact('website', 'cities'));
     }
 
     public function update(Request $request, Website $website)
@@ -30,6 +30,7 @@ class SettingController extends Controller
             'bank_name' => 'nullable|string|max:50',
             'bank_account_number' => 'nullable|string|max:50',
             'bank_account_holder' => 'nullable|string|max:100',
+            'city_id' => 'nullable|numeric',
         ]);
 
         $data = [
@@ -41,6 +42,7 @@ class SettingController extends Controller
             'bank_account_number' => $request->bank_account_number,
             'bank_account_holder' => $request->bank_account_holder,
             'is_open' => $request->has('is_open'),
+            'city_id' =>$request->city_id,
         ];
 
         // Fitur Tambahan: Upload Icon/Logo Toko (Opsional jika ingin dipakai nanti)

@@ -299,7 +299,8 @@ public function checkShipping(Request $request, $subdomain)
                     ->first();
 
         // 2. Tembak API Komerce V2 (Langsung pakai ID Kota)
-        $originCityId = 152; // Hardcode Jakarta Pusat
+        // Kita ambil dari database toko. Jika klien belum mengatur, kita set default ke 152 (Jakarta Pusat) agar tidak crash.
+        $originCityId = $website->city_id ?? 152;
         $destinationCityId = $request->destination;
 
         $response = \Illuminate\Support\Facades\Http::asForm()
