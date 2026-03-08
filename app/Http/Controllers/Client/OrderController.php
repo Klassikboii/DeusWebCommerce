@@ -153,13 +153,21 @@ public function update(Request $request, Website $website, Order $order)
 
     $order->update($updateData);
 
-    // ====================================================
-    // PELATUK ACCURATE: BIKIN FAKTUR
+   // ====================================================
+    // PELATUK ACCURATE: BIKIN FAKTUR & LUNASI
     // ====================================================
     if ($request->status === 'processing') {
         try {
             $accurateService = new \App\Services\AccurateService($website);
-            $accurateService->syncSalesInvoice($order);
+            
+            // 1. Buat Fakturnya Dulu
+            $invoiceCreated = $accurateService->syncSalesInvoice($order);
+            
+            // 2. Jika sukses dibuat, langsung lunasi detik itu juga!
+            if ($invoiceCreated) {
+                $accurateService->syncPaymentReceipt($order);
+            }
+            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Accurate Sync Error: ' . $e->getMessage());
         }

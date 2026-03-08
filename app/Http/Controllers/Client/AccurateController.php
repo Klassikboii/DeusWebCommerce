@@ -23,7 +23,7 @@ class AccurateController extends Controller
         // Kita simpan ID website di parameter 'state' agar saat callback kita tahu ini milik website mana
         $state = $website->id;
 
-        $url = "https://account.accurate.id/oauth/authorize?client_id={$clientId}&response_type=code&redirect_uri={$redirectUri}&scope=item_view item_save sales_invoice_save customer_save&state={$state}";
+        $url = "https://account.accurate.id/oauth/authorize?client_id={$clientId}&response_type=code&redirect_uri={$redirectUri}&scope=item_view item_save sales_invoice_save sales_receipt_save customer_save&state={$state}";
 
         return redirect()->away($url);
     }

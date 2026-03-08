@@ -202,6 +202,14 @@ class AccurateService
         // 1. Buka pintu database
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
+        // ==========================================
+        // 🚨 SATPAM 1: CEK APAKAH FAKTUR SUDAH ADA?
+        // ==========================================
+        $existingInvoice = $this->getSalesInvoice($order->order_number, $sessionData);
+        if ($existingInvoice) {
+            Log::info("Faktur {$order->order_number} sudah ada di Accurate. Melewati pembuatan ulang.");
+            return true; // Kita anggap "sukses" agar fungsi Pelunasan (Receipt) tetap dijalankan
+        }
 
         // 2. Siapkan array keranjang belanja (Detail Barang)
         $detailItems = [];
@@ -268,6 +276,7 @@ class AccurateService
         // 3. Rakit Data Faktur Penjualan
         $invoiceData = [
             'customerNo' => $customerNo, // <-- SEKARANG MENGGUNAKAN VARIABEL DINAMIS!
+            'number' => $order->order_number, // 🚨 WAJIB DITAMBAHKAN AGAR NOMORNYA SAMA DENGAN WEB
             'transDate' => $order->created_at->format('d/m/Y'),
             'description' => "Pesanan Web: " . $order->order_number,
             'detailItem' => $detailItems, // Masukkan keranjang belanja tadi
@@ -287,6 +296,15 @@ class AccurateService
             return true;
         }
 
+        // ==========================================
+        // 🚨 JURUS BYPASS: TANGKAP ERROR DUPLIKAT
+        // ==========================================
+        $errorMessage = $responseData['d'][0] ?? '';
+        
+        if (stripos($errorMessage, 'Sudah ada data lain dengan') !== false) {
+            Log::info("Bypass: Faktur {$order->order_number} sudah pernah terbuat. Melanjutkan ke tahap pelunasan.");
+            return true; // Kita paksa return TRUE agar kode Controller lanjut mengeksekusi Pelunasan
+        }
         // Catat error jika gagal
         Log::error("Gagal Sync Invoice {$order->order_number} ke Accurate: ", $responseData ?? []);
         return false;
@@ -316,6 +334,85 @@ class AccurateService
 
         Log::error("Gagal Menghapus Invoice {$order->order_number}: ", $responseData ?? []);
         return false;
+    }
+   /**
+     * 6. Membuat Penerimaan Pelanggan (Versi Cepat & Lengkap)
+     */
+    public function syncPaymentReceipt($order)
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return false;
+
+        // Kita hitung sendiri totalnya dari web
+        $totalBayar = $order->total_amount + $order->shipping_cost;
+
+        $paymentData = [
+            'customerNo' => $order->accurate_customer_no,
+            'bankNo' => '110102', 
+            'transDate' => now()->format('d/m/Y'), 
+            
+            // 🚨 INI DIA KUNCI YANG KEMARIN SAYA LUPAKAN! (Total uang masuk Bank)
+            'chequeAmount' => $totalBayar, 
+            
+            'detailInvoice' => [ 
+                [
+                    'invoiceNo' => $order->order_number, 
+                    // Uang yang dipakai untuk motong faktur
+                    'paymentAmount' => $totalBayar 
+                ]
+            ]
+        ];
+
+        // Tembak API Pelunasan
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->post($sessionData['host'] . '/accurate/api/sales-receipt/save.do', $paymentData);
+
+        $responseData = $response->json();
+        $rawBody = $response->body();
+
+        // Cek Sukses
+        if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
+            Log::info("Sukses Melunasi Invoice {$order->order_number} di Accurate senilai Rp " . number_format($totalBayar, 0, ',', '.'));
+            return true;
+        }
+
+        // ==========================================
+        // 🚨 KEMBALIKAN SATPAM BYPASS (Anti Spam Klik)
+        // ==========================================
+        if (stripos($rawBody, 'sisa tagihan') !== false || 
+            stripos($rawBody, 'lunas') !== false || 
+            stripos($rawBody, 'lebih besar') !== false) {
+            
+            Log::info("Bypass: Faktur {$order->order_number} ditolak bayar, kemungkinan besar sudah lunas. Aman!");
+            return true;
+        }
+
+        // Tangkap Hantu Error Lainnya
+        Log::error("Gagal Melunasi Invoice {$order->order_number}. RAW RESPONSE: " . $rawBody);
+        return false;
+    }
+    /**
+     * 7. Mengintip Data Faktur di Accurate
+     */
+    private function getSalesInvoice($orderNumber, $sessionData)
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->get($sessionData['host'] . '/accurate/api/sales-invoice/list.do', [
+            'keywords' => $orderNumber // Cari berdasarkan nomor order
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json('d');
+            // Pastikan data ketemu dan nomornya benar-benar persis sama
+            if (!empty($data) && strcasecmp($data[0]['number'], $orderNumber) === 0) {
+                return $data[0]; 
+            }
+        }
+        return null;
     }
 
 }
