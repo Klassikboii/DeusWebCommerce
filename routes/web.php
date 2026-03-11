@@ -79,13 +79,19 @@ Route::middleware(['auth'])->group(function () {
        
         // ... rute produk create & store yang sudah ada ...
         // --- TAMBAHKAN INI UNTUK EDIT & DELETE ---
-       
+       Route::post('products/destroy-all', [\App\Http\Controllers\Client\ProductController::class, 'destroyAll'])->name('client.products.destroy_all');
         // 1. Tampilkan Form Edit
         Route::get('/products/{product}/edit', [App\Http\Controllers\Client\ProductController::class, 'edit'])->name('client.products.edit');
        
         // 2. Proses Update Data (PUT)
         Route::put('/products/{product}', [App\Http\Controllers\Client\ProductController::class, 'update'])->name('client.products.update');
-       
+    
+        Route::post('/products/sync-accurate', [\App\Http\Controllers\Client\ProductController::class, 'syncAccurate'])->name('client.products.sync_accurate');
+       // Rute untuk mendownload template CSV kosong
+        Route::get('products/template-csv', [\App\Http\Controllers\Client\ProductController::class, 'downloadTemplate'])->name('client.products.template');
+
+        // Rute untuk memproses file CSV yang diupload
+        Route::post('/products/import-csv', [\App\Http\Controllers\Client\ProductController::class, 'importCsv'])->name('client.products.import');
         // 3. Proses Hapus Data (DELETE)
         Route::delete('/products/{product}', [App\Http\Controllers\Client\ProductController::class, 'destroy'])->name('client.products.destroy');
         // ... route produk & kategori ...

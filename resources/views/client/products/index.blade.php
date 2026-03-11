@@ -11,17 +11,39 @@
             <h4 class="fw-bold mb-1">Produk</h4>
             <p class="text-muted small mb-0">Kelola katalog barang dagangan Anda.</p>
         </div>
+        
+        {{-- Kumpulan Tombol di Kanan --}}
         <div class="d-flex gap-2 align-items-center">
             <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2">
                 Slot: {{ $currentCount }} / {{ $limit }}
             </div>
+            
             @if($isLimitReached)
                 <button class="btn btn-secondary" disabled><i class="bi bi-lock-fill me-1"></i> Penuh</button>
             @else
-                <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">
-                    <i class="bi bi-plus-lg me-1"></i> Tambah Produk
-                </a>
+                <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">+ Tambah Produk</a>
             @endif
+
+            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="bi bi-file-earmark-excel"></i> Import CSV
+            </button> 
+
+            {{-- Tombol Tarik Data Accurate --}}
+            @if($website->accurateIntegration && $website->accurateIntegration->access_token)
+                <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Apakah Anda yakin ingin menarik data terbaru dari Accurate? Harga dan Stok di website akan ditimpa mengikuti Accurate.');">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-repeat"></i> Sync dari Accurate
+                    </button>
+                </form>         
+            @endif
+            {{-- Tombol Kosongkan Katalog --}}
+            <form action="{{ route('client.products.destroy_all', $website->id) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('PERINGATAN! Anda yakin ingin menghapus/mengosongkan semua produk di katalog Anda? Tindakan ini tidak dapat dibatalkan.');">
+                @csrf
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-trash3-fill"></i> Kosongkan
+                </button>
+            </form>
         </div>
     </div>
 
@@ -104,4 +126,36 @@ document.addEventListener("DOMContentLoaded", function() {
     attachPaginationListeners();
 });
 </script>
+
+<div class="modal fade" id="importModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('client.products.import', $website->id) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Produk via CSV</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Pastikan format file Anda sesuai dengan template kami. SKU digunakan untuk mencocokkan data. Jika SKU sama, stok/harga akan diperbarui.</p>
+                    
+                    <div class="mb-4">
+                        <a href="{{ route('client.products.template', $website->id) }}" class="btn btn-sm btn-light border">
+                            <i class="bi bi-download"></i> Download Template CSV
+                        </a>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Pilih File CSV</label>
+                        <input type="file" name="file_csv" class="form-control" accept=".csv" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">Mulai Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection

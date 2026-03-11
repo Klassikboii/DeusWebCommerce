@@ -3,6 +3,96 @@
 @section('content')
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
+{{-- ==================================================== --}}
+        {{-- WIDGET ONBOARDING CHECKLIST (Tampil Jika Belum 100%) --}}
+        {{-- ==================================================== --}}
+        @if($setupProgress < 100)
+        <div class="card border-0 shadow-sm mb-4" style="background: linear-gradient(to right, #ffffff, #f8faff); border-left: 4px solid #0d6efd !important;">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-end mb-3">
+                    <div>
+                        <h5 class="fw-bold text-primary mb-1">Persiapan Toko Anda ({{ round($setupProgress) }}%)</h5>
+                        <p class="text-muted small mb-0">Selesaikan langkah-langkah di bawah ini agar toko Anda siap menerima pembeli.</p>
+                    </div>
+                </div>
+
+                <div class="progress mb-4" style="height: 8px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: {{ $setupProgress }}%"></div>
+                </div>
+
+                <div class="row g-3">
+                    {{-- Langkah 1: Profil --}}
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-3 border rounded {{ $setupStatus['profile'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
+                            @if($setupStatus['profile'])
+                                <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-5"></i></span>
+                            @endif
+                            <h6 class="fw-bold {{ $setupStatus['profile'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">1. Profil & Alamat</h6>
+                            <p class="small text-muted mb-3">Atur alamat toko agar ongkir dapat dihitung otomatis.</p>
+                            @if(!$setupStatus['profile'])
+                                <a href="{{ route('client.settings.index', $website->id) }}" class="btn btn-sm btn-outline-primary w-100">Atur Profil</a>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Langkah 2: Produk --}}
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-3 border rounded {{ $setupStatus['product'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
+                            @if($setupStatus['product'])
+                                <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-5"></i></span>
+                            @endif
+                            <h6 class="fw-bold {{ $setupStatus['product'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">2. Tambah Produk</h6>
+                            <p class="small text-muted mb-3">Upload produk pertama yang ingin Anda jual.</p>
+                            @if(!$setupStatus['product'])
+                                <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-sm btn-outline-primary w-100">Tambah Produk</a>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Langkah 3: Midtrans --}}
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-3 border rounded {{ $setupStatus['payment'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
+                            @if($setupStatus['payment'])
+                                <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-5"></i></span>
+                            @endif
+                            <h6 class="fw-bold {{ $setupStatus['payment'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">3. Pembayaran</h6>
+                            <p class="small text-muted mb-3">Hubungkan Midtrans agar bisa menerima transfer.</p>
+                            {{-- Tombol Midtrans --}}
+                            @if(!$setupStatus['payment'])
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('client.settings.index', $website->id) }}#midtrans-section" class="btn btn-sm btn-outline-primary flex-grow-1">Hubungkan</a>
+                                    <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanMidtrans" title="Cara Setup">
+                                        <i class="bi bi-question-circle"></i>
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Langkah 4: Accurate --}}
+                    <div class="col-md-6 col-lg-3">
+                        <div class="p-3 border rounded {{ $setupStatus['accurate'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
+                            @if($setupStatus['accurate'])
+                                <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-5"></i></span>
+                            @endif
+                            <h6 class="fw-bold {{ $setupStatus['accurate'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">4. Pembukuan</h6>
+                            <p class="small text-muted mb-3">Sinkronisasi dengan Accurate Online (Opsional).</p>
+                            {{-- Tombol Accurate --}}
+                            @if(!$setupStatus['accurate'])
+                                <div class="d-flex gap-2">
+                                    <a href="{{ route('client.settings.index', $website->id) }}#accurate-section" class="btn btn-sm btn-outline-secondary flex-grow-1">Hubungkan</a>
+                                    <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanAccurate" title="Cara Setup">
+                                        <i class="bi bi-question-circle"></i>
+                                    </button>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+        {{-- ==================================================== --}}
 <div class="container-fluid py-4">
     @php
     // LOGIKA PINTAR PEMBUAT URL
@@ -305,4 +395,55 @@
         chart.render();
     });
 </script>
+
+<div class="modal fade" id="modalPanduanMidtrans" tabindex="-1" aria-labelledby="modalMidtransLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold" id="modalMidtransLabel"><i class="bi bi-credit-card me-2"></i>Panduan Setup Midtrans</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <ol class="mb-0 text-muted" style="line-height: 1.8;">
+                    <li>Daftar atau Login ke akun <a href="https://dashboard.midtrans.com/" target="_blank" class="fw-bold text-primary text-decoration-none">Dashboard Midtrans</a> Anda.</li>
+                    <li>Di menu sebelah kiri, masuk ke bagian <strong>Settings</strong> (Pengaturan) ➔ <strong>Access Keys</strong>.</li>
+                    <li>Anda akan melihat <strong>Client Key</strong> dan <strong>Server Key</strong>. Salin (Copy) kedua kunci tersebut.</li>
+                    <li>Kembali ke Dashboard ini, klik tombol "Hubungkan" dan <em>Paste</em> kunci tersebut ke form yang tersedia.</li>
+                    <li>Uang dari pembeli akan langsung masuk ke akun Midtrans Anda secara otomatis!</li>
+                </ol>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalPanduanAccurate" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h6 class="modal-title fw-bold"><i class="bi bi-box-seam me-2"></i>Panduan Setup Accurate Online</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning small mb-3">
+                    <strong>⚠️ PENTING SEBELUM MENGHUBUNGKAN:</strong><br>
+                    Pastikan Anda sudah membuat 2 item dengan tipe <strong>"JASA" (Service)</strong> di Accurate Online Anda dengan Nomor/SKU berikut:<br>
+                    1. SKU: <strong>ONGKIR</strong> (Untuk mencatat biaya pengiriman)<br>
+                    2. SKU: <strong>DISKON</strong> (Jika Anda berencana menggunakan fitur kupon/promo)
+                </div>
+                <ol class="mb-0 text-muted small" style="line-height: 1.8;">
+                    <li>Klik tombol <strong>"Hubungkan"</strong> di sebelah kotak ini.</li>
+                    <li>Anda akan diarahkan ke halaman Login resmi Accurate Online.</li>
+                    <li>Berikan izin pada aplikasi Webcommerce ini untuk mengakses data Anda.</li>
+                    <li>Setelah kembali, <strong>Pilih Database Accurate</strong> yang ingin dihubungkan.</li>
+                    <li>Selesai! Anda kini bisa menarik produk langsung dari Accurate.</li>
+                </ol>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

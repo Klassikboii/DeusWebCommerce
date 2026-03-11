@@ -18,6 +18,19 @@ class DashboardController extends Controller
         
         $this->authorize('view', $website);
 
+        // 1. CEK STATUS SETUP (ONBOARDING)
+        $setupStatus = [
+            'profile'  => !empty($website->address) && !empty($website->city_id), // Syarat Komerce
+            'product'  => $website->products()->count() > 0,                      // Syarat jualan
+            'payment'  => !empty($website->midtrans_server_key),                  // Syarat terima uang
+            'accurate' => $website->accurateIntegration && $website->accurateIntegration->access_token ? true : false, // Opsional tapi direkomendasikan
+        ];
+
+        // 2. HITUNG PERSENTASE (Untuk Progress Bar)
+        $completedSteps = count(array_filter($setupStatus));
+        $totalSteps = count($setupStatus);
+        $setupProgress = ($completedSteps / $totalSteps) * 100;
+
         // --- DEFINISI STATUS YANG DIANGGAP "PENDAPATAN" ---
         // Kita anggap uang masuk jika statusnya: paid, processing, shipped, atau completed
         $paidStatuses = ['completed'];
@@ -100,7 +113,7 @@ class DashboardController extends Controller
             'website', 
             'revenueThisMonth', 'revenueLastMonth', 'revenueGrowth',
             'totalOrder', 'pendingOrders', 'totalProduk',
-            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts',
+            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts', 'setupStatus', 'setupProgress'
         ));
         
     }

@@ -533,4 +533,128 @@ class AccurateService
             \Illuminate\Support\Facades\Log::info("CCTV 6 (RAW DETAIL): " . $detailResponse->body());
         }
     }
+    protected function checkAndRefreshToken()
+    {
+        $integration = $this->website->accurateIntegration;
+
+        if (!$integration || !$integration->access_token) {
+            return false;
+        }
+
+        // TIPS: Jika Anda memiliki kolom 'expires_at' di tabel accurate_integrations, 
+        // Anda bisa cek waktunya di sini. Jika belum expired, langsung return true.
+        // Contoh:
+        // if ($integration->expires_at && now()->lessThan($integration->expires_at)) {
+        //     return true; 
+        // }
+
+        // Jika Anda belum membuat sistem penjadwalan expired token, 
+        // kita asumsikan token masih valid untuk uji coba ini.
+        // Nanti di sistem production, di sinilah Anda menembak API https://account.accurate.id/oauth/token 
+        // menggunakan $integration->refresh_token untuk mendapatkan access_token yang baru.
+
+        return true; 
+    }
+    /**
+     * SINKRONISASI PRODUK DARI ACCURATE KE WEB
+     */
+   /**
+     * SINKRONISASI PRODUK DARI ACCURATE KE WEB
+     */
+    public function syncProductsFromAccurate()
+    {
+        // 1. BUKA PINTU DATABASE (Ini akan otomatis me-refresh token & mengambil Host yang benar)
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) {
+            Log::error("Gagal membuka sesi Accurate untuk toko: " . $this->website->site_name);
+            return false;
+        }
+
+        // 2. Tembak API Accurate untuk meminta Daftar Barang (Item)
+        // Perhatikan penggunaan $sessionData['host'] dan prefix /accurate/api/
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID'  => $sessionData['session_id'],
+        ])->get($sessionData['host'] . '/accurate/api/item/list.do', [
+            'fields' => 'id,no,name,unitPrice,quantity', // Kolom inti
+        ]);
+
+        if (!$response->successful()) {
+            Log::error("Gagal menarik produk dari Accurate. RAW: " . $response->body());
+            return false;
+        }
+
+        $accurateItems = $response->json()['d'] ?? [];
+        $syncedSkus = [];
+
+       // 3. Looping data dari Accurate dan masukkan ke Database Web
+       // 3. Looping data dari Accurate
+        foreach ($accurateItems as $item) {
+            $sku = $item['no'] ?? null;
+            if (!$sku) continue; 
+            // ==========================================
+            // 🚨 PENJAGA PINTU: BLOKIR SKU KHUSUS!
+            // ==========================================
+            // Jangan masukkan item jasa/sistem ke etalase web
+            $blockedSkus = ['ONGKIR', 'DISKON', 'BIAYA_LAYANAN'];
+            if (in_array(strtoupper($sku), $blockedSkus)) {
+                continue; // Lompati baris ini, jangan dimasukkan ke DB lokal!
+            }
+
+            $syncedSkus[] = $sku;
+            $price = $item['unitPrice'] ?? 0;
+            $stock = $item['quantity'] ?? 0;
+
+            // ==========================================
+            // CEK 1: APAKAH INI VARIAN DARI PRODUK YANG SUDAH ADA?
+            // ==========================================
+            // (Asumsi nama model Anda adalah ProductVariant)
+            if (class_exists('\App\Models\ProductVariant')) {
+                $variant = \App\Models\ProductVariant::whereHas('product', function($query) {
+                    $query->where('website_id', $this->website->id);
+                })->where('sku', $sku)->first();
+
+                if ($variant) {
+                    // Jika ketemu sebagai varian, update variannya saja dan lompati kode di bawahnya
+                    $variant->update([
+                        'price' => $price,
+                        'stock' => $stock,
+                    ]);
+                    continue; 
+                }
+            }
+
+            // ==========================================
+            // CEK 2: JIKA BUKAN VARIAN, UPDATE/BUAT SEBAGAI PRODUK UTAMA
+            // ==========================================
+            $product = \App\Models\Product::firstOrNew([
+                'website_id' => $this->website->id,
+                'sku'        => $sku,
+            ]);
+
+            $isNewProduct = !$product->exists;
+
+            $product->name      = $item['name'];
+            $product->price     = $price;
+            $product->stock     = $stock;
+            $product->is_active = true;
+
+            if ($isNewProduct) {
+                $product->slug        = \Illuminate\Support\Str::slug($item['name']) . '-' . \Illuminate\Support\Str::random(4);
+                $product->weight      = 1000;
+                $product->description = 'Produk ' . $item['name'] . ' original.';
+            }
+
+            $product->save(); 
+
+            // (Logika Tarik Gambar tetap sama seperti sebelumnya di sini) ...
+        }
+
+        // 4. NONAKTIFKAN BARANG YANG DIHAPUS DI ACCURATE
+        \App\Models\Product::where('website_id', $this->website->id)
+            ->whereNotIn('sku', $syncedSkus)
+            ->update(['is_active' => false, 'stock' => 0]);
+
+        return true;
+    }
 }

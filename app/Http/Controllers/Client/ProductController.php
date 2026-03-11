@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use App\Services\AccurateService;
 
 class ProductController extends Controller
 {
@@ -211,113 +212,138 @@ class ProductController extends Controller
     }
 
     // 2. PROSES UPDATE DATA
-   public function update(Request $request, Website $website, Product $product)
-{
-    $this->authorize('update', $website);
-    // 🚨 CCTV 1: CEK DATA YANG DIKIRIM DARI HTML
+  // 2. PROSES UPDATE DATA
+    public function update(Request $request, Website $website, Product $product)
+    {
+        $this->authorize('update', $website);
+        
         \Illuminate\Support\Facades\Log::info("CCTV 1 - Request Update Produk {$product->sku}: ", $request->all());
 
-    // 1. Cek Status Varian (Checkbox HTML tidak kirim value kalau uncheck, jadi kita cek keberadaannya)
-    $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
+        // 1. Cek Status Varian
+        $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
 
-    // 2. Validasi Dasar
-    $rules = [
-        'name' => 'required|string|max:255',
-        'category_id' => 'nullable|exists:categories,id',
-        'image' => 'nullable|image|max:2048',
-        'description' => 'nullable',
-        'sku' => 'nullable|string|max:50',
-        'weight' => 'nullable|numeric|min:0',
-    ];
+        // 2. Validasi Dasar
+        $rules = [
+            'name' => 'required|string|max:255',
+            'category_id' => 'nullable|exists:categories,id',
+            'image' => 'nullable|image|max:2048',
+            'description' => 'nullable',
+            'sku' => 'nullable|string|max:50',
+            'weight' => 'nullable|numeric|min:0',
+        ];
 
-    // Jika TIDAK pakai varian, Harga & Stok Utama WAJIB diisi
-    if (!$hasVariants) {
-        $rules['price'] = 'required|numeric|min:0';
-        $rules['stock'] = 'required|numeric|min:0';
-    }
+        // Jika TIDAK pakai varian, Harga & Stok Utama WAJIB diisi
+        if (!$hasVariants) {
+            $rules['price'] = 'required|numeric|min:0';
+            $rules['stock'] = 'required|numeric|min:0';
+        }
 
-    $request->validate($rules);
-    DB::beginTransaction();
+        $request->validate($rules);
+        DB::beginTransaction();
 
         try {
-            // =========================================================
-           // =========================================================
-            // 🚨 ALAT PENYADAP SEMENTARA
-            // =========================================================
-            $accurateService = new \App\Services\AccurateService($website);
-            // $accurateService->debugAdjustmentFormat(); // Kosongkan dalam kurungnya!
-            // =========================================================
-            // 🚨 TANGKAP STOK LAMA SEBELUM DI-UPDATE!
-            // =========================================================
-            $oldStocks = [];
-            if ($product->variants->count() > 0) {
-                foreach ($product->variants as $v) {
-                    $oldStocks[$v->sku] = $v->stock;
-                }
-            } else {
-                $oldStocks[$product->sku] = $product->stock;
-            }
-            // 🚨 CCTV 2: CEK DATA YANG AKAN DISIMPAN KE DATABASE LOKAL
+            // ==========================================
+            // 1. UPDATE DATA PRODUK UTAMA
+            // ==========================================
             $dataToUpdate = [
                 'category_id' => $request->category_id,
                 'name'        => $request->name,
                 'description' => $request->description,
                 'weight'      => $request->weight ?? 1000,
-                'sku'         => $request->sku,
-                'price'       => $hasVariants ? 0 : $request->price,
-                'stock'       => $hasVariants ? 0 : $request->stock,
+                // Induk tidak boleh punya SKU jika dia punya varian (agar Accurate tidak bingung)
+                'sku'         => $hasVariants ? null : $request->sku, 
             ];
 
-            // ==========================================
-            // 🚨 TAMBAHAN: LOGIKA UPDATE GAMBAR
-            // ==========================================
+            // Logika Update Gambar
             if ($request->hasFile('image')) {
-                // 1. Hapus gambar lama (jika ada) agar hardisk tidak penuh
                 if ($product->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($product->image)) {
                     \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
                 }
-                
-                // 2. Simpan gambar baru ke folder storage/app/public/products
                 $dataToUpdate['image'] = $request->file('image')->store('products', 'public');
             }
-            // ==========================================
-            \Illuminate\Support\Facades\Log::info("CCTV 2 - Data yang akan di-save: ", $dataToUpdate);
 
             $product->update($dataToUpdate);
 
-            // ... (KODE UPDATE PRODUK UTAMA & VARIAN ANDA TETAP SAMA SEPERTI SEBELUMNYA) ...
-            // (Pastikan Anda menggunakan kode update bawaan Anda dari baris $dataToUpdate = [...] sampai $product->variants()->delete();)
-            
-            DB::commit();
-            // 🚨 CCTV 3: CEK APAKAH DATABASE BERHASIL COMMIT
-            \Illuminate\Support\Facades\Log::info("CCTV 3 - Sukses Commit DB Lokal! Stok sekarang: " . $product->stock);
+            // ==========================================
+            // 2. UPDATE VARIAN DI DATABASE LOKAL
+            // ==========================================
+            if ($hasVariants && is_array($request->variants)) {
+                $variantIdsToKeep = [];
+                $minPrice = null;
+                $totalStock = 0;
 
-           // =========================================================
-            // SINKRONISASI UPDATE & SELISIH STOK KE ACCURATE (VERSI CERDAS)
+                foreach ($request->variants as $variantData) {
+                    if (empty($variantData['sku']) || empty($variantData['name'])) continue;
+
+                    $stockInput = (int)($variantData['stock'] ?? 0);
+                    $priceInput = (float)($variantData['price'] ?? 0);
+
+                    // Simpan atau Update Varian
+                    $variant = \App\Models\ProductVariant::updateOrCreate(
+                        [
+                            'product_id' => $product->id,
+                            'sku' => $variantData['sku'],
+                        ],
+                        [
+                            'name' => $variantData['name'],
+                            'price' => $priceInput,
+                            'stock' => $stockInput,
+                        ]
+                    );
+
+                    $variantIdsToKeep[] = $variant->id;
+
+                    // Hitung total stok dan harga minimal untuk di-set di induk
+                    if ($minPrice === null || $priceInput < $minPrice) $minPrice = $priceInput;
+                    $totalStock += $stockInput;
+                }
+
+                // Hapus varian yang dihapus oleh admin di form
+                \App\Models\ProductVariant::where('product_id', $product->id)
+                    ->whereNotIn('id', $variantIdsToKeep)
+                    ->delete();
+
+                // Update harga minimal dan stok kumulatif ke produk induk
+                $product->update(['price' => $minPrice ?? 0, 'stock' => $totalStock]);
+
+            } else {
+                // Jika produk berubah dari Varian ke Single, bersihkan sisa variannya
+                \App\Models\ProductVariant::where('product_id', $product->id)->delete();
+                $product->update([
+                    'price' => $request->price,
+                    'stock' => $request->stock
+                ]);
+            }
+
+            DB::commit();
+            \Illuminate\Support\Facades\Log::info("CCTV 3 - Sukses Commit DB Lokal! Stok Induk sekarang: " . $product->stock);
+
+            // =========================================================
+            // 3. SINKRONISASI UPDATE & SELISIH STOK KE ACCURATE
             // =========================================================
             $accurateSyncFailed = false;
             try {
                 $accurateService = new \App\Services\AccurateService($website);
                 $product->refresh(); 
 
-                if ($product->variants->count() > 0) {
+                if ($hasVariants && $product->variants->count() > 0) {
+                    // --- MODE VARIAN ---
                     foreach ($product->variants as $variant) {
-                        // 1. Update/Buat Wujud Barang di Accurate
                         $status = $accurateService->syncProductVariant($variant);
                         
-                        // 2. 🚨 IDE ANDA: Tanya Accurate, "Stok kamu sekarang berapa?"
+                        // Hitung Selisih Stok
                         $stokAccurate = $accurateService->getAccurateStock($variant->sku);
-                        
-                        // 3. 🚨 IDE ANDA: Hitung Selisih
                         $selisihStok = $variant->stock - $stokAccurate;
-                        
-                        // 4. Kirim Penyesuaian ke Accurate (Hanya jika ada selisih)
+
+                        \Illuminate\Support\Facades\Log::info("Update Varian {$variant->sku}: Input ({$variant->stock}) - Accurate ({$stokAccurate}) = Selisih ({$selisihStok})");
+
                         if ($status && $selisihStok != 0) {
                             $accurateService->syncInventoryAdjustment($variant->sku, $selisihStok);
                         }
                         if (!$status) $accurateSyncFailed = true;
                     }
                 } else {
+                    // --- MODE SINGLE ITEM ---
                     $singleItem = (object)[
                         'sku' => $product->sku,
                         'price' => $product->price,
@@ -325,16 +351,14 @@ class ProductController extends Controller
                         'product' => $product
                     ];
                     
-                    // 1. Update/Buat Wujud Barang di Accurate
                     $status = $accurateService->syncProductVariant($singleItem);
                     
-                    // 2. 🚨 IDE ANDA: Tanya Accurate
+                    // Hitung Selisih Stok
                     $stokAccurate = $accurateService->getAccurateStock($product->sku);
-                    
-                    // 3. 🚨 IDE ANDA: Hitung Selisih
                     $selisihStok = $product->stock - $stokAccurate;
 
-                    // 4. Kirim Penyesuaian
+                    \Illuminate\Support\Facades\Log::info("Update Single {$product->sku}: Input ({$product->stock}) - Accurate ({$stokAccurate}) = Selisih ({$selisihStok})");
+
                     if ($status && $selisihStok != 0) {
                         $accurateService->syncInventoryAdjustment($product->sku, $selisihStok);
                     }
@@ -347,11 +371,12 @@ class ProductController extends Controller
 
             if ($accurateSyncFailed) {
                 return redirect()->route('client.products.index', $website->id)
-                    ->with('warning', 'Produk diperbarui, namun sinkronisasi Accurate gagal.');
+                    ->with('warning', 'Produk diperbarui, namun sinkronisasi Accurate gagal (Cek SKU/Koneksi).');
             }
 
             return redirect()->route('client.products.index', $website->id)
-                ->with('success', 'Produk berhasil diperbarui di Toko dan Accurate!');
+                ->with('success', 'Produk berhasil diperbarui di Toko dan sinkron dengan Accurate!');
+
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal update: ' . $e->getMessage())->withInput();
@@ -370,5 +395,127 @@ class ProductController extends Controller
         $product->delete();
 
         return redirect()->back()->with('success', 'Produk dihapus');
+    }
+    // 1. Fungsi Download Template CSV
+    public function downloadTemplate()
+    {
+        $headers = [
+            'Content-type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename=template_import_produk.csv',
+            'Pragma'              => 'no-cache',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires'             => '0',
+        ];
+
+        $columns = ['SKU', 'Nama Produk', 'Harga', 'Stok', 'Berat (Gram)', 'Deskripsi'];
+
+        $callback = function() use($columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns); // Tulis header
+            // Tulis satu baris contoh
+            fputcsv($file, ['PROD-001', 'Sepatu Sneakers Hitam', '250000', '50', '800', 'Sepatu kasual pria ukuran 42']);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // 2. Fungsi Proses Import CSV
+    public function importCsv(Request $request, $websiteId)
+    {
+        $request->validate([
+            'file_csv' => 'required|mimes:csv,txt|max:2048'
+        ]);
+
+        $file = $request->file('file_csv');
+        $filePath = $file->getRealPath();
+        $fileHandle = fopen($filePath, 'r');
+        
+        $header = fgetcsv($fileHandle); // Lewati baris pertama (Header)
+        $importedCount = 0;
+        $updatedCount = 0;
+
+        while ($row = fgetcsv($fileHandle)) {
+            // Validasi: Abaikan baris kosong atau yang tidak punya nama
+            if (empty($row[0]) || empty($row[1])) {
+                continue; 
+            }
+
+            $sku = trim($row[0]);
+            $name = trim($row[1]);
+            $price = (int) $row[2];
+            $stock = (int) $row[3];
+            $weight = (int) ($row[4] ?? 1000); // Default 1000 gram jika kosong
+            $description = $row[5] ?? '';
+
+            // LOGIKA INTI: Update jika SKU ada, Create jika SKU baru
+            $product = Product::updateOrCreate(
+                [
+                    'website_id' => $websiteId,
+                    'sku' => $sku, // SKU adalah penentu utama
+                ],
+                [
+                    'name' => $name,
+                    'slug' => Str::slug($name) . '-' . Str::random(4),
+                    'price' => $price,
+                    'stock' => $stock,
+                    'weight' => $weight,
+                    'description' => $description,
+                    'is_active' => true
+                ]
+            );
+
+            if ($product->wasRecentlyCreated) {
+                $importedCount++;
+            } else {
+                $updatedCount++;
+            }
+        }
+
+        fclose($fileHandle);
+
+        return back()->with('success', "Import berhasil! $importedCount produk baru ditambahkan, $updatedCount produk diupdate.");
+    }
+public function syncAccurate(Request $request, $websiteId)
+{
+    $website = \App\Models\Website::findOrFail($websiteId);
+
+    // Cek apakah toko ini sudah terhubung ke Accurate
+    if (!$website->accurateIntegration || !$website->accurateIntegration->access_token) {
+        return back()->with('error', 'Toko ini belum terhubung ke Accurate Online. Silakan hubungkan di menu Pengaturan.');
+    }
+
+    // Panggil Mesin Penyedot Data
+    $accurateService = new AccurateService($website);
+    $success = $accurateService->syncProductsFromAccurate();
+
+    if ($success) {
+        return back()->with('success', 'Sinkronisasi berhasil! Data produk (Harga, Stok, dan Status) telah diperbarui sesuai dengan Accurate Online.');
+    } else {
+        return back()->with('error', 'Gagal menarik data dari Accurate. Silakan cek log sistem atau pastikan koneksi API valid.');
+    }
+}
+public function destroyAll(Request $request, $websiteId)
+    {
+        $website = \App\Models\Website::findOrFail($websiteId);
+
+        // Ambil semua ID produk dari toko ini
+        $productIds = $website->products()->pluck('id');
+
+        // Cari ID produk yang sudah nyangkut di pesanan (order_items)
+        $usedProductIds = \App\Models\OrderItem::whereIn('product_id', $productIds)
+                                               ->pluck('product_id')
+                                               ->toArray();
+
+        // 1. Hapus Permanen produk yang BELUM PERNAH dipesan
+        $website->products()->whereNotIn('id', $usedProductIds)->delete();
+
+        // 2. Nonaktifkan (Soft Delete) produk yang SUDAH PERNAH dipesan
+        $website->products()->whereIn('id', $usedProductIds)->update([
+            'is_active' => false,
+            'stock' => 0
+        ]);
+
+        return back()->with('success', 'Katalog berhasil dikosongkan! Produk yang memiliki riwayat pesanan hanya dinonaktifkan demi keamanan data.');
     }
 }

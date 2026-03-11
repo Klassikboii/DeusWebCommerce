@@ -135,6 +135,9 @@
     <div class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #0052cc !important;">
         <div class="card-header bg-white py-3 fw-bold" style="color: #0052cc;">
             <i class="bi bi-box-seam me-2"></i>Integrasi Accurate Online
+            <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalpanduanAccurate" title="Cara Setup">
+            <i class="bi bi-question-circle"></i>
+        </button>
         </div>
         <div class="card-body p-4">
             <p class="text-muted mb-4">Hubungkan toko Anda dengan Accurate Online untuk mempermudah sinkronisasi produk (Barang & Jasa).</p>
@@ -179,6 +182,9 @@
     <div class="card border-0 shadow-sm mb-5" style="border-left: 4px solid #17a2b8 !important;">
         <div class="card-header bg-white py-3 fw-bold text-info-emphasis">
             <i class="bi bi-credit-card me-2"></i>Payment Gateway (Midtrans)
+            <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanMidtrans" title="Cara Setup">
+            <i class="bi bi-question-circle"></i>
+        </button>
         </div>
         <div class="card-body p-4">
             <div class="alert bg-light border text-muted small mb-4">
@@ -243,4 +249,54 @@
         });
     });
 </script>
+<div class="modal fade" id="modalPanduanMidtrans" tabindex="-1" aria-labelledby="modalMidtransLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h6 class="modal-title fw-bold" id="modalMidtransLabel"><i class="bi bi-credit-card me-2"></i>Panduan Setup Midtrans</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <ol class="mb-0 text-muted" style="line-height: 1.8;">
+                    <li>Daftar atau Login ke akun <a href="https://dashboard.midtrans.com/" target="_blank" class="fw-bold text-primary text-decoration-none">Dashboard Midtrans</a> Anda.</li>
+                    <li>Di menu sebelah kiri, masuk ke bagian <strong>Settings</strong> (Pengaturan) ➔ <strong>Access Keys</strong>.</li>
+                    <li>Anda akan melihat <strong>Client Key</strong> dan <strong>Server Key</strong>. Salin (Copy) kedua kunci tersebut.</li>
+                    <li>Kembali ke Dashboard ini, klik tombol "Hubungkan" dan <em>Paste</em> kunci tersebut ke form yang tersedia.</li>
+                    <li>Uang dari pembeli akan langsung masuk ke akun Midtrans Anda secara otomatis!</li>
+                </ol>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="modalPanduanAccurate" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h6 class="modal-title fw-bold"><i class="bi bi-box-seam me-2"></i>Panduan Setup Accurate Online</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning small mb-3">
+                    <strong>⚠️ PENTING SEBELUM MENGHUBUNGKAN:</strong><br>
+                    Pastikan Anda sudah membuat 2 item dengan tipe <strong>"JASA" (Service)</strong> di Accurate Online Anda dengan Nomor/SKU berikut:<br>
+                    1. SKU: <strong>ONGKIR</strong> (Untuk mencatat biaya pengiriman)<br>
+                    2. SKU: <strong>DISKON</strong> (Jika Anda berencana menggunakan fitur kupon/promo)
+                </div>
+                <ol class="mb-0 text-muted small" style="line-height: 1.8;">
+                    <li>Klik tombol <strong>"Hubungkan"</strong> di sebelah kotak ini.</li>
+                    <li>Anda akan diarahkan ke halaman Login resmi Accurate Online.</li>
+                    <li>Berikan izin pada aplikasi Webcommerce ini untuk mengakses data Anda.</li>
+                    <li>Setelah kembali, <strong>Pilih Database Accurate</strong> yang ingin dihubungkan.</li>
+                    <li>Selesai! Anda kini bisa menarik produk langsung dari Accurate.</li>
+                </ol>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

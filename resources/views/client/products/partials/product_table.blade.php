@@ -26,18 +26,51 @@
                         @endif
                         <div>
                             <div class="fw-bold text-dark">{{ $product->name }}</div>
-                            <small class="text-muted">SKU: {{ $product->sku ?? '-' }}</small>
+                            @if($product->variants->count() > 0)
+                                <small class="text-muted text-break">- Multi SKU -</small>
+                            @else
+                                <small class="text-muted text-break">{{ $product->sku ?: '-' }}</small>
+                            @endif
                         </div>
                     </div>
                 </td>
                 <td>{{ $product->category->name ?? 'Tanpa Kategori' }}</td>
-                <td class="fw-bold">Rp {{ number_format($product->price, 0, ',', '.') }}</td>
                 <td>
-                    {{ $product->stock }}
-                    @if($product->stock <= 5)
-                        <span class="badge bg-danger-subtle text-danger ms-1" style="font-size: 0.65rem;">Menipis</span>
+                    @if($product->variants->count() > 0)
+                        {{-- Jika punya varian, tampilkan rentang harga (Termurah - Termahal) --}}
+                        @php
+                            $minPrice = $product->variants->min('price');
+                            $maxPrice = $product->variants->max('price');
+                        @endphp
+                        
+                        @if($minPrice == $maxPrice)
+                            Rp {{ number_format($minPrice, 0, ',', '.') }}
+                        @else
+                            Rp {{ number_format($minPrice, 0, ',', '.') }} - Rp {{ number_format($maxPrice, 0, ',', '.') }}
+                        @endif
+                        <br>
+                        <small class="text-primary">{{ $product->variants->count() }} Varian</small>
+                    @else
+                        {{-- Jika tidak punya varian, tampilkan harga produk utama --}}
+                        Rp {{ number_format($product->price, 0, ',', '.') }}
                     @endif
                 </td>
+               {{-- KOLOM STOK --}}
+                        <td>
+                            @if($product->variants->count() > 0)
+                                {{-- Tampilkan total stok dari semua varian --}}
+                                <span class="badge bg-info text-dark">Total: {{ $product->variants->sum('stock') }}</span>
+                            @else
+                                {{-- Tampilkan stok produk utama --}}
+                                @if($product->stock <= 5 && $product->stock > 0)
+                                    <span class="badge bg-danger">Sisa: {{ $product->stock }}</span>
+                                @elseif($product->stock == 0)
+                                    <span class="badge bg-secondary">Habis</span>
+                                @else
+                                    <span class="badge bg-success">{{ $product->stock }}</span>
+                                @endif
+                            @endif
+                        </td>
                 {{-- <td>
                     @if($product->status == 'active') 
                         <span class="badge bg-success-subtle text-success">Aktif</span>

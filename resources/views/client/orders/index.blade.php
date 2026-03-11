@@ -122,6 +122,7 @@
                             <th class="ps-4 py-3">No Invoice</th>
                             <th class="py-3">Pelanggan</th>
                             <th class="py-3">Total Belanja</th>
+                            <th class="py-3">Total Pendapatan</th>
                             <th class="py-3">Status</th>
                             <th class="py-3">Tanggal</th>
                             <th class="pe-4 py-3 text-end">Aksi</th>
@@ -140,6 +141,10 @@
                             <td class="fw-bold">
                                 Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                                 <div class="small text-muted fw-normal">{{ $order->items->sum('qty') }} Barang</div>
+                            </td>
+                            <td class="fw-bold">
+                                Rp {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
+                               
                             </td>
                             <td>
                                 @php
