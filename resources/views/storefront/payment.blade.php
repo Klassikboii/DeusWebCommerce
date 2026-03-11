@@ -99,10 +99,24 @@
                             @endif
                         </div>
 
-                        <div class="text-center position-relative mb-4">
-                            <hr>
-                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-2 text-muted small">ATAU UPLOAD BUKTI</span>
-                        </div>
+                        {{-- ================================================= --}}
+                            {{-- BLOK PEMBAYARAN OTOMATIS MIDTRANS (JIKA ADA TOKEN) --}}
+                            {{-- ================================================= --}}
+                            @if(isset($snapToken) && $snapToken)
+                                <div class="card border-primary shadow-sm mb-4 border" >
+                                    <div class="card-body text-center p-4">
+                                        <h5 class="fw-bold text-primary mb-3">Bayar Lebih Cepat & Otomatis!</h5>
+                                        <p class="text-muted mb-4">Gunakan metode pembayaran otomatis (Virtual Account, e-Wallet, QRIS, dll) agar pesanan Anda langsung diproses tanpa perlu upload bukti transfer.</p>
+                                        
+                                        <button id="pay-button" class="btn btn-primary btn-lg px-5 rounded-pill shadow">
+                                            <i class="bi bi-shield-lock me-2"></i> Bayar Sekarang
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-center text-muted mb-4 fw-bold">--- ATAU ---</div>
+                            @endif
+                            {{-- ================================================= --}}
 
                         {{-- OPSI 2: FORM UPLOAD (Database) --}}
                         
@@ -143,4 +157,40 @@
         </div>
     </div>
 </div>
+@if(isset($snapToken) && $snapToken)
+    @php
+        // Cek apakah klien ini pakai Production atau Sandbox
+        $snapUrl = $website->midtrans_is_production 
+            ? 'https://app.midtrans.com/snap/snap.js' 
+            : 'https://app.sandbox.midtrans.com/snap/snap.js';
+    @endphp
+
+    <script src="{{ $snapUrl }}" data-client-key="{{ $website->midtrans_client_key }}"></script>
+
+    <script>
+        document.getElementById('pay-button').onclick = function () {
+            // Panggil popup Snap menggunakan Token yang dikirim dari Controller
+            window.snap.pay('{{ $snapToken }}', {
+                onSuccess: function (result) {
+                    // Pembayaran sukses! (Misal: pakai QRIS atau Gopay)
+                    alert("Pembayaran berhasil! Terima kasih.");
+                    window.location.reload(); 
+                },
+                onPending: function (result) {
+                    // Menunggu pembayaran (Misal: user memilih bayar di Indomaret/VA)
+                    alert("Menunggu pembayaran Anda. Silakan selesaikan instruksi pembayaran yang diberikan.");
+                    window.location.reload();
+                },
+                onError: function (result) {
+                    // Pembayaran gagal
+                    alert("Mohon maaf, pembayaran gagal. Silakan coba lagi.");
+                },
+                onClose: function () {
+                    // User menutup popup tanpa menyelesaikan pembayaran
+                    alert('Anda menutup layar pembayaran sebelum menyelesaikannya.');
+                }
+            });
+        };
+    </script>
+@endif
 @endsection

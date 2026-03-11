@@ -241,6 +241,12 @@ class ProductController extends Controller
 
         try {
             // =========================================================
+           // =========================================================
+            // 🚨 ALAT PENYADAP SEMENTARA
+            // =========================================================
+            $accurateService = new \App\Services\AccurateService($website);
+            // $accurateService->debugAdjustmentFormat(); // Kosongkan dalam kurungnya!
+            // =========================================================
             // 🚨 TANGKAP STOK LAMA SEBELUM DI-UPDATE!
             // =========================================================
             $oldStocks = [];
@@ -261,6 +267,20 @@ class ProductController extends Controller
                 'price'       => $hasVariants ? 0 : $request->price,
                 'stock'       => $hasVariants ? 0 : $request->stock,
             ];
+
+            // ==========================================
+            // 🚨 TAMBAHAN: LOGIKA UPDATE GAMBAR
+            // ==========================================
+            if ($request->hasFile('image')) {
+                // 1. Hapus gambar lama (jika ada) agar hardisk tidak penuh
+                if ($product->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($product->image)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
+                }
+                
+                // 2. Simpan gambar baru ke folder storage/app/public/products
+                $dataToUpdate['image'] = $request->file('image')->store('products', 'public');
+            }
+            // ==========================================
             \Illuminate\Support\Facades\Log::info("CCTV 2 - Data yang akan di-save: ", $dataToUpdate);
 
             $product->update($dataToUpdate);
@@ -272,8 +292,8 @@ class ProductController extends Controller
             // 🚨 CCTV 3: CEK APAKAH DATABASE BERHASIL COMMIT
             \Illuminate\Support\Facades\Log::info("CCTV 3 - Sukses Commit DB Lokal! Stok sekarang: " . $product->stock);
 
-            // =========================================================
-            // SINKRONISASI UPDATE & SELISIH STOK KE ACCURATE
+           // =========================================================
+            // SINKRONISASI UPDATE & SELISIH STOK KE ACCURATE (VERSI CERDAS)
             // =========================================================
             $accurateSyncFailed = false;
             try {
@@ -282,14 +302,17 @@ class ProductController extends Controller
 
                 if ($product->variants->count() > 0) {
                     foreach ($product->variants as $variant) {
-                        // Update Barang di Accurate
+                        // 1. Update/Buat Wujud Barang di Accurate
                         $status = $accurateService->syncProductVariant($variant);
                         
-                        // Hitung Selisih Stok
-                        $stokLama = $oldStocks[$variant->sku] ?? 0;
-                        $selisihStok = $variant->stock - $stokLama;
+                        // 2. 🚨 IDE ANDA: Tanya Accurate, "Stok kamu sekarang berapa?"
+                        $stokAccurate = $accurateService->getAccurateStock($variant->sku);
                         
-                        if ($status && $selisihStok !== 0) {
+                        // 3. 🚨 IDE ANDA: Hitung Selisih
+                        $selisihStok = $variant->stock - $stokAccurate;
+                        
+                        // 4. Kirim Penyesuaian ke Accurate (Hanya jika ada selisih)
+                        if ($status && $selisihStok != 0) {
                             $accurateService->syncInventoryAdjustment($variant->sku, $selisihStok);
                         }
                         if (!$status) $accurateSyncFailed = true;
@@ -301,14 +324,18 @@ class ProductController extends Controller
                         'name' => '', 
                         'product' => $product
                     ];
-                    // Update Barang di Accurate
+                    
+                    // 1. Update/Buat Wujud Barang di Accurate
                     $status = $accurateService->syncProductVariant($singleItem);
                     
-                    // Hitung Selisih Stok
-                    $stokLama = $oldStocks[$product->sku] ?? 0;
-                    $selisihStok = $product->stock - $stokLama;
+                    // 2. 🚨 IDE ANDA: Tanya Accurate
+                    $stokAccurate = $accurateService->getAccurateStock($product->sku);
+                    
+                    // 3. 🚨 IDE ANDA: Hitung Selisih
+                    $selisihStok = $product->stock - $stokAccurate;
 
-                    if ($status && $selisihStok !== 0) {
+                    // 4. Kirim Penyesuaian
+                    if ($status && $selisihStok != 0) {
                         $accurateService->syncInventoryAdjustment($product->sku, $selisihStok);
                     }
                     if (!$status) $accurateSyncFailed = true;
@@ -324,8 +351,7 @@ class ProductController extends Controller
             }
 
             return redirect()->route('client.products.index', $website->id)
-                ->with('success', 'Produk berhasil diperbarui di Toko dan Accurate!');  
-
+                ->with('success', 'Produk berhasil diperbarui di Toko dan Accurate!');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal update: ' . $e->getMessage())->withInput();

@@ -60,7 +60,11 @@ class Website extends Model
         'bank_account_number',
         'bank_account_holder',
 
-        'city_id'
+        'city_id',
+
+        'midtrans_client_key',
+        'midtrans_server_key',
+        'midtrans_is_production',
     ];
 
     protected $casts = [

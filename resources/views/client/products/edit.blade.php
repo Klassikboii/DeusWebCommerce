@@ -24,12 +24,18 @@
                 {{-- Foto Produk --}}
                 <div class="mb-3">
                     <label class="form-label">Foto Produk</label>
-                    @if($product->image)
-                        <div class="mb-2">
-                            <img src="{{ asset('storage/' . $product->image) }}" alt="Preview" class="img-thumbnail rounded" style="height: 100px; width: 100px; object-fit: cover;">
-                        </div>
-                    @endif
-                    <input type="file" name="image" class="form-control" accept="image/*">
+                    
+                    {{-- Wadah Preview: Selalu ada, tapi disembunyikan jika kosong --}}
+                    <div class="mb-2" id="preview-container" style="{{ $product->image ? '' : 'display: none;' }}">
+                        <img id="image-preview" 
+                             src="{{ $product->image ? asset('storage/' . $product->image) : '#' }}" 
+                             alt="Preview" 
+                             class="img-thumbnail rounded" 
+                             style="height: 100px; width: 100px; object-fit: cover;">
+                    </div>
+                    
+                    {{-- Tambahkan ID dan event onchange di input file --}}
+                    <input type="file" name="image" id="image-input" class="form-control" accept="image/*" onchange="previewNewImage(event)">
                 </div>
 
                 <div class="mb-3">
@@ -239,6 +245,28 @@
         checkbox.addEventListener('change', () => {
             if(checkbox.checked && tableBody.children.length === 0) addVariantRow();
         });
+        // 5. Fungsi Live Preview Gambar
+        window.previewNewImage = function(event) {
+            const input = event.target;
+            const previewContainer = document.getElementById('preview-container');
+            const imagePreview = document.getElementById('image-preview');
+
+            // Cek apakah user benar-benar memilih file
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+
+                // Saat file selesai dibaca oleh browser
+                reader.onload = function(e) {
+                    // Ganti 'src' gambar dengan data file yang baru
+                    imagePreview.src = e.target.result;
+                    // Tampilkan wadahnya (berguna jika sebelumnya tidak ada gambar)
+                    previewContainer.style.display = 'block';
+                }
+
+                // Mulai membaca file sebagai URL sementara
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
     });
 </script>
 @endsection

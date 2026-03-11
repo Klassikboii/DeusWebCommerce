@@ -104,6 +104,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/settings', [App\Http\Controllers\Client\SettingController::class, 'index'])->name('client.settings.index');
         Route::put('/settings', [App\Http\Controllers\Client\SettingController::class, 'update'])->name('client.settings.update');
         // ... route settings ...
+        // Pastikan ini berada di dalam group route client Anda yang memiliki akses ke $website
+        Route::put('/settings/payment', [\App\Http\Controllers\Client\SettingController::class, 'updatePayment'])
+            ->name('client.settings.payment.update');
+
+        
         // --- FITUR PELANGGAN ---
         Route::get('/customers', [App\Http\Controllers\Client\CustomerController::class, 'index'])->name('client.customers.index');
         // ... route customers ...

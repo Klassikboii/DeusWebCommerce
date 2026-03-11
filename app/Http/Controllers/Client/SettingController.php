@@ -53,4 +53,24 @@ class SettingController extends Controller
 
         return redirect()->back()->with('success', 'Identitas toko berhasil diperbarui.');
     }
+    public function updatePayment(Request $request, \App\Models\Website $website)
+    {
+        // Pastikan hanya pemilik website yang bisa mengubahnya
+        $this->authorize('update', $website); 
+
+        $request->validate([
+            'midtrans_client_key' => 'nullable|string|max:255',
+            'midtrans_server_key' => 'nullable|string|max:255',
+            // Checkbox HTML jika tidak dicentang tidak akan terkirim, kita tangani di bawah
+        ]);
+
+        $website->update([
+            'midtrans_client_key' => $request->midtrans_client_key,
+            'midtrans_server_key' => $request->midtrans_server_key,
+            // Jika checkbox dicentang nilainya 1 (true), jika tidak ada maka 0 (false/sandbox)
+            'midtrans_is_production' => $request->has('midtrans_is_production') ? 1 : 0, 
+        ]);
+
+        return redirect()->back()->with('success', 'Pengaturan Pembayaran Midtrans berhasil diperbarui!');
+    }
 }

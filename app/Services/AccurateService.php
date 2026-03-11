@@ -419,59 +419,118 @@ class AccurateService
         }
         return null;
     }
-    /**
+   /**
+     * 8. Penyesuaian Persediaan (Inisialisasi & Update Stok)
+     */
+   /**
      * 8. Penyesuaian Persediaan (Inisialisasi & Update Stok)
      */
     public function syncInventoryAdjustment($sku, $qtyDifference)
     {
-        // Jika tidak ada perubahan stok (selisih 0), abaikan agar tidak buang-buang kuota API
         if ($qtyDifference == 0) return true; 
 
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
 
+        $isAddition = $qtyDifference > 0;
+        $absoluteQty = abs($qtyDifference); // Pastikan selalu positif (misal: 111)
+
         $adjustmentData = [
             'transDate' => now()->format('d/m/Y'),
-            
-            // 🚨 PERHATIAN: Ganti dengan Nomor Akun "Penyesuaian Persediaan" di Accurate Anda
             'adjustmentAccountNo' => '600020', 
             
             'detailItem' => [
                 [
                     'itemNo' => $sku,
-                    'quantity' => $qtyDifference // Bisa positif (tambah) atau negatif (kurang)
+                    'quantity' => $absoluteQty, 
+                    
+                    // ==========================================
+                    // 🚨 BINGO! INI KATA SANDI ASLI DARI ACCURATE
+                    // ==========================================
+                    'itemAdjustmentType' => $isAddition ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
                 ]
             ]
         ];
 
-        // Tembak API Item Adjustment Accurate
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/item-adjustment/save.do', $adjustmentData);
 
-       $responseData = $response->json();
+        $responseData = $response->json();
         $rawBody = $response->body();
 
-        // 1. Jika sukses terbuat baru
         if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
-            Log::info("Sukses Sync SKU {$sku} ke Accurate.");
+            $tipeTeks = $isAddition ? 'Penambahan' : 'Pengurangan';
+            Log::info("Sukses {$tipeTeks} Stok SKU {$sku} di Accurate sebanyak {$absoluteQty} pcs.");
             return true;
         }
 
-        // ==========================================
-        // 🚨 JURUS BYPASS: TANGKAP ERROR DUPLIKAT BARANG
-        // ==========================================
-        $errorMessage = $responseData['d'][0] ?? '';
-        
-        if (stripos($errorMessage, 'Sudah ada data lain dengan Kode Barang') !== false || stripos($rawBody, 'Sudah ada data lain') !== false) {
-            Log::info("Bypass: Barang dengan SKU {$sku} sudah ada di Accurate. Melanjutkan ke proses update stok/harga.");
-            return true; // 🚨 Paksa return TRUE agar penyesuaian stok di Controller tetap dieksekusi!
-        }
-
-        // Catat error jika gagal karena alasan lain yang benar-benar fatal
-        Log::error("Gagal Sync SKU {$sku} ke Accurate: " . $rawBody);
+        Log::error("Gagal Penyesuaian Stok SKU {$sku} di Accurate. RAW RESPONSE: " . $rawBody);
         return false;
     }
+    /**
+     * 9. Mengambil Sisa Stok Langsung dari Accurate (Single Source of Truth)
+     */
+    public function getAccurateStock($sku)
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return 0;
 
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->get($sessionData['host'] . '/accurate/api/item/detail.do', [
+            'no' => $sku
+        ]);
+
+       if ($response->successful() && isset($response->json()['d'])) {
+            $data = $response->json('d');
+            
+            // 🚨 BINGO! Kita gunakan nama variabel asli dari Accurate
+            if (isset($data['availableToSell'])) {
+                return (float) $data['availableToSell'];
+            }
+            
+            // Cadangan jika availableToSell kosong
+            if (isset($data['balance'])) {
+                return (float) $data['balance'];
+            }
+        }
+        
+        return 0; // Jika tetap tidak ketemu, kembalikan 0 (Hati-hati, ini yang bikin 161 tadi!)
+    }
+   /**
+     * 10. REVERSE ENGINEERING: Mengintip Struktur Penyesuaian Persediaan Accurate
+     */
+    public function debugAdjustmentFormat()
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return;
+
+        // Tarik data TANPA filter apa pun agar Accurate tidak ngambek
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID' => $sessionData['session_id']
+        ])->get($sessionData['host'] . '/accurate/api/item-adjustment/list.do');
+
+        // 🚨 TANGKAP TEKS MENTAHNYA (RAW BODY)
+        \Illuminate\Support\Facades\Log::info("CCTV 5 (RAW LIST): " . $response->body());
+        
+        $data = $response->json();
+        
+        // Jika beruntung dapat ID-nya, intip sedalam-dalamnya
+        if (isset($data['d'][0]['id'])) {
+            $latestId = $data['d'][0]['id'];
+
+            $detailResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $sessionData['token'],
+                'X-Session-ID' => $sessionData['session_id']
+            ])->get($sessionData['host'] . '/accurate/api/item-adjustment/detail.do', [
+                'id' => $latestId
+            ]);
+            
+            \Illuminate\Support\Facades\Log::info("CCTV 6 (RAW DETAIL): " . $detailResponse->body());
+        }
+    }
 }
