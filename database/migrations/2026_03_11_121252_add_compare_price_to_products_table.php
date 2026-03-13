@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up()
+    {
+        Schema::table('products', function (Blueprint $table) {
+            // Kolom Harga Coret (Harga Asli yang lebih mahal)
+            $table->decimal('compare_price', 15, 2)->nullable()->after('price'); 
+        });
+
+        Schema::table('product_variants', function (Blueprint $table) {
+            // Kita tambahkan juga di varian
+            $table->decimal('compare_price', 15, 2)->nullable()->after('price'); 
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('products', function (Blueprint $table) {
+            $table->dropColumn('compare_price');
+        });
+        Schema::table('product_variants', function (Blueprint $table) {
+            $table->dropColumn('compare_price');
+        });
+    }
+};

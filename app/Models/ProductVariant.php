@@ -13,6 +13,11 @@ class ProductVariant extends Model
 
     // PENTING: Mengubah kolom JSON 'options' menjadi array PHP otomatis
     // Jadi Anda bisa panggil: $variant->options['Warna']
+    protected $fillable = [
+        'product_id', 'name', 'sku', 'price', 'compare_price', 
+        'stock', 'weight', 'options', 
+        'is_active' // <--- Tambahkan ini
+    ];
     protected $casts = [
         'options' => 'array',
         'price' => 'decimal:2',

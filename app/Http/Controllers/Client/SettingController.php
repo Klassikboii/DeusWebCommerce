@@ -13,7 +13,23 @@ class SettingController extends Controller
     {
         $this->authorize('viewAny', $website);
         $cities = \App\Models\City::with('province')->orderBy('name', 'asc')->get();
-        return view('client.settings.index', compact('website', 'cities'));
+
+        // 🚨 DAFTAR SEMUA KURIR YANG DIDUKUNG KOMERCE API
+        $supportedCouriers = [
+            'jne'      => 'JNE Express',
+            'sicepat'  => 'SiCepat',
+            'jnt'      => 'J&T Express',
+            'pos'      => 'POS Indonesia',
+            'anteraja' => 'AnterAja',
+            'ninja'    => 'Ninja Xpress',
+            'tiki'     => 'TIKI',
+            'lion'     => 'Lion Parcel',
+            'ide'      => 'ID Express',
+            'sap'      => 'SAP Express'
+        ];
+        return view('client.settings.index', compact('website', 'cities', 'supportedCouriers'));
+
+        
     }
 
     public function update(Request $request, Website $website)
@@ -31,6 +47,7 @@ class SettingController extends Controller
             'bank_account_number' => 'nullable|string|max:50',
             'bank_account_holder' => 'nullable|string|max:100',
             'city_id' => 'nullable|numeric',
+            'active_couriers' => 'nullable|array',
         ]);
 
         $data = [
@@ -43,6 +60,7 @@ class SettingController extends Controller
             'bank_account_holder' => $request->bank_account_holder,
             'is_open' => $request->has('is_open'),
             'city_id' =>$request->city_id,
+            'active_couriers' => $request->active_couriers ?? ['jne'], // Beri default JNE jika klien hapus semua centang
         ];
 
         // Fitur Tambahan: Upload Icon/Logo Toko (Opsional jika ingin dipakai nanti)

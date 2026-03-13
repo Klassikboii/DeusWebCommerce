@@ -121,6 +121,7 @@ class ProductController extends Controller
                 'stock'       => $hasVariants ? 0 : $request->stock,
                 'weight'      => $request->weight ?? 1000,
                 'sku'         => $request->sku,
+                'is_active'   => $request->has('is_active'), // 🚨 TAMBAHAN
             ]);
 
             // 2. Simpan Varian (Jika Ada)
@@ -137,6 +138,7 @@ class ProductController extends Controller
                         'stock'   => $variantData['stock'] ?? 0,
                         'sku'     => $variantData['sku'] ?? null,
                         'weight'  => $request->weight ?? 1000, 
+                        'is_active' => isset($variantData['is_active']) ? $variantData['is_active'] : 1, // 🚨 TAMBAHAN
                     ]);
                     
                     $price = (int) ($variantData['price'] ?? 0);
@@ -252,6 +254,7 @@ class ProductController extends Controller
                 'weight'      => $request->weight ?? 1000,
                 // Induk tidak boleh punya SKU jika dia punya varian (agar Accurate tidak bingung)
                 'sku'         => $hasVariants ? null : $request->sku, 
+                'is_active'   => $request->is_active,
             ];
 
             // Logika Update Gambar
@@ -288,6 +291,7 @@ class ProductController extends Controller
                             'name' => $variantData['name'],
                             'price' => $priceInput,
                             'stock' => $stockInput,
+                            'is_active'     => isset($variantData['is_active']) ? $variantData['is_active'] : 1, // 🚨 TANGKAP STATUS VARIAN
                         ]
                     );
 
@@ -383,18 +387,39 @@ class ProductController extends Controller
         }
     }
     // 3. PROSES HAPUS DATA
+    // 3. PROSES HAPUS DATA (SAFE DELETE)
     public function destroy(Website $website, Product $product)
     {
         if ($product->website_id !== $website->id) abort(403);
 
-        // Hapus file gambar dari folder
-        if ($product->image && Storage::disk('public')->exists($product->image)) {
-            Storage::disk('public')->delete($product->image);
+        // 1. Cek apakah ada pesanan yang MASIH PENDING
+        $pendingOrders = \App\Models\OrderItem::where('product_id', $product->id)
+            ->whereHas('order', function($q) {
+                $q->whereIn('status', ['pending', 'processing', 'shipped']);
+            })->exists();
+
+        if ($pendingOrders) {
+            return back()->with('error', 'Gagal! Produk ini sedang berada dalam pesanan pelanggan yang belum selesai. Gunakan fitur Edit untuk Menonaktifkannya.');
         }
 
+        // 2. Cek apakah produk ini PERNAH DIBELI sebelumnya (History)
+        $hasAnyOrders = \App\Models\OrderItem::where('product_id', $product->id)->exists();
+
+        if ($hasAnyOrders) {
+            // Jangan dihapus! Cukup dinonaktifkan agar riwayat pesanan lama tidak error
+            $product->update(['is_active' => false, 'stock' => 0]);
+            $product->variants()->update(['is_active' => false, 'stock' => 0]);
+            
+            return back()->with('success', 'Produk memiliki riwayat pesanan, sehingga hanya dinonaktifkan (disembunyikan) demi keamanan data keuangan.');
+        }
+
+        // 3. JIKA BELUM PERNAH DIBELI SAMA SEKALI -> Hapus Permanen Aman
+        if ($product->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($product->image)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
+        }
         $product->delete();
 
-        return redirect()->back()->with('success', 'Produk dihapus');
+        return redirect()->back()->with('success', 'Produk berhasil dihapus permanen.');
     }
     // 1. Fungsi Download Template CSV
     public function downloadTemplate()

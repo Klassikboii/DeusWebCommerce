@@ -330,7 +330,7 @@ public function checkShipping(Request $request, $subdomain)
             'weight' => 'required|numeric|min:1',
         ]);
 
-        // 🚨 TANGKAP DATA WEBSITE BERDASARKAN SUBDOMAIN (Ini kunci agar markup terbaca!)
+        // TANGKAP DATA WEBSITE BERDASARKAN SUBDOMAIN
         $website = $request->get('website');
         if (!$website) {
             $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
@@ -338,23 +338,36 @@ public function checkShipping(Request $request, $subdomain)
 
         $apiKey = env('RAJAONGKIR_API_KEY');
         
-        // 1. Ambil data markup (Keuntungan Bos)
+        // 1. Ambil data markup
         $markup = \App\Models\ShippingMarkup::where('website_id', $website->id)
                     ->where('city_id', $request->destination)
                     ->first();
 
-        // 2. Tembak API Komerce V2 (Langsung pakai ID Kota)
-        // Kita ambil dari database toko. Jika klien belum mengatur, kita set default ke 152 (Jakarta Pusat) agar tidak crash.
+        // 🚨 2. AMBIL PENGATURAN KURIR KLIEN
+        // Jika klien belum mengatur (null), kita pakai default 3 kurir
+        $activeCouriersArray = $website->active_couriers ?? ['jne', 'sicepat', 'jnt'];
+        
+        // Komerce API meminta format string dipisah titik dua (misal: "jne:sicepat")
+        $courierString = implode(':', $activeCouriersArray);
+
+        // Jika string kosong (Klien mematikan semua kurir)
+        if (empty($courierString)) {
+            return response()->json(['status' => 'error', 'message' => 'Toko ini belum mengaktifkan layanan kurir apapun.']);
+        }
+
         $originCityId = $website->city_id ?? 152;
         $destinationCityId = $request->destination;
 
+        // 3. Tembak API Komerce V2 dengan Kurir Dinamis
         $response = \Illuminate\Support\Facades\Http::asForm()
             ->withHeaders(['key' => $apiKey])
+            ->timeout(30) // Anti timeout
+            ->retry(3, 1000)
             ->post('https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost', [
-                'origin' => (string) $originCityId,
+                'origin'      => (string) $originCityId,
                 'destination' => (string) $destinationCityId,
-                'weight' => (int) $request->weight,
-                'courier' => 'jne:sicepat:jnt' // Tembak 3 kurir sekaligus
+                'weight'      => (int) $request->weight,
+                'courier'     => $courierString // 🚨 KURIR SEKARANG DINAMIS!
             ]);
 
         if (!$response->successful()) {
@@ -364,15 +377,28 @@ public function checkShipping(Request $request, $subdomain)
         $apiData = $response->json()['data'] ?? [];
         $options = [];
 
-        // 3. Mapping Data sesuai struktur BARU Komerce
+        // 4. Mapping Data dan Perbaiki Estimasi (ETD)
         foreach ($apiData as $service) {
             $courierCode = strtoupper($service['code'] ?? 'UNKNOWN'); 
             $originalCost = $service['cost'] ?? 0;
-            $estimation = $service['etd'] ?? '-';
             $serviceName = $service['service'] ?? 'REG';
             
-            // Gembok pengaman: jika harga kosong/0, lewati
+            // Gembok pengaman
             if ($originalCost <= 0) continue;
+
+            // 🚨 LOGIKA PERBAIKAN ESTIMASI (ETD)
+            $estimationRaw = trim($service['etd'] ?? '');
+            $etdDisplay = '';
+
+            if ($estimationRaw === '' || $estimationRaw === '0') {
+                $etdDisplay = 'Estimasi menyesuaikan layanan';
+            } elseif (stripos($estimationRaw, 'hari') !== false || stripos($estimationRaw, 'jam') !== false) {
+                // Jika dari API sudah ada tulisan Hari/Jam, langsung pakai
+                $etdDisplay = 'Estimasi: ' . $estimationRaw;
+            } else {
+                // Jika dari API cuma angka "1-2" atau "3", tambahkan kata "Hari"
+                $etdDisplay = 'Estimasi: ' . $estimationRaw . ' Hari';
+            }
 
             // Suntikkan Markup
             $finalCost = $originalCost;
@@ -390,7 +416,9 @@ public function checkShipping(Request $request, $subdomain)
                 'service' => $serviceName,
                 'cost' => $finalCost, 
                 'cost_formatted' => number_format($finalCost, 0, ',', '.'),
-                'estimation' => 'Estimasi: ' . $estimation . ' Hari'
+                
+                // 🚨 MASUKKAN ESTIMASI YANG SUDAH RAPI
+                'estimation' => $etdDisplay
             ];
         }
 

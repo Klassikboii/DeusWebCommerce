@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $guarded = ['id'];
-
+    protected $fillable = [
+        'website_id', 'category_id', 'name', 'slug', 'description', 
+        'image', 'price', 'compare_price', 'stock', 'weight', 'sku', 
+        'is_active' // <--- Tambahkan ini
+    ];
     public function website()
     {
         return $this->belongsTo(Website::class);

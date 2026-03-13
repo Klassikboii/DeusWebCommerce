@@ -14,36 +14,46 @@
         
         {{-- Kumpulan Tombol di Kanan --}}
         <div class="d-flex gap-2 align-items-center">
-            <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2">
+            <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2 d-none d-md-block">
                 Slot: {{ $currentCount }} / {{ $limit }}
             </div>
             
             @if($isLimitReached)
                 <button class="btn btn-secondary" disabled><i class="bi bi-lock-fill me-1"></i> Penuh</button>
             @else
-                <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">+ Tambah Produk</a>
+                <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</a>
             @endif
 
-            <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#importModal">
-                <i class="bi bi-file-earmark-excel"></i> Import CSV
-            </button> 
-
-            {{-- Tombol Tarik Data Accurate --}}
-            @if($website->accurateIntegration && $website->accurateIntegration->access_token)
-                <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('Apakah Anda yakin ingin menarik data terbaru dari Accurate? Harga dan Stok di website akan ditimpa mengikuti Accurate.');">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-primary">
-                        <i class="bi bi-arrow-repeat"></i> Sync dari Accurate
-                    </button>
-                </form>         
-            @endif
-            {{-- Tombol Kosongkan Katalog --}}
-            <form action="{{ route('client.products.destroy_all', $website->id) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('PERINGATAN! Anda yakin ingin menghapus/mengosongkan semua produk di katalog Anda? Tindakan ini tidak dapat dibatalkan.');">
-                @csrf
-                <button type="submit" class="btn btn-outline-danger">
-                    <i class="bi bi-trash3-fill"></i> Kosongkan
+            {{-- 🚨 MENU DROPDOWN RAPI --}}
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-gear"></i> Opsi
                 </button>
-            </form>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-file-earmark-excel text-success me-2"></i> Import CSV</button></li>
+                    
+                    @if($website->accurateIntegration && $website->accurateIntegration->access_token)
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" onsubmit="return confirm('Tarik data terbaru dari Accurate? Harga dan Stok akan tertimpa.');">
+                                @csrf
+                                <button type="submit" class="dropdown-item"><i class="bi bi-arrow-repeat text-primary me-2"></i> Sync Accurate</button>
+                            </form>
+                        </li>
+                        <li><a href="https://account.accurate.id/" target="_blank" class="dropdown-item"><i class="bi bi-box-arrow-up-right text-info me-2"></i> Buka Accurate</a></li>
+                    @endif
+                    
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form action="{{ route('client.products.destroy_all', $website->id) }}" method="POST" onsubmit="return confirm('Kosongkan semua produk?');">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash3-fill me-2"></i> Kosongkan Katalog</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         </div>
     </div>
 

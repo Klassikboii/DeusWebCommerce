@@ -35,6 +35,12 @@
                 <div class="mb-3">
                     <label class="form-label">Nama Produk <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="Contoh: Kemeja Flannel Kotak" required>
+                    <div class="mb-3 p-3 bg-light rounded border">
+                    <div class="form-check form-switch d-flex align-items-center m-0 p-0">
+                        <input class="form-check-input ms-0 me-3 mt-0" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $product->is_active ?? true) ? 'checked' : '' }} style="width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label fw-bold mb-0" for="is_active" style="cursor: pointer;">Produk Aktif (Ditampilkan di Toko)</label>
+                    </div>
+                </div>
                     @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
@@ -113,7 +119,8 @@
                                     <th style="width: 30%">Nama Varian <span class="text-danger">*</span><br><small class="text-muted fw-normal">Contoh: Merah - XL</small></th>
                                     <th style="width: 25%">Harga (Rp) <span class="text-danger">*</span></th>
                                     <th style="width: 15%">Stok <span class="text-danger">*</span></th>
-                                    <th style="width: 20%">SKU / Kode</th>
+                                    <th style="width: 15%">SKU / Kode</th>
+                                    <th style="width: 15%">Status</th> <th style="width: 10%">Aksi</th>
                                     <th style="width: 10%">Aksi</th>
                                 </tr>
                             </thead>
@@ -175,26 +182,26 @@
         const index = Date.now(); // Gunakan Timestamp agar unik
         
         const row = `
-            <tr>
-                <td>
-                    <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Warna - Size" required>
-                </td>
-                <td>
-                    <input type="number" name="variants[${index}][price]" class="form-control form-control-sm" placeholder="Harga" required>
-                </td>
-                <td>
-                    <input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" placeholder="Stok" required>
-                </td>
-                <td>
-                    <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm" placeholder="SKU-VAR-${index.toString().substr(-4)}">
-                </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('tr').remove()">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
+                <tr>
+                    <td>
+                        ${idInput}
+                        <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" value="${name}" required>
+                    </td>
+                    <td><input type="number" name="variants[${index}][compare_price]" class="form-control form-control-sm text-muted" value="${comparePrice}"></td>
+                    <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
+                    <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
+                    <td><input type="text" name="variants[${index}][sku]" class="form-control form-control-sm" value="${sku}"></td>
+                    <td>
+                        <select name="variants[${index}][is_active]" class="form-select form-select-sm">
+                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
+                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
+                        </select>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `;
         tableBody.insertAdjacentHTML('beforeend', row);
     }
 </script>

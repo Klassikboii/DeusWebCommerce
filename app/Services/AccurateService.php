@@ -28,7 +28,9 @@ class AccurateService
             return $this->integration->access_token;
         }
 
-        $response = Http::asForm()->withBasicAuth(
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->asForm()->withBasicAuth(
             config('services.accurate.client_id'),
             config('services.accurate.client_secret')
         )->post('https://account.accurate.id/oauth/token', [
@@ -58,7 +60,9 @@ class AccurateService
         $token = $this->getValidAccessToken();
         if (!$token) return [];
 
-        $response = Http::withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->get('https://account.accurate.id/api/db-list.do');
 
         return $response->successful() ? ($response->json('d') ?? []) : [];
@@ -75,7 +79,9 @@ class AccurateService
         if (!$token || !$this->integration->accurate_database_id) return null;
 
         // Tembak API open-db
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $token
         ])->get('https://account.accurate.id/api/open-db.do', [
             'id' => $this->integration->accurate_database_id
@@ -108,7 +114,9 @@ class AccurateService
         $keywords = $order->customer_whatsapp;
 
         // 2. CARI DI ACCURATE (Siapa tahu pelanggan ini pernah belanja di nomor order lain)
-        $searchResponse = Http::withHeaders([
+        $searchResponse = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/customer/list.do', [
@@ -123,7 +131,9 @@ class AccurateService
         }
 
         // 3. JIKA BENAR-BENAR BARU, BUATKAN DI ACCURATE
-        $createResponse = Http::withHeaders([
+        $createResponse = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/customer/save.do', [
@@ -172,7 +182,9 @@ class AccurateService
         ];
 
         // Tembak API Pembuatan Barang Accurate
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/item/save.do', $itemData);
@@ -288,7 +300,9 @@ class AccurateService
         ];
 
         // 4. Tembak API Save Sales Invoice
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/sales-invoice/save.do', $invoiceData);
@@ -323,7 +337,9 @@ class AccurateService
         if (!$sessionData) return false;
 
         // Tembak API Hapus Faktur menggunakan Nomor Order kita
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/sales-invoice/delete.do', [
@@ -369,7 +385,9 @@ class AccurateService
         ];
 
         // Tembak API Pelunasan
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/sales-receipt/save.do', $paymentData);
@@ -403,7 +421,9 @@ class AccurateService
      */
     private function getSalesInvoice($orderNumber, $sessionData)
     {
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/sales-invoice/list.do', [
@@ -452,7 +472,9 @@ class AccurateService
             ]
         ];
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/item-adjustment/save.do', $adjustmentData);
@@ -477,7 +499,9 @@ class AccurateService
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return 0;
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/item/detail.do', [
@@ -509,7 +533,9 @@ class AccurateService
         if (!$sessionData) return;
 
         // Tarik data TANPA filter apa pun agar Accurate tidak ngambek
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/item-adjustment/list.do');
@@ -523,7 +549,9 @@ class AccurateService
         if (isset($data['d'][0]['id'])) {
             $latestId = $data['d'][0]['id'];
 
-            $detailResponse = Http::withHeaders([
+            $detailResponse = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID' => $sessionData['session_id']
             ])->get($sessionData['host'] . '/accurate/api/item-adjustment/detail.do', [
@@ -572,7 +600,9 @@ class AccurateService
 
         // 2. Tembak API Accurate untuk meminta Daftar Barang (Item)
         // Perhatikan penggunaan $sessionData['host'] dan prefix /accurate/api/
-        $response = Http::withHeaders([
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
+    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+    ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID'  => $sessionData['session_id'],
         ])->get($sessionData['host'] . '/accurate/api/item/list.do', [

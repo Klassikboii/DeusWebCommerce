@@ -41,6 +41,12 @@
                 <div class="mb-3">
                     <label class="form-label">Nama Produk <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control" value="{{ old('name', $product->name) }}" required>
+                    <div class="mb-3 p-3 bg-light rounded border">
+                    <div class="form-check form-switch d-flex align-items-center m-0 p-0">
+                        <input class="form-check-input ms-0 me-3 mt-0" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $product->is_active ?? true) ? 'checked' : '' }} style="width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label fw-bold mb-0" for="is_active" style="cursor: pointer;">Produk Aktif (Ditampilkan di Toko)</label>
+                    </div>
+                </div>
                 </div>
 
                 <div class="row">
@@ -70,6 +76,7 @@
                     <label class="form-label">Deskripsi Produk</label>
                     <textarea name="description" class="form-control" rows="4">{{ old('description', $product->description) }}</textarea>
                 </div>
+                
             </div>
         </div>
 
@@ -122,7 +129,8 @@
                                     <th style="width: 30%">Nama Varian</th>
                                     <th style="width: 25%">Harga (Rp)</th>
                                     <th style="width: 15%">Stok</th>
-                                    <th style="width: 20%">SKU</th>
+                                    <th style="width: 15%">SKU</th>
+                                    <th style="width: 15%">Status</th> <th style="width: 10%">Aksi</th>
                                     <th style="width: 10%">Aksi</th>
                                 </tr>
                             </thead>
@@ -192,25 +200,26 @@
             const stock = data ? data.stock : '';
             const sku = data ? (data.sku || '') : '';
 
+           const isActive = data ? data.is_active : 1; // 🚨 Cek status varian
+
             const row = `
                 <tr>
                     <td>
                         ${idInput}
-                        <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" value="${name}" placeholder="Warna - Size" required>
+                        <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" value="${name}" required>
                     </td>
+                    <td><input type="number" name="variants[${index}][compare_price]" class="form-control form-control-sm text-muted" value="${comparePrice}"></td>
+                    <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
+                    <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
+                    <td><input type="text" name="variants[${index}][sku]" class="form-control form-control-sm" value="${sku}"></td>
                     <td>
-                        <input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" placeholder="Harga" required>
-                    </td>
-                    <td>
-                        <input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" placeholder="Stok" required>
-                    </td>
-                    <td>
-                        <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm" value="${sku}" placeholder="SKU-XXX">
+                        <select name="variants[${index}][is_active]" class="form-select form-select-sm">
+                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
+                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
+                        </select>
                     </td>
                     <td class="text-center">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">
-                            <i class="bi bi-trash"></i>
-                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="bi bi-trash"></i></button>
                     </td>
                 </tr>
             `;

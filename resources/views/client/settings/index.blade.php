@@ -121,6 +121,34 @@
                     </div>
                 </div>
             </div>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-truck me-2"></i>Pengaturan Kurir Pengiriman</h6>
+                    <p class="text-muted small">Pilih ekspedisi apa saja yang ingin Anda aktifkan untuk pembeli.</p>
+                    
+                    @php
+                        // Ambil array kurir aktif milik klien dari database, default 3 kurir
+                        $activeCouriers = $website->active_couriers ?? ['jne', 'sicepat', 'jnt'];
+                    @endphp
+
+                    {{-- 🚨 LOOPING DINAMIS DARI CONTROLLER --}}
+                    <div class="row">
+                        @foreach($supportedCouriers as $code => $name)
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    {{-- Cek apakah kode kurir ini ada di dalam array pilihan klien --}}
+                                    <input class="form-check-input" type="checkbox" name="active_couriers[]" 
+                                        value="{{ $code }}" id="kurir_{{ $code }}" 
+                                        {{ in_array($code, $activeCouriers) ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-bold" for="kurir_{{ $code }}">{{ $name }}</label>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="form-text mt-2 text-warning"><i class="bi bi-info-circle"></i> Minimal harus ada 1 kurir yang dicentang agar checkout tidak error.</div>
+                </div>
+            </div>
             
             <div class="card-footer bg-light p-3 text-end">
                 <button type="submit" class="btn btn-primary px-4">
@@ -282,8 +310,8 @@
                 <div class="alert alert-warning small mb-3">
                     <strong>⚠️ PENTING SEBELUM MENGHUBUNGKAN:</strong><br>
                     Pastikan Anda sudah membuat 2 item dengan tipe <strong>"JASA" (Service)</strong> di Accurate Online Anda dengan Nomor/SKU berikut:<br>
-                    1. SKU: <strong>ONGKIR</strong> (Untuk mencatat biaya pengiriman)<br>
-                    2. SKU: <strong>DISKON</strong> (Jika Anda berencana menggunakan fitur kupon/promo)
+                    SKU: <strong>ONGKIR</strong> (Untuk mencatat biaya pengiriman)<br>
+                   
                 </div>
                 <ol class="mb-0 text-muted small" style="line-height: 1.8;">
                     <li>Klik tombol <strong>"Hubungkan"</strong> di sebelah kotak ini.</li>

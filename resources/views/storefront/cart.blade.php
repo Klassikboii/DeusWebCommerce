@@ -222,42 +222,60 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json' // 🚨 Memaksa Laravel membalas dengan JSON, bukan halaman HTML Error
             },
             body: JSON.stringify({ destination: city, weight: weight })
         })
-        .then(response => response.json())
+        .then(async response => {
+            const data = await response.json();
+            // Jika status HTTP bukan 200 OK, lempar error ke catch tapi bawa pesannya
+            if (!response.ok) {
+                throw new Error(data.message || 'Server sedang sibuk, coba beberapa saat lagi.');
+            }
+            return data;
+        })
         .then(data => {
             loading.classList.add('d-none');
 
             if(data.status === 'success') {
-                let html = '<label class="form-label small fw-bold">Pilih Pengiriman</label>';
+                let html = '<label class="form-label small fw-bold text-success"><i class="bi bi-check-circle me-1"></i>Pilih Pengiriman</label>';
                 
                 data.options.forEach((opt, index) => {
                     html += `
-                        <div class="form-check border rounded p-2 mb-2 bg-white">
+                        <div class="form-check border rounded p-2 mb-2 bg-white shipping-option-hover">
                             <input class="form-check-input ms-1 mt-2" type="radio" name="selected_shipping" 
                                    id="ship_${opt.id}" value="${opt.id}" 
                                    onchange="selectShipping('${opt.courier} ${opt.service}', ${opt.cost})">
                             <label class="form-check-label w-100 ps-2" for="ship_${opt.id}" style="cursor:pointer">
                                 <div class="d-flex justify-content-between">
-                                    <span class="fw-bold">${opt.courier} <small class="text-muted">${opt.service}</small></span>
+                                    <span class="fw-bold text-uppercase">${opt.courier} <small class="text-muted text-capitalize">${opt.service}</small></span>
                                     <span class="fw-bold text-primary">Rp ${opt.cost_formatted}</span>
                                 </div>
-                                <div class="small text-muted">${opt.estimation}</div>
+                                <div class="small text-muted"><i class="bi bi-clock me-1"></i> ${opt.estimation}</div>
                             </label>
                         </div>
                     `;
                 });
                 container.innerHTML = html;
             } else {
-                container.innerHTML = `<div class="alert alert-warning small">${data.message}</div>`;
+                // 🚨 Ini akan muncul jika rute tidak didukung, tapi status server 200 OK
+                container.innerHTML = `
+                    <div class="alert alert-warning small border-warning">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> 
+                        <strong>Oops!</strong> ${data.message}
+                    </div>`;
             }
         })
         .catch(error => {
             loading.classList.add('d-none');
-            container.innerHTML = '<div class="alert alert-danger small">Gagal memuat ongkir. Coba lagi.</div>';
-            console.error('Error:', error);
+            // 🚨 Ini akan muncul jika API error, timeout, atau beda pulau tapi kurir tidak dukung
+            container.innerHTML = `
+                <div class="alert alert-danger small border-danger">
+                    <i class="bi bi-x-circle-fill text-danger me-2"></i> 
+                    Ekspedisi yang dipilih tidak menjangkau area ini. Silakan hubungi Admin toko untuk bantuan pengiriman manual.
+                </div>`;
+            console.error('Shipping Error:', error.message);
         });
     }
 

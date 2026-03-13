@@ -25,7 +25,15 @@
                             </div>
                         @endif
                         <div>
-                            <div class="fw-bold text-dark">{{ $product->name }}</div>
+                            <div>
+                        <h6 class="mb-0 fw-bold">
+                            {{ $product->name }}
+                            @if(!$product->is_active)
+                                <span class="badge bg-secondary ms-2" style="font-size: 0.6rem;">Nonaktif</span>
+                            @endif
+                        </h6>
+                        
+                    </div>
                             @if($product->variants->count() > 0)
                                 <small class="text-muted text-break">- Multi SKU -</small>
                             @else

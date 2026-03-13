@@ -65,6 +65,8 @@ class Website extends Model
         'midtrans_client_key',
         'midtrans_server_key',
         'midtrans_is_production',
+        'active_couriers', // 🚨 TAMBAHKAN BARIS INI
+        
     ];
 
     protected $casts = [
@@ -72,6 +74,7 @@ class Website extends Model
         'navigation_menu' => 'array', // <--- HAPUS KOMENTARNYA (Aktifkan)
         'is_open' => 'boolean',
         'theme_config' => 'array',
+        'active_couriers' => 'array', // 🚨 WAJIB ADA AGAR BISA DIBACA SEBAGAI ARRAY
     ];
 
     // Relasi: Website milik satu User
