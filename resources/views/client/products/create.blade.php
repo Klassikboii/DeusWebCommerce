@@ -35,13 +35,14 @@
                 <div class="mb-3">
                     <label class="form-label">Nama Produk <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="Contoh: Kemeja Flannel Kotak" required>
-                    <div class="mb-3 p-3 bg-light rounded border">
+                </div>
+                
+                {{-- Toggle Status --}}
+                <div class="mb-3 p-3 bg-light rounded border">
                     <div class="form-check form-switch d-flex align-items-center m-0 p-0">
-                        <input class="form-check-input ms-0 me-3 mt-0" type="checkbox" id="is_active" name="is_active" value="1" {{ old('is_active', $product->is_active ?? true) ? 'checked' : '' }} style="width: 2.5em; height: 1.25em;">
+                        <input class="form-check-input ms-0 me-3 mt-0" type="checkbox" id="is_active" name="is_active" value="1" checked style="width: 2.5em; height: 1.25em;">
                         <label class="form-check-label fw-bold mb-0" for="is_active" style="cursor: pointer;">Produk Aktif (Ditampilkan di Toko)</label>
                     </div>
-                </div>
-                    @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
                 <div class="row">
@@ -55,7 +56,6 @@
                         </select>
                     </div>
                     
-                    {{-- BERAT GLOBAL (Wajib Ada) --}}
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Berat (Gram) <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -107,7 +107,7 @@
                     </div>
                 </div>
 
-                {{-- VARIANT PRODUCT --}}
+                {{-- VARIANT PRODUCT (Compare Price Dihapus!) --}}
                 <div id="variant-product-fields" style="display: none;">
                     <div class="alert alert-info small py-2">
                         <i class="bi bi-info-circle me-1"></i> Tambahkan varian produk di bawah ini.
@@ -116,11 +116,11 @@
                         <table class="table table-bordered align-middle mb-0" id="variant-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 30%">Nama Varian <span class="text-danger">*</span><br><small class="text-muted fw-normal">Contoh: Merah - XL</small></th>
-                                    <th style="width: 25%">Harga (Rp) <span class="text-danger">*</span></th>
-                                    <th style="width: 15%">Stok <span class="text-danger">*</span></th>
-                                    <th style="width: 15%">SKU / Kode</th>
-                                    <th style="width: 15%">Status</th> <th style="width: 10%">Aksi</th>
+                                    <th style="width: 25%">Nama Varian</th>
+                                    <th style="width: 15%">Foto Varian</th> 
+                                    <th style="width: 20%">Harga Jual <span class="text-danger">*</span></th>
+                                    <th style="width: 10%">Stok</th>
+                                    <th style="width: 20%">SKU & Status</th>
                                     <th style="width: 10%">Aksi</th>
                                 </tr>
                             </thead>
@@ -129,7 +129,7 @@
                             </tbody>
                         </table>
                         <div class="mt-3">
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addVariantRow()">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.addVariantRow()">
                                 <i class="bi bi-plus-lg me-1"></i> Tambah Varian
                             </button>
                         </div>
@@ -147,62 +147,137 @@
 </div>
 
 <script>
-    const checkbox = document.getElementById('has_variants');
-    const singleFields = document.getElementById('single-product-fields');
-    const variantFields = document.getElementById('variant-product-fields');
-    const tableBody = document.querySelector('#variant-table tbody');
+    document.addEventListener("DOMContentLoaded", function() {
+        const checkbox = document.getElementById('has_variants');
+        const singleFields = document.getElementById('single-product-fields');
+        const variantFields = document.getElementById('variant-product-fields');
+        const tableBody = document.querySelector('#variant-table tbody');
 
-    // 1. Logic Toggle Tampilan
-    function toggleVariantFields() {
-        if (checkbox.checked) {
-            singleFields.style.display = 'none';
-            variantFields.style.display = 'block';
-            toggleInputs(singleFields, true);
-            
-            // Auto add row jika kosong
-            if(tableBody.children.length === 0) addVariantRow();
-        } else {
-            singleFields.style.display = 'block';
-            variantFields.style.display = 'none';
-            toggleInputs(singleFields, false);
+        // LOGIKA TOGGLE SINGLE VS VARIAN
+        function toggleVariantFields() {
+            if (checkbox.checked) {
+                singleFields.style.display = 'none';
+                variantFields.style.display = 'block';
+                toggleInputs(singleFields, true);
+            } else {
+                singleFields.style.display = 'block';
+                variantFields.style.display = 'none';
+                toggleInputs(singleFields, false);
+            }
         }
-    }
 
-    function toggleInputs(container, isDisabled) {
-        container.querySelectorAll('input').forEach(input => input.disabled = isDisabled);
-    }
+        function toggleInputs(container, isDisabled) {
+            container.querySelectorAll('input').forEach(input => input.disabled = isDisabled);
+        }
 
-    checkbox.addEventListener('change', toggleVariantFields);
-    
-    // Init saat load
-    toggleVariantFields(); 
+        checkbox.addEventListener('change', toggleVariantFields);
+        toggleVariantFields(); // Inisialisasi awal
 
-    // 2. Logic Tambah Baris Varian
-    function addVariantRow() {
-        const index = Date.now(); // Gunakan Timestamp agar unik
+        // Jika user mencentang checkbox, berikan 1 baris kosong otomatis
+        checkbox.addEventListener('change', () => {
+            if(checkbox.checked && tableBody.children.length === 0) window.addVariantRow();
+        });
+    });
+
+   // 🚨 1. FUNGSI PREVIEW GAMBAR (Diperbarui dengan tombol X melayang)
+    window.previewVariantImage = function(input, index) {
+        // Reset flag hapus gambar jika user memilih file baru
+        let flagInput = input.closest('td').querySelector('.remove-image-flag');
+        if(flagInput) flagInput.value = '0';
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let previewContainer = input.closest('td').querySelector('.variant-image-preview');
+                if (previewContainer) {
+                    previewContainer.innerHTML = `
+                        <div class="position-relative d-inline-block mb-1">
+                            <img src="${e.target.result}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
+                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
+                                <i class="bi bi-x" style="font-size: 14px;"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    };🚨 2. FUNGSI HAPUS GAMBAR VARIAN (Hanya Hapus Preview & Set Flag)
+    window.removeVariantImage = function(btn) {
+        let td = btn.closest('td');
         
+        // 1. Kosongkan wadah preview
+        td.querySelector('.variant-image-preview').innerHTML = '';
+        
+        // 2. Kosongkan form input file
+        let fileInput = td.querySelector('input[type="file"]');
+        if(fileInput) fileInput.value = '';
+        
+        // 3. Ubah nilai input tersembunyi (flag) menjadi 1 agar Laravel tahu ini dihapus
+        let flagInput = td.querySelector('.remove-image-flag');
+        if(flagInput) flagInput.value = '1';
+    };
+   // 🚨 3. FUNGSI TAMBAH BARIS (Diperbarui)
+    window.addVariantRow = function(data = null) {
+        const index = Date.now() + Math.floor(Math.random() * 1000); 
+        const tableBody = document.querySelector('#variant-table tbody');
+        
+        const idInput = data ? `<input type="hidden" name="variants[${index}][id]" value="${data.id}">` : '';
+        const name = data ? data.name : '';
+        const price = data ? data.price : '';
+        const stock = data ? data.stock : '';
+        const sku = data ? (data.sku || '') : '';
+        const isActive = data ? data.is_active : 1;
+
+        // Kontainer preview dengan tombol X jika gambar dari database sudah ada
+        const imagePreview = (data && data.image) 
+            ? `<div class="position-relative d-inline-block mb-1">
+                 <img src="/storage/${data.image}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
+                 <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
+                     <i class="bi bi-x" style="font-size: 14px;"></i>
+                 </button>
+               </div>` 
+            : '';
+
         const row = `
-                <tr>
-                    <td>
-                        ${idInput}
-                        <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" value="${name}" required>
-                    </td>
-                    <td><input type="number" name="variants[${index}][compare_price]" class="form-control form-control-sm text-muted" value="${comparePrice}"></td>
-                    <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
-                    <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
-                    <td><input type="text" name="variants[${index}][sku]" class="form-control form-control-sm" value="${sku}"></td>
-                    <td>
-                        <select name="variants[${index}][is_active]" class="form-select form-select-sm">
-                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
-                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
-                        </select>
-                    </td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="bi bi-trash"></i></button>
-                    </td>
-                </tr>
-            `;
+            <tr>
+                <td>
+                    ${idInput}
+                    <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Misal: Merah" value="${name}" required>
+                </td>
+                <td class="text-center">
+                    <div class="variant-image-preview text-center">
+                        ${imagePreview}
+                    </div>
+                    <input type="file" name="variants[${index}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="window.previewVariantImage(this, ${index})">
+                    
+                    <input type="hidden" name="variants[${index}][remove_image]" value="0" class="remove-image-flag">
+                </td>
+                <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
+                <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
+                <td>
+                    <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1" placeholder="SKU" value="${sku}">
+                    <select name="variants[${index}][is_active]" class="form-select form-select-sm">
+                        <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
+                        <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
+                    </select>
+                </td>
+                <td class="text-center align-middle">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="window.removeRow(this)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        `;
         tableBody.insertAdjacentHTML('beforeend', row);
-    }
+    };
+
+    // FUNGSI HAPUS BARIS
+    window.removeRow = function(btn) {
+        const tableBody = document.querySelector('#variant-table tbody');
+        if (tableBody.children.length > 1) {
+            btn.closest('tr').remove();
+        } else {
+            alert('Minimal harus ada 1 varian aktif jika opsi variasi dinyalakan.');
+        }
+    };
 </script>
 @endsection

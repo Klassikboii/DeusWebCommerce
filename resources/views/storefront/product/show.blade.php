@@ -60,12 +60,14 @@
 
     <div class="row g-5">
         {{-- KOLOM KIRI: GAMBAR --}}
+       {{-- KOLOM KIRI: GAMBAR --}}
         <div class="col-md-6">
             <div class="border rounded overflow-hidden shadow-sm" style="background-color: white;">
                 @if($product->image)
-                    <img src="{{ asset('storage/' . $product->image) }}" class="w-100 object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
+                    {{-- 🚨 TAMBAHKAN ID DISINI --}}
+                    <img id="main-product-image" src="{{ asset('storage/' . $product->image) }}" class="w-100 object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
                 @else
-                    <div class="d-flex align-items-center justify-content-center bg-light" style="aspect-ratio: 1/1;">
+                    <div class="d-flex align-items-center justify-content-center bg-light" style="aspect-ratio: 1/1;" id="main-product-image-container">
                         <i class="bi bi-image fs-1 text-muted"></i>
                     </div>
                 @endif
@@ -114,17 +116,21 @@
                 {{-- FORM ADD TO CART --}}
                 <form action="{{ route('store.cart.add', ['subdomain' => $website->subdomain, 'id' => $product->id]) }}" method="POST">
                     @csrf
-
-                    {{-- LOGIKA VARIAN --}}
-                    @if($product->hasVariants())
+{{-- LOGIKA VARIAN --}}
+                    {{-- 🚨 Gunakan query langsung untuk mengecek varian yang aktif --}}
+                    @if($product->variants()->where('is_active', true)->count() > 0)
                         <div class="mb-4">
                             <label class="form-label fw-bold">Pilih Varian:</label>
                             <select name="variant_id" id="variant-selector" class="form-select" required>
                                 <option value="" selected disabled>-- Pilih Opsi --</option>
-                                @foreach($product->variants as $variant)
+                                
+                                {{-- 🚨 Looping hanya varian yang aktif --}}
+                                @foreach($product->variants()->where('is_active', true)->get() as $variant)
                                     <option value="{{ $variant->id }}" 
                                             data-price="{{ $variant->price }}"
-                                            data-stock="{{ $variant->stock }}">
+                                            data-stock="{{ $variant->stock }}"
+                                            {{-- 🚨 Sisipkan URL Gambar Varian di sini --}}
+                                            data-image="{{ $variant->image ? asset('storage/' . $variant->image) : '' }}">
                                         {{ $variant->name }}
                                     </option>
                                 @endforeach
@@ -132,7 +138,6 @@
                             <div class="form-text text-danger d-none" id="variant-error">Mohon pilih varian terlebih dahulu.</div>
                         </div>
                     @endif
-
                     {{-- 
                         === TAMPILAN DESKTOP (> 695px) === 
                         Menggunakan class 'desktop-cart-actions' yang diatur CSS di atas
@@ -273,6 +278,8 @@
         
         const addToCartBtns = document.querySelectorAll('.add-btn');
         const quantityInputs = document.querySelectorAll('.desktop-qty, .mobile-qty');
+
+        
         
         const formatRupiah = (number) => {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
@@ -314,6 +321,52 @@
                 }
             });
         }
+        const mainImageElement = document.getElementById('main-product-image');
+            const defaultImageSrc = mainImageElement ? mainImageElement.src : '';
+
+            variantSelector.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                
+                const price = parseFloat(selectedOption.getAttribute('data-price'));
+                const stock = parseInt(selectedOption.getAttribute('data-stock'));
+                const variantImage = selectedOption.getAttribute('data-image'); 
+                
+                // --- DEBUGGING (Bisa dicek di Inspect Element -> Console browser Anda) ---
+                console.log("Varian dipilih:", selectedOption.text);
+                console.log("URL Gambar Varian:", variantImage);
+                // ----------------------------------------------------------------------
+
+                priceElement.innerText = formatRupiah(price);
+                quantityInputs.forEach(input => { input.max = stock; input.value = 1; });
+
+                // 🚨 TUKAR GAMBAR
+                if (mainImageElement) {
+                    if (variantImage && variantImage !== '') {
+                        mainImageElement.src = variantImage; // Ganti gambar sesuai varian
+                    } else {
+                        mainImageElement.src = defaultImageSrc; // Kembalikan ke gambar produk induk
+                    }
+                }
+
+                if (stock > 0) {
+                    stockBadge.className = 'badge bg-success';
+                    stockBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> Stok: ${stock}`;
+                    
+                    addToCartBtns.forEach(btn => {
+                        btn.disabled = false;
+                        if(btn.id === 'desktop-add-btn') btn.innerHTML = `<i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang`;
+                        if(btn.id === 'mobile-add-btn') btn.innerHTML = `<i class="bi bi-bag-plus me-1"></i> Beli`;
+                    });
+                } else {
+                    stockBadge.className = 'badge bg-danger';
+                    stockBadge.innerHTML = `<i class="bi bi-x-circle me-1"></i> Habis`;
+                    
+                    addToCartBtns.forEach(btn => {
+                        btn.disabled = true;
+                        btn.innerText = "Stok Habis";
+                    });
+                }
+                });
     });
 </script>
 @endsection

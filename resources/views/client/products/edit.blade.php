@@ -125,15 +125,15 @@
                     <div class="table-responsive border rounded p-3 bg-white">
                         <table class="table table-bordered align-middle mb-0" id="variant-table">
                             <thead class="table-light">
-                                <tr>
-                                    <th style="width: 30%">Nama Varian</th>
-                                    <th style="width: 25%">Harga (Rp)</th>
-                                    <th style="width: 15%">Stok</th>
-                                    <th style="width: 15%">SKU</th>
-                                    <th style="width: 15%">Status</th> <th style="width: 10%">Aksi</th>
-                                    <th style="width: 10%">Aksi</th>
-                                </tr>
-                            </thead>
+                                    <tr>
+                                        <th style="width: 20%">Nama Varian</th>
+                                        <th style="width: 15%">Foto Varian</th> 
+                                        <th style="width: 15%">Harga Jual <span class="text-danger">*</span></th>
+                                        <th style="width: 10%">Stok</th>
+                                        <th style="width: 15%">SKU & Status</th>
+                                        <th style="width: 10%">Aksi</th>
+                                    </tr>
+                                </thead>
                             <tbody>
                                 {{-- Diisi oleh JS --}}
                             </tbody>
@@ -163,8 +163,7 @@
         const tableBody = document.querySelector('#variant-table tbody');
 
         // 1. Data Varian Existing (Dari Controller -> JSON)
-        const existingVariants = @json($product->variants);
-
+        const existingVariants = @json($product->variants->values());
         // 2. Logic Toggle
         function toggleVariantFields() {
             if (checkbox.checked) {
@@ -182,50 +181,101 @@
         function toggleInputs(container, isDisabled) {
             container.querySelectorAll('input').forEach(input => input.disabled = isDisabled);
         }
+        // 🚨 FUNGSI UNTUK LIVE PREVIEW GAMBAR
+        window.previewVariantImage = function(input, index) {
+        // Reset flag hapus gambar jika user memilih file baru
+        let flagInput = input.closest('td').querySelector('.remove-image-flag');
+        if(flagInput) flagInput.value = '0';
+
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let previewContainer = input.closest('td').querySelector('.variant-image-preview');
+                if (previewContainer) {
+                    previewContainer.innerHTML = `
+                        <div class="position-relative d-inline-block mb-1">
+                            <img src="${e.target.result}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
+                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
+                                <i class="bi bi-x" style="font-size: 14px;"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    };
 
         checkbox.addEventListener('change', toggleVariantFields);
         toggleVariantFields(); // Init load
-
+        // 🚨 2. FUNGSI HAPUS GAMBAR VARIAN (Hanya Hapus Preview & Set Flag)
+    window.removeVariantImage = function(btn) {
+        let td = btn.closest('td');
+        
+        // 1. Kosongkan wadah preview
+        td.querySelector('.variant-image-preview').innerHTML = '';
+        
+        // 2. Kosongkan form input file
+        let fileInput = td.querySelector('input[type="file"]');
+        if(fileInput) fileInput.value = '';
+        
+        // 3. Ubah nilai input tersembunyi (flag) menjadi 1 agar Laravel tahu ini dihapus
+        let flagInput = td.querySelector('.remove-image-flag');
+        if(flagInput) flagInput.value = '1';
+    };
         // 3. Render Baris (Add Row)
-        window.addVariantRow = function(data = null) {
-            // Gunakan timestamp untuk index unik, tapi tambahkan suffix random agar aman saat loop cepat
-            const index = Date.now() + Math.floor(Math.random() * 1000); 
-            
-            // Trik: Jika data ada (edit mode), kita butuh ID-nya untuk update
-            // Input hidden 'id' ini krusial agar controller tahu ini update, bukan create baru
-            const idInput = data ? `<input type="hidden" name="variants[${index}][id]" value="${data.id}">` : '';
-            
-            const name = data ? data.name : '';
-            const price = data ? data.price : '';
-            const stock = data ? data.stock : '';
-            const sku = data ? (data.sku || '') : '';
+       // 🚨 3. FUNGSI TAMBAH BARIS (Diperbarui)
+    window.addVariantRow = function(data = null) {
+        const index = Date.now() + Math.floor(Math.random() * 1000); 
+        const tableBody = document.querySelector('#variant-table tbody');
+        
+        const idInput = data ? `<input type="hidden" name="variants[${index}][id]" value="${data.id}">` : '';
+        const name = data ? data.name : '';
+        const price = data ? data.price : '';
+        const stock = data ? data.stock : '';
+        const sku = data ? (data.sku || '') : '';
+        const isActive = data ? data.is_active : 1;
 
-           const isActive = data ? data.is_active : 1; // 🚨 Cek status varian
+        // Kontainer preview dengan tombol X jika gambar dari database sudah ada
+        const imagePreview = (data && data.image) 
+            ? `<div class="position-relative d-inline-block mb-1">
+                 <img src="/storage/${data.image}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
+                 <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
+                     <i class="bi bi-x" style="font-size: 14px;"></i>
+                 </button>
+               </div>` 
+            : '';
 
-            const row = `
-                <tr>
-                    <td>
-                        ${idInput}
-                        <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" value="${name}" required>
-                    </td>
-                    <td><input type="number" name="variants[${index}][compare_price]" class="form-control form-control-sm text-muted" value="${comparePrice}"></td>
-                    <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
-                    <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
-                    <td><input type="text" name="variants[${index}][sku]" class="form-control form-control-sm" value="${sku}"></td>
-                    <td>
-                        <select name="variants[${index}][is_active]" class="form-select form-select-sm">
-                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
-                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
-                        </select>
-                    </td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)"><i class="bi bi-trash"></i></button>
-                    </td>
-                </tr>
-            `;
-            tableBody.insertAdjacentHTML('beforeend', row);
-        };
-
+        const row = `
+            <tr>
+                <td>
+                    ${idInput}
+                    <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Misal: Merah" value="${name}" required>
+                </td>
+                <td class="text-center">
+                    <div class="variant-image-preview text-center">
+                        ${imagePreview}
+                    </div>
+                    <input type="file" name="variants[${index}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="window.previewVariantImage(this, ${index})">
+                    
+                    <input type="hidden" name="variants[${index}][remove_image]" value="0" class="remove-image-flag">
+                </td>
+                <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
+                <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
+                <td>
+                    <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1" placeholder="SKU" value="${sku}">
+                    <select name="variants[${index}][is_active]" class="form-select form-select-sm">
+                        <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
+                        <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
+                    </select>
+                </td>
+                <td class="text-center align-middle">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="window.removeRow(this)"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        `;
+        tableBody.insertAdjacentHTML('beforeend', row);
+    };
         window.removeRow = function(btn) {
             // Cek jumlah baris agar tidak habis total (opsional, tapi good UX)
             if (tableBody.children.length > 1) {

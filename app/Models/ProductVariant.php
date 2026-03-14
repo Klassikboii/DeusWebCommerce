@@ -16,7 +16,8 @@ class ProductVariant extends Model
     protected $fillable = [
         'product_id', 'name', 'sku', 'price', 'compare_price', 
         'stock', 'weight', 'options', 
-        'is_active' // <--- Tambahkan ini
+        'is_active', // <--- Tambahkan ini
+        'image'
     ];
     protected $casts = [
         'options' => 'array',

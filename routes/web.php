@@ -109,6 +109,7 @@ Route::middleware(['auth'])->group(function () {
         // --- PENGATURAN TOKO ---
         Route::get('/settings', [App\Http\Controllers\Client\SettingController::class, 'index'])->name('client.settings.index');
         Route::put('/settings', [App\Http\Controllers\Client\SettingController::class, 'update'])->name('client.settings.update');
+        
         // ... route settings ...
         // Pastikan ini berada di dalam group route client Anda yang memiliki akses ke $website
         Route::put('/settings/payment', [\App\Http\Controllers\Client\SettingController::class, 'updatePayment'])
@@ -176,6 +177,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('accurate.callback')
             ->middleware('auth'); // Pastikan user sedang login
         Route::post('/{website}/accurate/database', [\App\Http\Controllers\Client\AccurateController::class, 'saveDatabase'])->name('client.accurate.save_db');
+        Route::post('/settings/accurate/disconnect/{website}', [\App\Http\Controllers\Client\AccurateController::class, 'disconnect'])->name('client.accurate.disconnect');
 });
 // --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
 

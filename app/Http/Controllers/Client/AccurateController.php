@@ -88,4 +88,16 @@ class AccurateController extends Controller
 
         return redirect()->back()->with('success', 'Database Accurate berhasil dihubungkan ke toko ini!');
     }
+    // 4. Memutuskan Koneksi Accurate (Ganti Akun / Database)
+    public function disconnect(Website $website)
+    {
+        $this->authorize('update', $website);
+
+        // Hapus data integrasi dari database lokal
+        if ($website->accurateIntegration) {
+            $website->accurateIntegration->delete();
+        }
+
+        return redirect()->back()->with('success', 'Koneksi Accurate berhasil diputuskan. Silakan hubungkan kembali dengan akun atau database yang baru.');
+    }
 }

@@ -188,15 +188,26 @@
                         </form>
                     </div>
                 @else
-                    <div class="alert border-success bg-success bg-opacity-10 d-flex align-items-center mb-0">
-                        <i class="bi bi-check-circle-fill fs-4 text-success me-3"></i>
-                        <div>
+                    <div class="alert border-success bg-success bg-opacity-10 d-flex flex-wrap align-items-center mb-0 gap-3">
+                        <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                        <div class="flex-grow-1">
                             <strong class="text-success-emphasis">Status: Terhubung Aktif</strong><br>
                             <span class="small text-muted">Toko Anda terhubung dengan Database ID: {{ $selectedDbId }}</span>
                         </div>
-                        <a href="{{ route('client.accurate.redirect', $website->id) }}" class="btn btn-sm btn-outline-success ms-auto">
-                            <i class="bi bi-arrow-repeat me-1"></i> Ganti Akun
-                        </a>
+                        
+                        {{-- 🚨 TOMBOL REFRESH AKSES & DISCONNECT --}}
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('client.accurate.redirect', $website->id) }}" class="btn btn-sm btn-outline-success" title="Perbarui masa aktif Token API">
+                                <i class="bi bi-arrow-repeat me-1"></i> Refresh Akses
+                            </a>
+                            
+                            <form action="{{ route('client.accurate.disconnect', $website->id) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('PERINGATAN! Memutuskan koneksi akan menghentikan sinkronisasi produk dan pesanan. Anda harus mengatur ulang koneksi setelah ini. Yakin ingin melanjutkan?');">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-plug-fill me-1"></i> Putus Koneksi
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 @endif
             @else

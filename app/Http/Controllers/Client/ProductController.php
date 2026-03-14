@@ -275,29 +275,46 @@ class ProductController extends Controller
                 $minPrice = null;
                 $totalStock = 0;
 
-                foreach ($request->variants as $variantData) {
+                foreach ($request->variants as $index => $variantData) {
                     if (empty($variantData['sku']) || empty($variantData['name'])) continue;
 
                     $stockInput = (int)($variantData['stock'] ?? 0);
                     $priceInput = (float)($variantData['price'] ?? 0);
+                    
+                    // 🚨 CEK APAKAH USER MENEKAN TOMBOL HAPUS GAMBAR
+                    $isRemoveImage = isset($variantData['remove_image']) && $variantData['remove_image'] == '1';
 
-                    // Simpan atau Update Varian
                     $variant = \App\Models\ProductVariant::updateOrCreate(
                         [
                             'product_id' => $product->id,
                             'sku' => $variantData['sku'],
                         ],
                         [
-                            'name' => $variantData['name'],
-                            'price' => $priceInput,
-                            'stock' => $stockInput,
-                            'is_active'     => isset($variantData['is_active']) ? $variantData['is_active'] : 1, // 🚨 TANGKAP STATUS VARIAN
+                            'name'          => $variantData['name'],
+                            'price'         => $priceInput,
+                            'stock'         => $stockInput,
+                            'is_active'     => isset($variantData['is_active']) ? $variantData['is_active'] : 1,
                         ]
                     );
 
+                    // 🚨 LOGIKA GAMBAR FINAL
+                    if ($request->hasFile("variants.{$index}.image")) {
+                        // 1. Jika User Mengupload Gambar Baru
+                        if ($variant->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($variant->image)) {
+                            \Illuminate\Support\Facades\Storage::disk('public')->delete($variant->image);
+                        }
+                        $variant->update(['image' => $request->file("variants.{$index}.image")->store('variants', 'public')]);
+                    
+                    } elseif ($isRemoveImage) {
+                        // 2. Jika User menekan tombol silang X (Tanpa upload gambar baru)
+                        if ($variant->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($variant->image)) {
+                            \Illuminate\Support\Facades\Storage::disk('public')->delete($variant->image);
+                        }
+                        $variant->update(['image' => null]);
+                    }
+
                     $variantIdsToKeep[] = $variant->id;
 
-                    // Hitung total stok dan harga minimal untuk di-set di induk
                     if ($minPrice === null || $priceInput < $minPrice) $minPrice = $priceInput;
                     $totalStock += $stockInput;
                 }
