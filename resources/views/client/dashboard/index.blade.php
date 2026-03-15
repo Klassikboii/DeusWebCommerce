@@ -342,8 +342,107 @@
             </table>
         </div>
     </div>
-</div>
+    {{-- WIDGET AI CUSTOMER SEGMENTATION (HYBRID LAYOUT) --}}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0"><i class="bi bi-stars text-warning me-2"></i>Ringkasan AI: Segmen Pelanggan</h6>
+                    <a href="{{ route('client.insights.index', $website->id) }}" class="btn btn-sm btn-outline-primary">Lihat Laporan Lengkap</a>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        
+                        {{-- SISI KIRI: DONUT CHART KECIL --}}
+                        <div class="col-md-4 text-center border-end">
+                            @if(empty($rfmSummary))
+                                <p class="text-muted small mt-4">Belum ada data analitik yang cukup.</p>
+                            @else
+                                <div style="position: relative; height: 160px; width: 100%; display: flex; justify-content: center;">
+                                    <canvas id="dashboardRfmChart"></canvas>
+                                </div>
+                            @endif
+                        </div>
 
+                        {{-- SISI KANAN: ANGKA HIGHLIGHT (TINDAKAN) --}}
+                        <div class="col-md-8">
+                            <div class="row g-3 ps-md-3 mt-3 mt-md-0">
+                                {{-- Insight 1: Champions --}}
+                                <div class="col-sm-6">
+                                    <div class="p-3 rounded h-100" style="background-color: #f8fff9; border: 1px solid #c3e6cb;">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="text-success fw-bold small">CHAMPIONS</span>
+                                            <i class="bi bi-trophy-fill text-success fs-5"></i>
+                                        </div>
+                                        <h3 class="fw-bold text-success mb-1">{{ $championsCount }} <span class="fs-6 fw-normal text-muted">Orang</span></h3>
+                                        <p class="text-muted small mb-0 lh-sm">Aset terbesar Anda. Jangan lupa sapa mereka!</p>
+                                    </div>
+                                </div>
+
+                                {{-- Insight 2: At Risk --}}
+                                <div class="col-sm-6">
+                                    <div class="p-3 rounded h-100" style="background-color: #fffcf8; border: 1px solid #ffeeba;">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="text-warning text-dark fw-bold small">RAWAN KABUR (AT RISK)</span>
+                                            <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                                        </div>
+                                        <h3 class="fw-bold text-warning mb-1">{{ $atRiskCount }} <span class="fs-6 fw-normal text-muted">Orang</span></h3>
+                                        <p class="text-muted small mb-0 lh-sm">Dulu loyal, kini hilang. Kirim diskon untuk menarik mereka.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if(!empty($rfmSummary))
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const segmentData = @json($rfmSummary);
+            const labels = Object.keys(segmentData);
+            const dataValues = Object.values(segmentData);
+
+            const bgColors = labels.map(label => {
+                if(label.includes('Champion')) return '#198754'; 
+                if(label.includes('Loyal')) return '#0dcaf0';    
+                if(label.includes('New')) return '#0d6efd';      
+                if(label.includes('Risk')) return '#ffc107';     
+                if(label.includes('Hibernating')) return '#6c757d'; 
+                return '#212529'; 
+            });
+
+            new Chart(document.getElementById('dashboardRfmChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataValues,
+                        backgroundColor: bgColors,
+                        borderWidth: 0,
+                        cutout: '70%' // Membuat lubang donat lebih besar agar minimalis
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }, // Matikan legend agar rapi di dashboard
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) { return ' ' + context.label + ': ' + context.raw + ' Orang'; }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    @endif
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         // Data dari Controller

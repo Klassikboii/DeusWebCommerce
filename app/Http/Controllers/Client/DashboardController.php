@@ -107,13 +107,23 @@ class DashboardController extends Controller
         ->where('stock', '<=', 5) // Ambang batas stok
         ->orderBy('stock', 'asc') // Urutkan dari yang paling sedikit
         ->take(5)
-        ->get();                     
+        ->get();      
+        
+        // 🚨 QUERY UNTUK RINGKASAN AI DI DASHBOARD
+        $rfmSummary = \App\Models\CustomerRfm::where('website_id', $website->id)
+            ->selectRaw('segment, count(*) as total')
+            ->groupBy('segment')
+            ->pluck('total', 'segment')->toArray();
+
+        // Cari tahu jumlah pelanggan "Champions" dan "At Risk" untuk di-highlight
+        $championsCount = $rfmSummary['Champions'] ?? 0;
+        $atRiskCount = $rfmSummary['At Risk'] ?? 0;
 
         return view('client.dashboard.index', compact(
             'website', 
             'revenueThisMonth', 'revenueLastMonth', 'revenueGrowth',
             'totalOrder', 'pendingOrders', 'totalProduk',
-            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts', 'setupStatus', 'setupProgress'
+            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts', 'setupStatus', 'setupProgress', 'rfmSummary', 'championsCount', 'atRiskCount'
         ));
         
     }

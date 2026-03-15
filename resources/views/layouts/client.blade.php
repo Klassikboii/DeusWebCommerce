@@ -239,6 +239,10 @@
                 class="nav-link {{ request()->routeIs('client.reports.*') ? 'active' : '' }}">
                     <i class="bi bi-bar-chart"></i> Laporan
                 </a>
+                <a href="{{ route('client.insights.index', $website->id) }}" 
+                class="nav-link {{ request()->routeIs('client.insights.*') ? 'active' : '' }}">
+                    <i class="bi bi-lightbulb"></i> Insight
+                </a>
 
                 <div class="nav-group-label">Pengaturan</div>
                 <a href="{{ route('client.settings.index', $website->id) }}" 

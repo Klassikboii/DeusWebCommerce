@@ -121,6 +121,7 @@ Route::middleware(['auth'])->group(function () {
         // ... route customers ...
         // --- FITUR LAPORAN ---
         Route::get('/reports', [App\Http\Controllers\Client\ReportController::class, 'index'])->name('client.reports.index');
+        Route::get('/insights', [\App\Http\Controllers\Client\CustomerInsightController::class, 'index'])->name('client.insights.index');
         // ... route produk/kategori ...
         // --- FITUR BLOG ---
         Route::get('/posts', [App\Http\Controllers\Client\PostController::class, 'index'])->name('client.posts.index');
