@@ -9,22 +9,31 @@ use Illuminate\Http\Request;
 
 class CustomerInsightController extends Controller
 {
-    public function index(Website $website)
+    public function index(\App\Models\Website $website)
     {
         // Pastikan hanya pemilik yang bisa melihat
         $this->authorize('view', $website);
 
-        // Ambil data RFM yang sudah dihitung oleh AI kita
-        $rfmData = CustomerRfm::where('website_id', $website->id)
-            ->orderBy('monetary_value', 'desc') // Urutkan dari yang belanjanya paling banyak
+        // ==========================================
+        // 1. DATA RFM (SEGMEN PELANGGAN)
+        // ==========================================
+        $rfmData = \App\Models\CustomerRfm::where('website_id', $website->id)
+            ->orderBy('monetary_value', 'desc')
             ->get();
 
-        // Siapkan data untuk Grafik (Pie/Donut Chart)
-        // Menghitung jumlah orang per segmen (Misal: Champions ada 10 orang, At Risk ada 5 orang)
         $segmentCounts = $rfmData->groupBy('segment')->map(function ($row) {
             return $row->count();
         });
 
-        return view('client.insights.index', compact('website', 'rfmData', 'segmentCounts'));
+        // ==========================================
+        // 2. DATA MBA (MARKET BASKET ANALYSIS)
+        // ==========================================
+        // Kita tarik data rekomendasi, urutkan berdasarkan nilai Lift (Kekuatan Relasi) paling tinggi
+        $mbaData = \App\Models\ProductRecommendation::where('website_id', $website->id)
+            ->with(['product', 'recommendedProduct']) // Tarik relasi nama produknya
+            ->orderBy('lift', 'desc')
+            ->get();
+
+        return view('client.insights.index', compact('website', 'rfmData', 'segmentCounts', 'mbaData'));
     }
 }

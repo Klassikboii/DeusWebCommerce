@@ -237,7 +237,7 @@
                 </a>
                 <a href="{{ route('client.reports.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.reports.*') ? 'active' : '' }}">
-                    <i class="bi bi-bar-chart"></i> Laporan
+                    <i class="bi bi-clipboard-data"></i> Laporan
                 </a>
                 <a href="{{ route('client.insights.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.insights.*') ? 'active' : '' }}">

@@ -156,22 +156,39 @@ public function product(Request $request, $subdomain, $slug)
         // ->where('status', 'active') // Pastikan hanya produk aktif
         ->firstOrFail();
 
-    // 3. Ambil Produk Terkait (Opsional, tapi bagus untuk sales)
-    // Ambil 4 produk lain dari kategori yang sama, kecuali produk yang sedang dilihat
-    $relatedProducts = $website->products()
-        ->where('category_id', $product->category_id)
-        ->where('id', '!=', $product->id)
-        // ->where('status', 'active')
-        ->inRandomOrder()
-        ->limit(4)
-        ->get();
+    
+// 🚨 1. CARI REKOMENDASI DARI MESIN AI (MARKET BASKET ANALYSIS)
+        // Ambil maksimal 4 produk yang direkomendasikan dengan nilai Lift (ikatan) tertinggi
+       // 🚨 1. RAK AI: SERING DIBELI BERSAMAAN (Maksimal 4)
+        $aiRecommendations = \App\Models\ProductRecommendation::where('website_id', $website->id)
+            ->where('product_id', $product->id)
+            ->orderBy('lift', 'desc')
+            ->take(4)
+            ->with('recommendedProduct')
+            ->get();
 
-    // 4. Tampilkan View
-    return view('storefront.product.show', [
-        'website' => $website,
-        'product' => $product,
-        'relatedProducts' => $relatedProducts
-    ]);
+        $aiProducts = collect();
+        foreach ($aiRecommendations as $rec) {
+            if ($rec->recommendedProduct && $rec->recommendedProduct->is_active) {
+                $aiProducts->push($rec->recommendedProduct);
+            }
+        }
+
+        // 🚨 2. RAK KATEGORI: PRODUK TERKAIT (Maksimal 4)
+        // Ambil ID produk AI agar tidak ada barang yang muncul dua kali di halaman yang sama
+        $excludeIds = $aiProducts->pluck('id')->toArray();
+        $excludeIds[] = $product->id; // Kecualikan produk yang sedang dilihat
+
+        $categoryProducts = \App\Models\Product::where('website_id', $website->id)
+            ->where('is_active', true)
+            ->where('category_id', $product->category_id)
+            ->whereNotIn('id', $excludeIds)
+            ->inRandomOrder() 
+            ->take(4)
+            ->get();
+
+        // Lempar dua variabel terpisah ke view
+        return view('storefront.product.show', compact('website', 'product', 'aiProducts', 'categoryProducts'));
 }
 
 // --- FITUR CEK PESANAN (TRACK ORDER) ---

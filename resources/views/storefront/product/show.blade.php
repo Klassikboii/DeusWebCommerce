@@ -203,12 +203,48 @@
         </div>
     </div>
 
-    {{-- PRODUK TERKAIT --}}
-    @if($relatedProducts->count() > 0)
+    {{-- ========================================== --}}
+    {{-- RAK 1: REKOMENDASI AI (CROSS-SELLING)      --}}
+    {{-- ========================================== --}}
+    @if($aiProducts->count() > 0)
+    <div class="mt-5 pt-5 border-top">
+        <h3 class="fw-bold mb-4 text-center">Sering Dibeli Bersamaan</h3>
+        <div class="row g-4 justify-content-center">
+            @foreach($aiProducts as $related)
+                <div class="col-6 col-md-3">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="position-relative overflow-hidden rounded-top" style="background-color: white;">
+                            <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $related->slug]) }}">
+                                @if($related->image)
+                                    <img src="{{ asset('storage/' . $related->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;">
+                                @else
+                                    <div class="bg-light card-img-top d-flex align-items-center justify-content-center" style="aspect-ratio: 1/1;"><i class="bi bi-image text-muted"></i></div>
+                                @endif
+                            </a>
+                        </div>
+                        <div class="card-body text-center p-3">
+                            <h6 class="card-title text-truncate">
+                                <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $related->slug]) }}" class="text-decoration-none text-dark">
+                                    {{ $related->name }}
+                                </a>
+                            </h6>
+                            <p class="text-primary fw-bold mb-0">Rp {{ number_format($related->price, 0, ',', '.') }}</p>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- ========================================== --}}
+    {{-- RAK 2: KATEGORI SAMA (UP-SELLING)          --}}
+    {{-- ========================================== --}}
+    @if($categoryProducts->count() > 0)
     <div class="mt-5 pt-5 border-top">
         <h3 class="fw-bold mb-4 text-center">Produk Terkait</h3>
-        <div class="row g-4">
-            @foreach($relatedProducts as $related)
+        <div class="row g-4 justify-content-center">
+            @foreach($categoryProducts as $related)
                 <div class="col-6 col-md-3">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="position-relative overflow-hidden rounded-top" style="background-color: white;">
