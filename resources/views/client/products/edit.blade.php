@@ -11,7 +11,17 @@
         </a>
         <h4 class="fw-bold">Edit Produk: {{ $product->name }}</h4>
     </div>
-
+    {{-- PENANGKAP PESAN ERROR VALIDASI LARAVEL --}}
+    @if ($errors->any())
+        <div class="alert alert-danger shadow-sm border-danger">
+            <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-2"></i>Gagal Menyimpan!</h6>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
     <form action="{{ route('client.products.update', ['website' => $website->id, 'product' => $product->id]) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
@@ -93,8 +103,22 @@
                                 <div class="form-text small">Centang jika produk punya ukuran/warna berbeda.</div>
                             </div>
                             {{-- Cek apakah produk punya varian di DB --}}
-                            <input class="form-check-input ms-0" type="checkbox" id="has_variants" name="has_variants" value="1" 
-                                {{ old('has_variants', $product->variants()->count() > 0) ? 'checked' : '' }} role="switch">
+                            {{-- INDIKATOR TIPE PRODUK (MENGGANTIKAN CHECKBOX) --}}
+                            <div class="mb-4 p-3 bg-light border rounded">
+                                <label class="form-label fw-bold mb-1 text-muted">Struktur Produk (Permanen)</label>
+                                <div>
+                                    @if($product->hasVariants())
+                                        <span class="badge bg-primary fs-6"><i class="bi bi-tags me-1"></i> Produk Bervarian</span>
+                                        <input type="hidden" id="has_variants" name="has_variants" value="1">
+                                    @else
+                                        <span class="badge bg-secondary fs-6"><i class="bi bi-box me-1"></i> Produk Tunggal (Single)</span>
+                                        <input type="hidden" id="has_variants" name="has_variants" value="0">
+                                    @endif
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="bi bi-info-circle"></i> Struktur produk ditetapkan saat pembuatan dan tidak dapat diubah agar data sinkronisasi dengan Accurate tetap aman.
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -110,9 +134,14 @@
                             <label class="form-label">Stok</label>
                             <input type="number" name="stock" class="form-control" value="{{ old('stock', $product->stock) }}">
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">SKU (Kode Unik)</label>
-                            <input type="text" name="sku" class="form-control" value="{{ old('sku', $product->sku) }}">
+                        {{-- UNTUK PRODUK UTAMA (SINGLE) --}}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">SKU (Stock Keeping Unit)</label>
+                            {{-- 🚨 TAMBAHKAN READONLY DI SINI --}}
+                            <input type="text" name="sku" class="form-control bg-light" value="{{ old('sku', $product->sku) }}" readonly>
+                            <div class="form-text text-danger">
+                                <i class="bi bi-info-circle"></i> SKU bersifat permanen dan tidak dapat diubah setelah produk dibuat demi menjaga sinkronisasi dengan Accurate. Jika terjadi kesalahan, silakan hapus dan buat produk baru.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -158,18 +187,18 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const checkbox = document.getElementById('has_variants');
+        const isVariant = hiddenInput.value === '1'; // Membaca nilai 1 atau 0
         const singleFields = document.getElementById('single-product-fields');
         const variantFields = document.getElementById('variant-product-fields');
         const tableBody = document.querySelector('#variant-table tbody');
 
         // 1. Data Varian Existing (Dari Controller -> JSON)
         const existingVariants = @json($product->variants->values());
-        // 2. Logic Toggle
+        // 2. Logic Toggle (Disederhanakan karena statis)
         function toggleVariantFields() {
-            if (checkbox.checked) {
+            if (isVariant) {
                 singleFields.style.display = 'none';
                 variantFields.style.display = 'block';
-                // Disable input single agar tidak dikirim (kecuali weight yang sudah dipindah)
                 toggleInputs(singleFields, true);
             } else {
                 singleFields.style.display = 'block';
@@ -177,6 +206,9 @@
                 toggleInputs(singleFields, false);
             }
         }
+        
+        // Panggil fungsinya langsung
+        toggleVariantFields();
 
         function toggleInputs(container, isDisabled) {
             container.querySelectorAll('input').forEach(input => input.disabled = isDisabled);
@@ -206,7 +238,7 @@
         }
     };
 
-        checkbox.addEventListener('change', toggleVariantFields);
+        // checkbox.addEventListener('change', toggleVariantFields);
         toggleVariantFields(); // Init load
         // 🚨 2. FUNGSI HAPUS GAMBAR VARIAN (Hanya Hapus Preview & Set Flag)
     window.removeVariantImage = function(btn) {
@@ -225,57 +257,64 @@
     };
         // 3. Render Baris (Add Row)
        // 🚨 3. FUNGSI TAMBAH BARIS (Diperbarui)
-    window.addVariantRow = function(data = null) {
-        const index = Date.now() + Math.floor(Math.random() * 1000); 
-        const tableBody = document.querySelector('#variant-table tbody');
-        
-        const idInput = data ? `<input type="hidden" name="variants[${index}][id]" value="${data.id}">` : '';
-        const name = data ? data.name : '';
-        const price = data ? data.price : '';
-        const stock = data ? data.stock : '';
-        const sku = data ? (data.sku || '') : '';
-        const isActive = data ? data.is_active : 1;
+   // 🚨 3. FUNGSI TAMBAH BARIS (Diperbarui dengan Pengunci SKU)
+        window.addVariantRow = function(data = null) {
+            const index = Date.now() + Math.floor(Math.random() * 1000); 
+            const tableBody = document.querySelector('#variant-table tbody');
+            
+            const idInput = data ? `<input type="hidden" name="variants[${index}][id]" value="${data.id}">` : '';
+            const name = data ? data.name : '';
+            const price = data ? data.price : '';
+            const stock = data ? data.stock : '';
+            const sku = data ? (data.sku || '') : '';
+            const isActive = data ? data.is_active : 1;
 
-        // Kontainer preview dengan tombol X jika gambar dari database sudah ada
-        const imagePreview = (data && data.image) 
-            ? `<div class="position-relative d-inline-block mb-1">
-                 <img src="/storage/${data.image}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
-                 <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
-                     <i class="bi bi-x" style="font-size: 14px;"></i>
-                 </button>
-               </div>` 
-            : '';
+            // 🚨 LOGIKA KUNCI SKU: Jika data varian ada (sudah tersimpan), maka kunci SKU-nya
+            const isSkuLocked = (data && data.sku) ? 'readonly' : '';
+            const skuBgClass = isSkuLocked ? 'bg-light' : ''; // Beri warna abu-abu jika terkunci
 
-        const row = `
-            <tr>
-                <td>
-                    ${idInput}
-                    <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Misal: Merah" value="${name}" required>
-                </td>
-                <td class="text-center">
-                    <div class="variant-image-preview text-center">
-                        ${imagePreview}
-                    </div>
-                    <input type="file" name="variants[${index}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="window.previewVariantImage(this, ${index})">
-                    
-                    <input type="hidden" name="variants[${index}][remove_image]" value="0" class="remove-image-flag">
-                </td>
-                <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
-                <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
-                <td>
-                    <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1" placeholder="SKU" value="${sku}">
-                    <select name="variants[${index}][is_active]" class="form-select form-select-sm">
-                        <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
-                        <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
-                    </select>
-                </td>
-                <td class="text-center align-middle">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="window.removeRow(this)"><i class="bi bi-trash"></i></button>
-                </td>
-            </tr>
-        `;
-        tableBody.insertAdjacentHTML('beforeend', row);
-    };
+            // Kontainer preview dengan tombol X jika gambar dari database sudah ada
+            const imagePreview = (data && data.image) 
+                ? `<div class="position-relative d-inline-block mb-1">
+                     <img src="/storage/${data.image}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
+                     <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
+                         <i class="bi bi-x" style="font-size: 14px;"></i>
+                     </button>
+                   </div>` 
+                : '';
+
+            const row = `
+                <tr>
+                    <td>
+                        ${idInput}
+                        <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Misal: Merah" value="${name}" required>
+                    </td>
+                    <td class="text-center">
+                        <div class="variant-image-preview text-center">
+                            ${imagePreview}
+                        </div>
+                        <input type="file" name="variants[${index}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="window.previewVariantImage(this, ${index})">
+                        
+                        <input type="hidden" name="variants[${index}][remove_image]" value="0" class="remove-image-flag">
+                    </td>
+                    <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
+                    <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
+                    <td>
+                        {{-- 🚨 INPUT SKU DENGAN PENGUNCI OTOMATIS --}}
+                        <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1 ${skuBgClass}" placeholder="SKU" value="${sku}" ${isSkuLocked}>
+                        
+                        <select name="variants[${index}][is_active]" class="form-select form-select-sm">
+                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
+                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
+                        </select>
+                    </td>
+                    <td class="text-center align-middle">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="window.removeRow(this)"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        };
         window.removeRow = function(btn) {
             // Cek jumlah baris agar tidak habis total (opsional, tapi good UX)
             if (tableBody.children.length > 1) {

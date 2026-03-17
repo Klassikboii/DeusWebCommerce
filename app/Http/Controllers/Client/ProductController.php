@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use App\Services\AccurateService;
+use App\Models\OrderItem;
 
 class ProductController extends Controller
 {
@@ -162,7 +163,7 @@ class ProductController extends Controller
                 if ($hasVariants && $product->variants->count() > 0) {
                     foreach ($product->variants as $variant) {
                         // Sync Barang
-                        $status = $accurateService->syncProductVariant($variant);
+                        $status = $accurateService->syncItemToAccurate($variant);
                         // Sync Stok Awal (Jika barang sukses dibuat)
                         if ($status && $variant->stock > 0) {
                             $accurateService->syncInventoryAdjustment($variant->sku, $variant->stock);
@@ -173,11 +174,11 @@ class ProductController extends Controller
                     $singleItem = (object)[
                         'sku' => $product->sku,
                         'price' => $product->price,
-                        'name' => '', 
+                        'name' => $product->name,
                         'product' => $product
                     ];
                     // Sync Barang
-                    $status = $accurateService->syncProductVariant($singleItem);
+                    $status = $accurateService->syncItemToAccurate($singleItem);
                     // Sync Stok Awal (Jika barang sukses dibuat)
                     if ($status && $product->stock > 0) {
                         $accurateService->syncInventoryAdjustment($product->sku, $product->stock);
@@ -254,7 +255,7 @@ class ProductController extends Controller
                 'weight'      => $request->weight ?? 1000,
                 // Induk tidak boleh punya SKU jika dia punya varian (agar Accurate tidak bingung)
                 'sku'         => $hasVariants ? null : $request->sku, 
-                'is_active'   => $request->is_active,
+                'is_active'   => $request->has('is_active') ? 1 : 0,
             ];
 
             // Logika Update Gambar
@@ -350,7 +351,7 @@ class ProductController extends Controller
                 if ($hasVariants && $product->variants->count() > 0) {
                     // --- MODE VARIAN ---
                     foreach ($product->variants as $variant) {
-                        $status = $accurateService->syncProductVariant($variant);
+                        $status = $accurateService->syncItemToAccurate($variant);
                         
                         // Hitung Selisih Stok
                         $stokAccurate = $accurateService->getAccurateStock($variant->sku);
@@ -368,11 +369,11 @@ class ProductController extends Controller
                     $singleItem = (object)[
                         'sku' => $product->sku,
                         'price' => $product->price,
-                        'name' => '', 
+                        'name' => $product->name,
                         'product' => $product
                     ];
                     
-                    $status = $accurateService->syncProductVariant($singleItem);
+                    $status = $accurateService->syncItemToAccurate($singleItem);
                     
                     // Hitung Selisih Stok
                     $stokAccurate = $accurateService->getAccurateStock($product->sku);
@@ -490,6 +491,9 @@ class ProductController extends Controller
             $weight = (int) ($row[4] ?? 1000); // Default 1000 gram jika kosong
             $description = $row[5] ?? '';
 
+            // 🚨 LOGIKA SMART ACTIVATION UNTUK CSV
+            $isEligibleForSale = $price > 0 ? true : false;
+
             // LOGIKA INTI: Update jika SKU ada, Create jika SKU baru
             $product = Product::updateOrCreate(
                 [
@@ -503,7 +507,7 @@ class ProductController extends Controller
                     'stock' => $stock,
                     'weight' => $weight,
                     'description' => $description,
-                    'is_active' => true
+                    'is_active' => $isEligibleForSale
                 ]
             );
 
@@ -559,5 +563,102 @@ public function destroyAll(Request $request, $websiteId)
         ]);
 
         return back()->with('success', 'Katalog berhasil dikosongkan! Produk yang memiliki riwayat pesanan hanya dinonaktifkan demi keamanan data.');
+    }
+
+ public function insight(\App\Models\Website $website, \App\Models\Product $product)
+    {
+        $this->authorize('view', $website);
+        if ($product->website_id !== $website->id) abort(404);
+
+        // ==========================================
+        // 🤖 LOGIKA 1: PREDIKSI KUANTITAS RESTOCK (Update Status)
+        // ==========================================
+        $targetDays = 30; // Target aman stok untuk 1 bulan ke depan
+        
+        // 🚨 KITA MASUKKAN STANDAR BARU DI SINI UNTUK STATUS TERKINI
+        $minVelocityThreshold = 3 / 30; // Standar minimal hidup (0.1 per hari)
+
+        $currentStock = $product->stock;
+        $velocity = $product->velocity > 0 ? $product->velocity : 0; // Pastikan positif
+        $runwayDays = null;
+        $stockStatus = 'Normal';
+
+        if ($currentStock <= 0) {
+            $runwayDays = 0;
+            $stockStatus = 'Empty';
+        } else {
+            // Cek standar: Apakah kecepatannya memenuhi syarat minimal?
+            if ($velocity >= $minVelocityThreshold) {
+                $runwayDays = (int) round($currentStock / $velocity);
+                $stockStatus = ($runwayDays <= 7) ? 'Critical' : 'Safe';
+            } else {
+                // Di bawah standar = Overstock
+                $runwayDays = (int) round($currentStock / $minVelocityThreshold); // Runway teoritis
+                $stockStatus = 'Overstock'; 
+            }
+        }
+
+        // Hitung Kuantitas Restock
+        $neededForTarget = $velocity * $targetDays; 
+        $recommendedRestock = (int) ceil($neededForTarget - $currentStock);
+        if ($recommendedRestock < 0) {
+            $recommendedRestock = 0;
+        }
+
+        // ==========================================
+        // 📈 LOGIKA 2: DATA GRAFIK (DUA GARIS) - DIPERBAIKI (Anti-Single Point)
+        // ==========================================
+        $chartLabels = [];
+        $chartData = [];       // Garis Merah (Proyeksi Stok)
+        $targetLineData = [];  // Garis Hijau Putus-putus (Batas Aman)
+        
+        // 🚨 PERBAIKAN: Selama ada stok fisik, GRAFIK HARUS MUNCUL
+        if ($currentStock > 0) {
+            
+            // Tentukan durasi plot: default 30 hari, atau runway jika runway <= 30 (bukan overstock)
+            $plotDuration = 30; 
+            if ($stockStatus !== 'Overstock' && $runwayDays !== null && $runwayDays <= 30 && $runwayDays > 0) {
+                $plotDuration = $runwayDays;
+            }
+
+            // Tentukan langkah (step) agar label sumbu X terlihat rapi (maks 6 label)
+            // 🚨 PERBAIKAN: Pastikan step minimal 1
+            $step = max(1, (int)($plotDuration / 5)); 
+
+            // Loop untuk plot
+            for ($i = 0; $i <= $plotDuration; $i += $step) {
+                $chartLabels[] = "Hari +" . $i;
+                
+                // Hitung proyeksi penurunan (max 0). Jika velocity 0, nilai akan konstan currentStock
+                $projectedValue = $currentStock;
+                if ($velocity > 0) {
+                   $projectedValue = max(0, $currentStock - ($velocity * $i));
+                }
+                $chartData[] = round($projectedValue);
+                
+                // Hitung batas aman (neededForTarget) - mendatar konstan
+                $targetLineData[] = round($neededForTarget); 
+            }
+            
+            // Tambahkan titik "Habis" di ujung jika durasi plot <= 30 hari (bukan overstock)
+            if ($stockStatus !== 'Overstock' && $runwayDays !== null && $runwayDays <= 30 && $runwayDays > 0) {
+                if (!in_array("Hari +" . $runwayDays . " (Habis)", $chartLabels)) {
+                    $chartLabels[] = "Hari +" . $runwayDays . " (Habis)";
+                    $chartData[] = 0;
+                    $targetLineData[] = round($neededForTarget);
+                }
+            }
+        }
+
+        // Update status stok terkini ke model agar sinkron dengan View
+        $product->update([
+            'velocity' => $velocity,
+            'runway_days' => $runwayDays,
+            'stock_status' => $stockStatus
+        ]);
+$penjualantotal = OrderItem::where('product_id', $product->id)->sum('qty'); 
+        return view('client.products.insight', compact(
+            'website', 'product', 'targetDays', 'recommendedRestock', 'chartLabels', 'chartData', 'targetLineData', 'penjualantotal'
+        ));
     }
 }

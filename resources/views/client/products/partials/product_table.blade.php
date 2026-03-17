@@ -4,12 +4,12 @@
     <table class="table table-hover align-middle mb-0">
         <thead class="bg-light text-muted">
             <tr>
-                <th class="ps-4 py-3 border-0">Nama Produk</th>
-                <th class="py-3 border-0">Kategori</th>
-                <th class="py-3 border-0">Harga</th>
-                <th class="py-3 border-0">Stok</th>
-                {{-- <th class="py-3 border-0">Status</th> --}}
-                <th class="pe-4 py-3 border-0 text-end">Aksi</th>
+                <th class="ps-4 py-3 border-0" style="width: 30%;">Nama Produk</th>
+                <th class="py-3 border-0" style="width: 10%;">Kategori</th>
+                <th class="py-3 border-0" style="width: 15%;">Harga</th>
+                <th class="py-3 border-0" style="width: 10%;">Stok</th>
+                <th class="py-3 border-0" style="width: 15%; text-align: center;">Status</th>
+                <th class="pe-4 py-3 border-0 text-end " style="width: 20%;">Aksi</th>
             </tr>
         </thead>
         <tbody>
@@ -28,9 +28,10 @@
                             <div>
                         <h6 class="mb-0 fw-bold">
                             {{ $product->name }}
-                            @if(!$product->is_active)
-                                <span class="badge bg-secondary ms-2" style="font-size: 0.6rem;">Nonaktif</span>
-                            @endif
+                            {{-- @if(!$product->is_active)
+                                <span class="badge bg-secondary ms-2" style="font-size: 0.6rem;">  {{ $product->name }} </span>
+                            @else --}}
+                            {{-- @endif --}}
                         </h6>
                         
                     </div>
@@ -64,39 +65,61 @@
                     @endif
                 </td>
                {{-- KOLOM STOK --}}
+                      {{-- Ini contoh kolom stok Anda saat ini --}}
                         <td>
-                            @if($product->variants->count() > 0)
-                                {{-- Tampilkan total stok dari semua varian --}}
-                                <span class="badge bg-info text-dark">Total: {{ $product->variants->sum('stock') }}</span>
-                            @else
-                                {{-- Tampilkan stok produk utama --}}
-                                @if($product->stock <= 5 && $product->stock > 0)
-                                    <span class="badge bg-danger">Sisa: {{ $product->stock }}</span>
-                                @elseif($product->stock == 0)
-                                    <span class="badge bg-secondary">Habis</span>
+                            <span class="fw-bold fs-5">{{ $product->stock }}</span>
+                            <br>
+                            {{-- 🚨 TAMBAHKAN BADGE AI INI DI BAWAH ANGKA STOK --}}
+                            @if($product->stock_status === 'Critical')
+                                <span class="badge bg-danger mt-1" title="Kecepatan: {{ number_format($product->velocity, 1) }} item/hari">
+                                    <i class="bi bi-exclamation-octagon-fill"></i> Sisa {{ $product->runway_days }} Hari
+                                </span>
+                            @elseif($product->stock_status === 'Safe')
+                            <span class="badge bg-success mt-1">
+                                <i class="bi bi-check-circle-fill"></i> 
+                                @if($product->runway_days > 90)
+                                    Aman (> 3 Bulan)
                                 @else
-                                    <span class="badge bg-success">{{ $product->stock }}</span>
+                                    Aman ({{ $product->runway_days }} Hari)
                                 @endif
+                            </span>
+                            @elseif($product->stock_status === 'Overstock')
+                                <span class="badge bg-warning text-dark mt-1">
+                                    <i class="bi bi-box-seam"></i> Overstock (Macet)
+                                </span>
+                            @else
+                                <span class="badge bg-secondary mt-1">Kosong</span>
                             @endif
                         </td>
-                {{-- <td>
-                    @if($product->status == 'active') 
+                <td style="text-align: center;">
+                    @if($product->is_active == 1) 
                         <span class="badge bg-success-subtle text-success">Aktif</span>
                     @else
-                        <span class="badge bg-secondary-subtle text-secondary">Draft</span>
+                        <span class="badge bg-secondary-subtle text-secondary">Nonaktif</span>
                     @endif
-                </td> --}}
-                <td class="pe-4 text-end">
-                    <div class="btn-group">
-                        <a href="{{ route('client.products.edit', [$website->id, $product->id]) }}" class="btn btn-sm btn-light border" title="Edit">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <form action="{{ route('client.products.destroy', [$website->id, $product->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus produk ini?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-light border text-danger" title="Hapus"><i class="bi bi-trash"></i></button>
-                        </form>
-                    </div>
                 </td>
+                <td class="pe-4 text-end">
+                        {{-- 🚨 UBAH btn-group MENJADI d-flex gap-1 --}}
+                        <div class="d-flex justify-content-end align-items-stretch gap-1">
+                            
+                            <a href="{{ route('client.products.edit', [$website->id, $product->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            
+                            {{-- Hapus d-inline dari form, biarkan flex yang mengatur --}}
+                            <form action="{{ route('client.products.destroy', [$website->id, $product->id]) }}" method="POST" class="m-0" onsubmit="return confirm('Hapus produk ini?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-light border text-danger h-100 d-flex align-items-center" title="Hapus">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            
+                            <a href="{{ route('client.products.insight', ['website' => $website->id, 'product' => $product->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Lihat Analisis AI">
+                                <i class="bi bi-graph-up-arrow text-info"></i>
+                            </a>
+                            
+                        </div>
+                    </td>
             </tr>
             @empty
             <tr>

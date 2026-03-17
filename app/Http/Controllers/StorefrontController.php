@@ -22,7 +22,7 @@ class StorefrontController extends Controller
 
         // 2. Ambil Template & Produk
         $templateName = $website->active_template ?? 'modern';
-        $products = $website->products()->latest()->get();
+        $products = $website->products()->where('is_active', true)->where('price', '>', 0)->latest()->get();
         $sections = $website->sections ?? []; // Data section builder
 
         // 3. Tampilkan View TANPA Redirect ke Dashboard
@@ -79,7 +79,7 @@ public function products(Request $request, $subdomain)
         
         // 1. QUERY DASAR
         // Kita mulai dari relasi products() tanpa filter status dulu
-        $query = $website->products(); 
+        $query = $website->products()->where('is_active', true)->where('price', '>', 0);
 
         // 2. FILTER: PENCARIAN (Search)
         // Cek apakah ada parameter 'search' di URL
@@ -153,7 +153,7 @@ public function product(Request $request, $subdomain, $slug)
     // 2. Cari Produk berdasarkan Slug
     $product = $website->products()
         ->where('slug', $slug)
-        // ->where('status', 'active') // Pastikan hanya produk aktif
+        ->where('is_active', true) // 🚨 Kunci gembok diaktifkan
         ->firstOrFail();
 
     

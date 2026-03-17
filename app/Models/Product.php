@@ -10,7 +10,10 @@ class Product extends Model
     protected $fillable = [
         'website_id', 'category_id', 'name', 'slug', 'description', 
         'image', 'price', 'compare_price', 'stock', 'weight', 'sku', 
-        'is_active' // <--- Tambahkan ini
+        'is_active', // <--- Tambahkan ini
+        'velocity',
+        'runway_days',
+        'stock_status',
     ];
     public function website()
     {

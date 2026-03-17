@@ -9,6 +9,7 @@ use App\Models\Order;    // Pastikan Model Order di-import
 use App\Models\Product;  // Pastikan Model Product di-import
 use App\Models\OrderItem; // Pastikan Model OrderItem di-import
 use Illuminate\Support\Facades\DB; // Untuk query builder
+use App\Models\ProductRecommendation;
 
 class DashboardController extends Controller
 {
@@ -115,15 +116,42 @@ class DashboardController extends Controller
             ->groupBy('segment')
             ->pluck('total', 'segment')->toArray();
 
+        // 4. 🛒 AI REKOMENDASI: 3 Pasangan Produk Terbaik
+    $topBundles = ProductRecommendation::where('website_id', $website->id)
+        ->orderBy('lift', 'desc')
+        ->take(6)
+        ->with(['product', 'recommendedProduct'])
+        ->get();
+
         // Cari tahu jumlah pelanggan "Champions" dan "At Risk" untuk di-highlight
         $championsCount = $rfmSummary['Champions'] ?? 0;
         $atRiskCount = $rfmSummary['At Risk'] ?? 0;
 
+        // Ambil maksimal 5 produk yang butuh restock segera
+    // GANTI QUERY STOK KRITIS LAMA DENGAN INI
+    // Ambil maksimal 6 produk yang butuh perhatian (Critical & Overstock)
+    // A. AI Stok (Hitung total keseluruhan untuk tombol footer)
+    $totalCritical = $website->products()->where('stock_status', 'Critical')->count();
+    $totalOverstock = $website->products()->where('stock_status', 'Overstock')->count();
+
+    // Ambil maksimal 3 produk saja agar tingginya sejajar dengan widget Bundle
+    $attentionStocks = $website->products()
+        ->whereIn('stock_status', ['Critical', 'Overstock'])
+        ->orderByRaw("FIELD(stock_status, 'Critical', 'Overstock')") 
+        ->orderBy('runway_days', 'asc')
+        ->take(3) // 🚨 Ubah menjadi 3
+        ->get();
+
+
+        $currentMonth = now()->format('Y-m');
+        $totalRevenue = $website->orders()->where('status', 'paid')->where('created_at', 'like', $currentMonth . '%')->sum('total_amount');
+
         return view('client.dashboard.index', compact(
             'website', 
             'revenueThisMonth', 'revenueLastMonth', 'revenueGrowth',
-            'totalOrder', 'pendingOrders', 'totalProduk',
-            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts', 'setupStatus', 'setupProgress', 'rfmSummary', 'championsCount', 'atRiskCount'
+            'totalOrder', 'pendingOrders', 'totalProduk', 'totalCritical',   // 🚨 TAMBAHKAN INI
+        'totalOverstock',
+            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts', 'setupStatus', 'setupProgress', 'rfmSummary', 'championsCount', 'atRiskCount', 'attentionStocks', 'totalRevenue', 'topBundles'
         ));
         
     }

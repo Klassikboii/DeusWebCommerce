@@ -6,6 +6,12 @@
 <div class="container-fluid p-0">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
+            @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
             <h4 class="fw-bold mb-1">Ongkos Kirim</h4>
             <p class="text-muted small mb-0">Kelola tarif pengiriman toko Anda.</p>
         </div>

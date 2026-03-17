@@ -43,18 +43,18 @@
                             </span>
                         </td>
                         <td class="pe-4 text-end">
-                            <div class="d-flex justify-content-end gap-2">
-                                <a href="{{ route('client.categories.edit', [$website->id, $category->id]) }}" class="btn btn-sm btn-outline-warning">
+                            <div class="d-flex justify-content-end align-items-stretch gap-1">
+                                <a href="{{ route('client.categories.edit', [$website->id, $category->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Edit">
                                     <i class="bi bi-pencil"></i> 
                                 </a>
                             
-                            <form action="{{ route('client.categories.destroy', [$website->id, $category->id]) }}" method="POST" onsubmit="return confirm('Hapus kategori ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-light text-danger border">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                                <form action="{{ route('client.categories.destroy', [$website->id, $category->id]) }}" method="POST" class="m-0" onsubmit="return confirm('Hapus kategori ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-light border text-danger h-100 d-flex align-items-center" title="Hapus">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

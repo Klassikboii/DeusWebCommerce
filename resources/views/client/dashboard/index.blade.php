@@ -397,8 +397,98 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>{{-- ======================================================== --}}
+    {{-- 🚀 SECTION KECERDASAN BUATAN (AI INSIGHTS) --}}
+    {{-- ======================================================== --}}
+    <div class="row g-4 mt-2">
+        
+        {{-- KIRI: ALERT STOK (KRITIS & OVERSTOCK) --}}
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100 border-top border-warning border-3 d-flex flex-column">
+                <div class="card-header bg-white pt-3 pb-2 border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-box-seam text-warning me-2"></i>Radar Inventaris (AI)</h6>
+                </div>
+                
+                {{-- AREA LIST PRODUK (Maksimal 3) --}}
+                <div class="card-body p-0 flex-grow-1">
+                    @if(isset($attentionStocks) && $attentionStocks->count() > 0)
+                        <div class="list-group list-group-flush">
+                            @foreach($attentionStocks as $item)
+                                <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-truncate" style="max-width: 200px;">{{ $item->name }}</h6>
+                                        <small class="text-muted">Sisa {{ $item->stock }} unit • Laku {{ number_format($item->velocity, 1) }}/hari</small>
+                                    </div>
+                                    <div class="text-end">
+                                        @if($item->stock_status == 'Critical')
+                                            <span class="badge bg-danger mb-1">Kritis ({{ $item->runway_days }} Hari)</span>
+                                        @else
+                                            <span class="badge bg-secondary mb-1">Overstock</span>
+                                        @endif
+                                        <br>
+                                        <a href="{{ route('client.products.insight', [$website->id, $item->id]) }}" class="btn btn-sm btn-outline-primary mt-1 py-0" style="font-size: 0.75rem;">Analisis</a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle text-success fs-2 mb-2 d-block"></i>
+                            <small>Gudang optimal! Tidak ada stok kritis maupun overstock.</small>
+                        </div>
+                    @endif
+                </div>
 
+                {{-- 🚨 TAMBAHAN BARU: FOOTER RINGKASAN & TOMBOL --}}
+                <div class="card-footer bg-light border-top p-3 mt-auto">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            {{-- Arahkan ke halaman produk (bisa ditambahkan parameter ?status=Critical nanti jika fitur filter sudah ada) --}}
+                            <a href="{{ route('client.products.index', [$website->id]) }}" class="btn btn-outline-danger w-100 btn-sm d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-exclamation-circle me-1"></i> Kritis</span>
+                                <span class="badge bg-danger rounded-pill">{{ $totalCritical ?? 0 }}</span>
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ route('client.products.index', [$website->id]) }}" class="btn btn-outline-secondary w-100 btn-sm d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-box-seam me-1"></i> Overstock</span>
+                                <span class="badge bg-secondary rounded-pill">{{ $totalOverstock ?? 0 }}</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        {{-- KANAN: GABUNGAN PIE CHART (LAMA) DAN BUNDLE --}}
+        <div class="col-lg-6">
+            
+            {{-- BIARKAN KODE PIE CHART RFM LAMA ANDA DI SINI --}}
+            {{-- (Kode Ringkasan AI: Segmen Pelanggan yang ada di PDF Halaman 2) --}}
+
+            {{-- KOTAK MARKET BASKET (Tambahkan di bawah Pie Chart) --}}
+            <div class="card border-0 shadow-sm mt-4 border-top border-info border-3">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-cart-plus-fill text-info me-2"></i>Peluang Bundle (AI)</h6>
+                    @if(isset($topBundles) && $topBundles->count() > 0)
+                        <ul class="list-unstyled mb-0 small">
+                            @foreach($topBundles as $bundle)
+                                <li class="mb-2 pb-2 border-bottom">
+                                    <strong>{{ $bundle->product->name ?? '?' }}</strong> + <strong>{{ $bundle->recommendedProduct->name ?? '?' }}</strong> 
+                                    <span class="text-success ms-1"><i class="bi bi-arrow-up-right"></i> {{ number_format($bundle->lift, 1) }}x</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <div class="text-center p-2 text-muted">
+                            <small>Data belum cukup untuk rekomendasi bundle.</small>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+        </div>
+    </div>
     @if(!empty($rfmSummary))
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>

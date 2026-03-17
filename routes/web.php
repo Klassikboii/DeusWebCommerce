@@ -68,6 +68,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/products', [ProductController::class, 'index'])->name('client.products.index');
         Route::get('/products/create', [ProductController::class, 'create'])->name('client.products.create');
         Route::post('/products', [ProductController::class, 'store'])->name('client.products.store');
+        Route::get('products/{product}/insight', [App\Http\Controllers\Client\ProductController::class, 'insight'])->name('client.products.insight');
+
     // Nanti kita tambah route POST store, edit, delete disini
         // ... route produk yang sudah ada ...
     // --- FITUR KATEGORI ---
@@ -187,9 +189,10 @@ Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
         // Di dalam Route Group 's/{subdomain}'
     Route::get('/products', [App\Http\Controllers\StorefrontController::class, 'products'])->name('store.products');
-    
-    Route::get('/product/{slug}', [App\Http\Controllers\StorefrontController::class, 'product'])->name('store.product');
+    Route::get('products/{product}/insight', [App\Http\Controllers\Client\ProductController::class, 'insight'])->name('store.products.insight');
 
+    Route::get('/product/{slug}', [App\Http\Controllers\StorefrontController::class, 'product'])->name('store.product');
+    
     // ... Cart Routes (Pastikan controller menerima parameter $subdomain) ...
     Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
     Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');

@@ -185,8 +185,8 @@
                             <table class="table table-hover align-middle border">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width: 25%">Jika pelanggan membeli...</th>
-                                        <th style="width: 25%">Mereka biasanya juga beli...</th>
+                                        <th style="width: 20%">Jika pelanggan membeli...</th>
+                                        <th style="width: 20%">Mereka biasanya juga beli...</th>
                                         
                                         {{-- 🚨 ATRIBUT TOOLTIP DITAMBAHKAN DI SINI --}}
                                         <th class="text-center" style="width: 15%">
@@ -199,7 +199,7 @@
                                         </th>
                                         
                                         {{-- 🚨 KOLOM BARU: TRANSLASI MANUSIA --}}
-                                        <th style="width: 25%">Insight AI & Rekomendasi Aksi</th>
+                                        <th style="width: 35%">Insight AI & Rekomendasi Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -247,7 +247,18 @@
 
     </div>
 </div>
-
+{{-- SCRIPT UNTUK MENGAKTIFKAN TOOLTIP BOOTSTRAP --}}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Cari semua elemen yang punya atribut data-bs-toggle="tooltip"
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        
+        // Aktifkan satu per satu
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
 {{-- SCRIPT UNTUK GRAFIK CHART.JS --}}
 @if(!$rfmData->isEmpty())
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -292,15 +303,8 @@
                 }
             }
         });
-
-        // Cari semua elemen yang punya atribut data-bs-toggle="tooltip"
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        
-        // Aktifkan satu per satu
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
     });
 </script>
 @endif
+
 @endsection

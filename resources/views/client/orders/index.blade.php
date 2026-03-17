@@ -5,7 +5,12 @@
 @section('content')
 <div class="container-fluid p-0">
     <h4 class="fw-bold mb-4">Pesanan Masuk</h4>
-
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
     {{-- TABS FILTER STATUS --}}
     <div class="card border-0 shadow-sm mb-4 position-relative" style="z-index: 10;">
         <div class="card-body p-0">

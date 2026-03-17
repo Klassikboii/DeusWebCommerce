@@ -25,7 +25,12 @@
                 TRIK REAL-TIME: Selalu query maksimal 12 produk (batas tertinggi dropdown).
                 Lalu gunakan inline CSS untuk menyembunyikan index yang lebih besar dari $limit saat ini.
             --}}
-            @foreach($website->products()->latest()->take(12)->get() as $index => $product)
+            {{-- 
+                TRIK REAL-TIME: Selalu query maksimal 12 produk (batas tertinggi dropdown).
+                Lalu gunakan inline CSS untuk menyembunyikan index yang lebih besar dari $limit saat ini.
+                🚨 TAMBAHAN: Pastikan HANYA produk aktif dan harga > 0 yang dipanggil!
+            --}}
+            @foreach($website->products()->where('is_active', true)->where('price', '>', 0)->latest()->take(12)->get() as $index => $product)
                 
                 {{-- Tambahkan logika display:none jika melewati limit --}}
                 <div class="col-6 col-md-4 col-lg-3 product-item" 
@@ -33,7 +38,7 @@
                     
                     <div class="card h-100 border-0 shadow-sm product-card hover-up">
                         <div class="position-relative overflow-hidden rounded-top" style="background-color: white">
-                            <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
+                            
                                 <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
                                 @if($product->image)
                                     <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" alt="{{ $product->name }}"  style="padding: 20px;">
@@ -42,7 +47,7 @@
                                         <i class="bi bi-image text-muted fs-1"></i>
                                     </div>
                                 @endif
-                            </a>
+                            
                             </a>
                             
                             {{-- Badge Stok Habis --}}

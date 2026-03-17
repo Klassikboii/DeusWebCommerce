@@ -36,4 +36,5 @@ class CustomerInsightController extends Controller
 
         return view('client.insights.index', compact('website', 'rfmData', 'segmentCounts', 'mbaData'));
     }
+    
 }

@@ -165,50 +165,58 @@ class AccurateService
     /**
      * Sinkronisasi Wujud Barang ke Accurate
      */
-    public function syncProductVariant($variant)
+    public function syncItemToAccurate($item)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
 
-        $sku = $variant->sku;
+        $sku = $item->sku;
+        
+        // Asumsi Awal: Ini adalah Produk Utama
+        $itemName = $item->name;
+        $itemPrice = $item->price;
+
+        // PENGECEKAN VARIAN: Jika objek punya 'product_id', berarti ini Varian
+        if (isset($item->product_id) && $item->product) {
+            // Gabungkan nama Induk + Varian (Misal: "Manhattan Cafe - Ukuran Besar")
+            $itemName = $item->product->name . ' - ' . $item->name;
+            // Jika harga varian 0, gunakan harga induk
+            $itemPrice = $item->price > 0 ? $item->price : $item->product->price;
+        }
 
         // Siapkan keranjang data barang
         $itemData = [
             'itemType' => 'INVENTORY',
-            'name' => $variant->name ?: ($variant->product->name ?? 'Produk'),
+            'name' => mb_substr($itemName, 0, 100), // Batasi nama maks 100 karakter
             'no' => $sku,
             'unit1Name' => 'PCS',
-            'unitPrice' => $variant->price > 0 ? $variant->price : ($variant->product->price ?? 0),
+            'unitPrice' => $itemPrice,
         ];
 
         // Tembak API Pembuatan Barang Accurate
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
-    ->withHeaders([
-            'Authorization' => 'Bearer ' . $sessionData['token'],
-            'X-Session-ID' => $sessionData['session_id']
-        ])->post($sessionData['host'] . '/accurate/api/item/save.do', $itemData);
+        $response = Http::timeout(30)->retry(3, 1000)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $sessionData['token'],
+                'X-Session-ID' => $sessionData['session_id']
+            ])->post($sessionData['host'] . '/accurate/api/item/save.do', $itemData);
 
         $responseData = $response->json();
         $rawBody = $response->body();
 
-        // 1. Jika sukses terbuat baru
+        // 1. JIKA SUKSES TERBUAT BARU (Tadinya tidak ada, sekarang ada)
         if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
-            Log::info("Sukses Sync SKU {$sku} ke Accurate.");
-            return true;
+            Log::info("Auto-Create Berhasil: SKU {$sku} otomatis ditambahkan ke Accurate.");
+            return true; 
         }
 
-        // ==========================================
-        // 🚨 JURUS BYPASS BAJA: TANGKAP ERROR DUPLIKAT
-        // ==========================================
-        // Kita baca mentah-mentah teks dari server Accurate
+        // 2. JIKA GAGAL KARENA DUPLIKAT (Artinya barang sudah aman ada di Accurate)
         if (stripos($rawBody, 'Sudah ada data lain') !== false || stripos($rawBody, 'DUMM') !== false) {
-            Log::info("Bypass: Barang dengan SKU {$sku} sudah ada di Accurate. Loloskan agar stok bisa di-update!");
-            return true; // 🚨 Memaksa Controller lanjut ke proses Update Stok!
+            Log::info("Bypass: Barang SKU {$sku} sudah ada di Accurate. Aman untuk update stok.");
+            return true; 
         }
 
-        // Jika errornya bukan karena duplikat (misal token habis)
-        Log::error("Gagal Sync SKU {$sku} ke Accurate. RAW: " . $rawBody);
+        // 3. JIKA ERROR LAIN (Misal: 401 Token Expired)
+        Log::error("Gagal Auto-Create SKU {$sku}. RAW: " . $rawBody);
         return false;
     }
     /**
@@ -663,11 +671,15 @@ class AccurateService
             ]);
 
             $isNewProduct = !$product->exists;
+            // 🚨 LOGIKA SMART ACTIVATION: Aktif jika harga lebih dari 0
+            $isEligibleForSale = $price > 0 ? true : false;
 
             $product->name      = $item['name'];
             $product->price     = $price;
             $product->stock     = $stock;
             $product->is_active = true;
+            // Jika produk baru DAN belum ada harga, paksa jadi Inaktif (Draft)
+            $product->is_active = $isNewProduct ? $isEligibleForSale : $product->is_active;
 
             if ($isNewProduct) {
                 $product->slug        = \Illuminate\Support\Str::slug($item['name']) . '-' . \Illuminate\Support\Str::random(4);
