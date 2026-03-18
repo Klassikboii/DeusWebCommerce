@@ -153,4 +153,22 @@ class Website extends Model
     {
         return $this->belongsTo(City::class, 'city_id');
     }
+    // Tambahkan di dalam class Website, di bawah fungsi relasi...
+    public function getStoreUrlAttribute()
+    {
+        $protocol = request()->secure() ? 'https://' : 'http://';
+        
+        // 🚨 TANGKAP PORT LOKAL (misal :8000)
+        $port = request()->getPort();
+        $portSuffix = ($port && $port != 80 && $port != 443) ? ':' . $port : '';
+        
+        // Prioritaskan custom domain
+        if (!empty($this->custom_domain)) {
+            return $protocol . $this->custom_domain . $portSuffix;
+        }
+        
+        // Subdomain sistem
+        $baseDomain = parse_url(config('app.url'), PHP_URL_HOST);
+        return $protocol . $this->subdomain . '.' . $baseDomain . $portSuffix;
+    }
 }

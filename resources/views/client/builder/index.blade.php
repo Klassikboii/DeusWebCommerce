@@ -193,7 +193,7 @@
                 
                 <div class="p-3 border-top bg-light">
                     <button type="button" onclick="handleSave()" class="btn btn-primary w-100 fw-bold">Simpan Perubahan</button>
-                    <a href="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" target="_blank" class="btn btn-link w-100 btn-sm text-muted mt-2">Lihat Live Website</a>
+                    <a href="{{ $website->store_url }}" target="_blank" class="btn btn-link w-100 btn-sm text-muted mt-2">Lihat Live Website</a>
                 </div>
             </form>
         </div>
@@ -207,7 +207,7 @@
             
             <div class="w-100 h-100 d-flex justify-content-center overflow-hidden">
                 <div id="previewContainer" class="shadow-lg bg-white overflow-hidden d-flex" style="width: 100%; height: 100%; border: 8px solid #2c3e50; border-radius: 12px; transition: all 0.5s;">
-                    <iframe src="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" id="previewFrame" class="w-100 h-100 border-0 shadow-sm" style="min-height: 600px; transition: all 0.5s;"></iframe>
+                    <iframe src="{{ $website->store_url }}" id="previewFrame" class="w-100 h-100 border-0 shadow-sm" style="min-height: 600px; transition: all 0.5s;"></iframe>
                 </div>
             </div>
         </div>
