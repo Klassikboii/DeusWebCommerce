@@ -13,7 +13,7 @@ class DomainController extends Controller
         $this->authorize('viewAny', $website);
         return view('client.domains.index', compact('website'));
     }
-
+    //old system
     public function update(Request $request, $id)
     {
         $website = Website::where('user_id', auth()->id())->findOrFail($id);

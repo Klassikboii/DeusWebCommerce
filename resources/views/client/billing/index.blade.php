@@ -15,6 +15,7 @@
             <p class="mb-0 fs-5">{{ session('error') }}</p>
         </div>
     @endif
+       
 
     @if($pendingTransaction)
         <div class="alert alert-warning border-0 shadow-sm mb-4">
