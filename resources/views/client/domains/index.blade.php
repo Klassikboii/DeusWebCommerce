@@ -1,107 +1,70 @@
 @extends('layouts.client')
 
-@section('title', 'Pengaturan Domain')
-
 @section('content')
-<div class="container-fluid p-0" style="max-width: 800px;">
-    <div class="mb-4">
-        <h4 class="fw-bold mb-1">Custom Domain</h4>
-        <p class="text-muted m-0">Gunakan nama domain Anda sendiri (misal: tokosaya.com).</p>
-    </div>
+<div class="container-fluid py-4">
+    <h4 class="fw-bold mb-4">Pengaturan Domain</h4>
 
     @if(session('success'))
-        <div class="alert alert-success mb-4">{{ session('success') }}</div>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     @endif
 
-    @if($website->domain_status == 'none' || empty($website->custom_domain))
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-4">
-            <div class="text-center mb-4">
-                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
-                    <i class="bi bi-globe fs-3 text-primary"></i>
-                </div>
-                <h5>Hubungkan Domain Anda</h5>
-                <p class="text-muted small">
-                    Saat ini toko Anda dapat diakses melalui: <br>
-                    <a href="{{ route('store.home', $website->subdomain) }}" target="_blank" class="fw-bold text-decoration-none">
-                        {{ $website->subdomain }}.webcommerce.id
-                    </a>
-                </p>
-            </div>
-
-            <form action="{{ route('client.domains.update', $website->id) }}" method="POST">
-                @csrf
-                <div class="mb-3">
-                    <label class="form-label fw-bold small">Masukkan Nama Domain</label>
-                    
-                    <input type="text" 
-                        name="custom_domain" 
-                        class="form-control @error('custom_domain') is-invalid @enderror" 
-                        placeholder="Contoh: www.tokoelektronik.com" 
-                        value="{{ $website->custom_domain }}"" 
-                        required>
-                    
-                    @error('custom_domain')
-                        <div class="invalid-feedback">
-                            {{ $message }}
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <form action="{{ route('client.domains.update', $website->id) }}" method="POST">
+                        @csrf
+                        {{-- Sesuai route web.php Anda, metode updatenya adalah POST --}}
+                        
+                        {{-- SUBDOMAIN SISTEM (Read Only) --}}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Subdomain Bawaan (Gratis)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" value="{{ $website->subdomain }}" readonly>
+                                <span class="input-group-text bg-light">.{{ parse_url(config('app.url'), PHP_URL_HOST) }}</span>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Ini adalah alamat default toko Anda yang selalu aktif.</small>
                         </div>
-                    @enderror
 
-                    <div class="form-text">Pastikan Anda sudah membeli domain ini di penyedia domain.</div>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Simpan Domain</button>
-            </form>
-        </div>
-    </div>
+                        <hr class="my-4">
 
-    @else
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div>
-                    <div class="small text-muted mb-1">Domain Terdaftar</div>
-                    <h4 class="fw-bold m-0 text-primary">{{ $website->custom_domain }}</h4>
-                </div>
-                
-                @if($website->domain_status == 'active')
-                    <span class="badge bg-success px-3 py-2">Aktif</span>
-                @else
-                    <span class="badge bg-warning text-dark px-3 py-2">Menunggu Verifikasi</span>
-                @endif
-            </div>
+                        {{-- CUSTOM DOMAIN (Input) --}}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-primary">Gunakan Domain Sendiri (Custom Domain)</label>
+                            <p class="text-muted small mb-3">
+                                Ingin toko Anda terlihat lebih profesional dengan domain sendiri (misal: <strong>tokosaya.com</strong>)? Masukkan nama domain Anda di bawah ini.
+                            </p>
+                            
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                                <input type="text" class="form-control" name="custom_domain" id="custom_domain" value="{{ old('custom_domain', $website->custom_domain) }}" placeholder="contoh: joseelectronics.com">
+                            </div>
+                            @error('custom_domain')
+                                <small class="text-danger mt-1 d-block">{{ $message }}</small>
+                            @enderror
+                        </div>
 
-            <div class="alert alert-info border-0 d-flex gap-3 align-items-start">
-                <i class="bi bi-info-circle-fill fs-5 mt-1"></i>
-                <div>
-                    <strong>Instruksi Konfigurasi DNS</strong>
-                    <p class="m-0 small mt-1">
-                        Agar domain <code>{{ $website->custom_domain }}</code> mengarah ke toko Anda, silakan login ke penyedia domain Anda dan tambahkan <strong>CNAME Record</strong> berikut:
-                    </p>
-                </div>
-            </div>
+                        {{-- INSTRUKSI DNS UNTUK KLIEN --}}
+                        <div class="alert alert-info border-info bg-info bg-opacity-10 mb-4">
+                            <h6 class="fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Langkah Penting Setelah Menyimpan:</h6>
+                            <ul class="mb-0 small">
+                                <li>Masuk ke penyedia domain Anda (Niagahoster, Idwebhost, dll).</li>
+                                <li>Buka pengaturan <strong>DNS Management</strong>.</li>
+                                <li>Buat/Ubah <strong>A Record</strong> yang mengarah ke IP Server: <strong class="user-select-all text-primary">123.456.789.000</strong> <em>(Ganti dengan IP Enhance Anda)</em>.</li>
+                                <li>Hubungi tim support kami agar domain Anda segera diaktifkan di sisi server.</li>
+                            </ul>
+                        </div>
 
-            <div class="bg-light p-3 rounded mb-4 border">
-                <div class="row text-center text-muted small fw-bold text-uppercase mb-2">
-                    <div class="col-3">Type</div>
-                    <div class="col-4">Name / Host</div>
-                    <div class="col-5">Value / Target</div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-2"></i>Simpan Konfigurasi Domain</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="row text-center align-items-center bg-white py-2 border rounded mx-0">
-                    <div class="col-3 fw-bold">CNAME</div>
-                    <div class="col-4">www</div>
-                    <div class="col-5 text-break font-monospace small">pro.webcommerce.id</div>
-                </div>
-            </div>
-
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <small class="text-muted">Salah memasukkan domain?</small>
-                <form action="{{ route('client.domains.destroy', $website->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus domain ini? Website akan kembali ke subdomain lama.')">
-                    @csrf @method('DELETE')
-                    <button class="btn btn-outline-danger btn-sm">Hapus & Kembali ke Subdomain</button>
-                </form>
             </div>
         </div>
     </div>
-    @endif
 </div>
 @endsection

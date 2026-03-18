@@ -14,32 +14,41 @@ class DomainController extends Controller
         return view('client.domains.index', compact('website'));
     }
 
-    public function update(Request $request, $id)
+   public function update(Request $request)
     {
-        $website = Website::where('user_id', auth()->id())->findOrFail($id);
+        $website = $request->website;
 
-        // 1. Validasi Input
+        // Validasi input
         $request->validate([
-            'custom_domain' => [
-                'required', 
-                'string', 
-                'unique:websites,custom_domain,' . $id, // Ignore diri sendiri
-                'regex:/^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i' // Validasi format domain (harus ada titiknya)
-            ]
-        ], [
-            'custom_domain.regex' => 'Format domain salah. Gunakan format: contoh.com (tanpa http://)'
+            'custom_domain' => 'nullable|string|max:255'
         ]);
 
-        // 2. Bersihkan Input (Jaga-jaga user copas pakai http)
-        $domain = strtolower($request->custom_domain);
-        $domain = str_replace(['http://', 'https://', '/'], '', $domain);
+        $cleanDomain = $request->custom_domain;
 
-        // 3. Simpan ke Database
+        if ($cleanDomain) {
+            // 🚨 PEMBERSIHAN OTOMATIS (SANITIZATION)
+            // Klien sering iseng mengetik http:// atau www., kita harus bersihkan
+            // karena Laravel Middleware kita mencari domain mentahnya saja.
+            
+            // 1. Hapus http:// atau https://
+            $cleanDomain = preg_replace('/^https?:\/\//', '', $cleanDomain);
+            
+            // 2. Hapus www.
+            $cleanDomain = preg_replace('/^www\./', '', $cleanDomain);
+            
+            // 3. Hapus garis miring di akhir (jika ada)
+            $cleanDomain = rtrim($cleanDomain, '/');
+            
+            // 4. Jadikan huruf kecil semua
+            $cleanDomain = strtolower($cleanDomain);
+        }
+
+        // Simpan ke database
         $website->update([
-            'custom_domain' => $domain
+            'custom_domain' => $cleanDomain
         ]);
 
-        return back()->with('success', 'Domain berhasil dihubungkan! Silakan tunggu propagasi DNS.');
+        return redirect()->back()->with('success', 'Custom Domain berhasil disimpan! Pastikan Anda telah mengarahkan DNS domain Anda ke IP server kami.');
     }
     
     // Fitur batal/hapus domain
