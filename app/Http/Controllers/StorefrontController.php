@@ -40,7 +40,10 @@ class StorefrontController extends Controller
     {
         // 1. Ambil data website
         // Kita cari manual saja biar lebih aman & pasti
-        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        $website = Website::where(function($query) use ($subdomain) {
+    $query->where('subdomain', $subdomain)
+          ->orWhere('custom_domain', $subdomain);
+})->firstOrFail();
 
         // 2. Ambil Postingan (Hanya yang statusnya published, opsional)
         $posts = $website->posts()->latest()->paginate(9); 
@@ -55,7 +58,10 @@ class StorefrontController extends Controller
     // Tambahkan parameter $subdomain di sini juga
     public function blogShow(Request $request, $subdomain, $slug)
     {
-        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        $website = Website::where(function($query) use ($subdomain) {
+    $query->where('subdomain', $subdomain)
+          ->orWhere('custom_domain', $subdomain);
+})->firstOrFail();
 
         // Cari post berdasarkan slug DAN id website
         $post = $website->posts() // Pakai relasi agar lebih aman
@@ -77,7 +83,10 @@ class StorefrontController extends Controller
     }
 public function products(Request $request, $subdomain)
     {
-        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        $website = Website::where(function($query) use ($subdomain) {
+    $query->where('subdomain', $subdomain)
+          ->orWhere('custom_domain', $subdomain);
+})->firstOrFail();
         
         // 1. QUERY DASAR
         // Kita mulai dari relasi products() tanpa filter status dulu
@@ -149,7 +158,10 @@ public function product(Request $request, $subdomain, $slug)
     // 1. Ambil Data Website
     $website = $request->get('website');
     if (!$website) {
-        $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
+        $website = \App\Models\Website::where(function($query) use ($subdomain) {
+    $query->where('subdomain', $subdomain)
+          ->orWhere('custom_domain', $subdomain);
+})->firstOrFail();
     }
 
     // 2. Cari Produk berdasarkan Slug
@@ -197,13 +209,19 @@ public function product(Request $request, $subdomain, $slug)
 
     public function trackOrder(Request $request, $subdomain)
     {
-        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        $website = Website::where(function($query) use ($subdomain) {
+    $query->where('subdomain', $subdomain)
+          ->orWhere('custom_domain', $subdomain);
+})->firstOrFail();
         return view('storefront.track_order', compact('website'));
     }
 
     public function processTrackOrder(Request $request, $subdomain)
     {
-        $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        $website = Website::where(function($query) use ($subdomain) {
+    $query->where('subdomain', $subdomain)
+          ->orWhere('custom_domain', $subdomain);
+})->firstOrFail();
 
         // 1. Validasi Input
         $request->validate([

@@ -233,7 +233,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
 // GANTI DARI 'domain' KE 'prefix'
 // 🚨 GANTI PREFIX MENJADI DOMAIN
 Route::prefix('s/{subdomain}')
-    ->where(['subdomain' => '.*']) // 🚨 TAMBAHKAN BARIS INI
+    ->where(['subdomain' => '[a-zA-Z0-9.-]+']) // 🚨 TAMBAHKAN BARIS INI
     ->group(function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
         // Di dalam Route Group 's/{subdomain}'
