@@ -60,7 +60,7 @@
                             <div class="bg-light rounded-circle border d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
                                 <img src="{{ $website->favicon ? asset('storage/'.$website->favicon) : 'https://www.google.com/favicon.ico' }}" width="14">
                             </div>
-                            <span class="small text-muted">{{ $website->custom_domain ?? $website->subdomain . '.webcommerce.id' }}</span>
+                            <span class="small text-muted">{{ $website->custom_domain ?? $website->active_domain . '.webcommerce.id' }}</span>
                         </div>
                         <h5 class="text-primary mb-1 text-truncate" style="font-size: 18px; cursor: pointer;" id="previewTitle">
                             {{ $website->meta_title ?? $website->site_name }}

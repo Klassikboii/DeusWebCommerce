@@ -95,6 +95,10 @@ class Website extends Model
     {
         return $this->hasMany(Product::class);
     }
+    public function package()
+    {
+        return $this->belongsTo(Package::class);
+    }
 
     public function categories()
     {
@@ -126,6 +130,12 @@ class Website extends Model
     {
         return $this->hasMany(ShippingRate::class);
     }
+    // Ambil 1 langganan yang saat ini sedang aktif
+    public function subscription()
+    {
+        return $this->hasOne(Subscription::class)->latest(); 
+        // (Atau sesuaikan jika Anda punya kolom status: ->where('status', 'active'))
+    }
 
     // Helper: Ambil daftar kota unik yang dimiliki toko ini (Untuk Dropdown Checkout)
     public function getAvailableCitiesAttribute()
@@ -152,5 +162,12 @@ class Website extends Model
     public function city()
     {
         return $this->belongsTo(City::class, 'city_id');
+    }
+    // 🚨 Atribut Siluman: active_domain
+    public function getActiveDomainAttribute()
+    {
+        // Logika: Jika custom_domain tidak kosong, kembalikan custom_domain.
+        // Jika kosong, kembalikan subdomain.
+        return !empty($this->custom_domain) ? $this->custom_domain : $this->subdomain;
     }
 }

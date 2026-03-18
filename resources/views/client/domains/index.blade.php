@@ -23,34 +23,73 @@
                 <h5>Hubungkan Domain Anda</h5>
                 <p class="text-muted small">
                     Saat ini toko Anda dapat diakses melalui: <br>
-                    <a href="{{ route('store.home', $website->subdomain) }}" target="_blank" class="fw-bold text-decoration-none">
-                        {{ $website->subdomain }}.webcommerce.id
+                    @if($website->custom_domain)
+                    <a href="{{ route('store.home', $website->custom_domain) }}" target="_blank" class="fw-bold text-decoration-none">
+                        shopadmin.ashop.asia/s/{{ $website->custom_domain }}
                     </a>
+                    @else
+                    <a href="{{ route('store.home', $website->active_domain) }}" target="_blank" class="fw-bold text-decoration-none">
+                        <span class="fw-bold"> shopadmin.ashop.asia/s/{{ $website->active_domain }} </span><br>
+                    </a>
+                     (Subdomain Gratis)
+                    @endif
+                    
                 </p>
             </div>
+                @php
+                    // Gunakan fungsi loadMissing untuk memaksa Laravel mengambil data terbaru
+                    // langsung di dalam View jika sebelumnya belum termuat
+                    $website->loadMissing('subscription.package');
+                    
+                    // Lalu cek kondisinya
+                    $canUseCustomDomain = $website->subscription?->package?->can_custom_domain === true;
+                @endphp
 
-            <form action="{{ route('client.domains.update', $website->id) }}" method="POST">
-                @csrf
-                <div class="mb-3">
-                    <label class="form-label fw-bold small">Masukkan Nama Domain</label>
-                    
-                    <input type="text" 
-                        name="custom_domain" 
-                        class="form-control @error('custom_domain') is-invalid @enderror" 
-                        placeholder="Contoh: www.tokoelektronik.com" 
-                        value="{{ $website->custom_domain }}"" 
-                        required>
-                    
-                    @error('custom_domain')
-                        <div class="invalid-feedback">
-                            {{ $message }}
+                    @if(!$canUseCustomDomain)
+                        {{-- TAMPILAN JIKA DIGEMBOK --}}
+                        <div class="alert alert-warning border-warning shadow-sm">
+                            <h6 class="fw-bold mb-1"><i class="bi bi-lock-fill me-2"></i>Fitur Terkunci</h6>
+                            <p class="small mb-2">Paket langganan Anda saat ini tidak mendukung penggunaan Custom Domain (hanya subdomain). Tingkatkan paket Anda untuk terlihat lebih profesional!</p>
+                            <a href="{{ route('client.billing.index', $website->id) }}" class="btn btn-sm btn-warning fw-bold">Upgrade Paket</a>
                         </div>
-                    @enderror
+                        
+                        {{-- Form input disabled --}}
+                        <div class="input-group opacity-50">
+                            <span class="input-group-text"><i class="bi bi-globe"></i></span>
+                            <input type="text" class="form-control" disabled placeholder="Terkunci. Membutuhkan Upgrade.">
+                        </div>
+                    @else
+                        {{-- TAMPILAN JIKA TERBUKA (Biarkan form input domain lama Anda di sini) --}}
+                        <div class="input-group">
+                            
+                            <form action="{{ route('client.domains.update', $website->id) }}" method="POST">
+                                @csrf
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold small">Masukkan Nama Domain</label>
+                                    
+                                    <input type="text" 
+                                        name="custom_domain" 
+                                        class="form-control @error('custom_domain') is-invalid @enderror" 
+                                        placeholder="Contoh: www.tokoelektronik.com" 
+                                        value="{{ $website->custom_domain }}"" 
+                                        required>
+                                    
+                                    @error('custom_domain')
+                                        <div class="invalid-feedback">
+                                            {{ $message }}
+                                        </div>
+                                    @enderror
 
-                    <div class="form-text">Pastikan Anda sudah membeli domain ini di penyedia domain.</div>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">Simpan Domain</button>
-            </form>
+                                    <div class="form-text">Pastikan Anda sudah membeli domain ini di penyedia domain.</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Simpan Domain</button>
+                            </form>
+                        </div>
+                        @error('custom_domain')
+                            <small class="text-danger mt-1 d-block">{{ $message }}</small>
+                        @enderror
+                    @endif
+            
         </div>
     </div>
 

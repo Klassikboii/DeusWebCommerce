@@ -9,11 +9,13 @@ use App\Models\Post;
 
 class StorefrontController extends Controller
 {
-    public function index(Request $request)
+    public function index($subdomain)
     {
-        // 1. Ambil data website (Otomatis di-inject oleh Middleware ResolveTenant)
-        // Kalau pakai $request->merge(['website' => $website]) di middleware
-        $website = $request->website; 
+        // 🚨 Cari di kolom 'subdomain' ATAU 'custom_domain'
+        // 🚨 Wajib tambahkan orWhere untuk custom_domain
+        $website = \App\Models\Website::where('subdomain', $subdomain)
+                                      ->orWhere('custom_domain', $subdomain)
+                                      ->firstOrFail();
 
         // Fallback jika null (misal akses manual tanpa middleware yang benar)
         if (!$website) {

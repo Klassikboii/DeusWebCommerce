@@ -23,7 +23,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('store.track.check', $website->subdomain) }}" method="POST">
+                    <form action="{{ route('store.track.check', $website->active_domain) }}" method="POST">
                         @csrf
                         
                         <div class="mb-3">
@@ -44,7 +44,7 @@
                     </form>
                     
                     <div class="text-center mt-4 border-top pt-3">
-                        <a href="{{ route('store.home', $website->subdomain) }}" class="text-decoration-none small text-muted">
+                        <a href="{{ route('store.home', $website->active_domain) }}" class="text-decoration-none small text-muted">
                             <i class="bi bi-arrow-left me-1"></i> Kembali ke Beranda
                         </a>
                     </div>

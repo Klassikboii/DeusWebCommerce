@@ -8,6 +8,24 @@ use App\Http\Middleware\ResolveTenant;
 use App\Models\Website;
 use Illuminate\Support\Facades\Session;
 
+
+// 🚨 1. AMBIL DOMAIN UTAMA DARI .ENV (Akan berisi 'localhost')
+$mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+
+
+// 🚨 TAMBAHAN: Auto-Redirect 127.0.0.1 ke localhost
+// Jika Anda tidak sengaja mengetik 127.0.0.1, sistem akan otomatis melemparnya ke localhost
+// 🚨 UBAH JADI ARRAY: ['any' => '.*']
+Route::domain('127.0.0.1')->group(function () {
+    Route::any('{any}', function ($any = '') {
+        return redirect("http://localhost:8000/{$any}");
+    })->where(['any' => '.*']); 
+});
+// =======================================================
+// 🏢 RUTE APLIKASI UTAMA SAAS (HANYA AKTIF DI MAIN DOMAIN)
+// =======================================================
+Route::domain($mainDomain)->group(function () {
+    
 Route::get('/cek-config', function () {
     $url = config('app.url');
     $domain = config('session.domain');
@@ -29,9 +47,7 @@ Route::get('/debug-auth', function () {
         'website_in_session' => session('website_id') ? Website::find(session('website_id')) : null,
     ];
 });
-
-Route::get('/preview/{website}', [App\Http\Controllers\StorefrontController::class, 'preview'])
-    ->name('website.preview');
+Route::get('/preview/{website}', [App\Http\Controllers\StorefrontController::class, 'preview'])->name('website.preview');
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -182,46 +198,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{website}/accurate/database', [\App\Http\Controllers\Client\AccurateController::class, 'saveDatabase'])->name('client.accurate.save_db');
         Route::post('/settings/accurate/disconnect/{website}', [\App\Http\Controllers\Client\AccurateController::class, 'disconnect'])->name('client.accurate.disconnect');
 });
-// --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
 
-// GANTI DARI 'domain' KE 'prefix'
-Route::group(['prefix' => 's/{subdomain}', 'middleware' => ['web', ResolveTenant::class]], function () {
-    Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
-        // Di dalam Route Group 's/{subdomain}'
-    Route::get('/products', [App\Http\Controllers\StorefrontController::class, 'products'])->name('store.products');
-    Route::get('products/{product}/insight', [App\Http\Controllers\Client\ProductController::class, 'insight'])->name('store.products.insight');
-
-    Route::get('/product/{slug}', [App\Http\Controllers\StorefrontController::class, 'product'])->name('store.product');
-    
-    // ... Cart Routes (Pastikan controller menerima parameter $subdomain) ...
-    Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
-    Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
-    Route::patch('/cart/update', [App\Http\Controllers\CheckoutController::class, 'updateCart'])->name('store.cart.update');
-    Route::delete('/cart/remove/{id}', [App\Http\Controllers\CheckoutController::class, 'removeFromCart'])->name('store.cart.remove');
-        // Route untuk AJAX Cek Ongkir (Ditaruh di group Storefront)
-    Route::post('/cart/check-shipping', [App\Http\Controllers\CheckoutController::class, 'checkShipping'])->name('store.cart.checkShipping');
-    // Batasi maksimal 5 request per 1 menit per IP
-    Route::middleware(['throttle:5,1'])->group(function () {
-        Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'processCheckout'])->name('store.checkout');
-        
-    });
-        // Route Konfirmasi Pembayaran
-    Route::get('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'payment'])->name('store.payment');
-    Route::post('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'confirmPayment'])->name('store.payment.confirm');
-    // ... di dalam group 's/{subdomain}' ...
-
-    // TRACK ORDER / CEK PESANAN
-    Route::get('/track-order', [App\Http\Controllers\StorefrontController::class, 'trackOrder'])->name('store.track');
-    Route::post('/track-order', [App\Http\Controllers\StorefrontController::class, 'processTrackOrder'])->name('store.track.check');
-    // === ROUTE BLOG (SUDAH BENAR) ===
-    Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('storefront.blog.index');
-    Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('storefronts.blog.show');
-})->name('store.');
 // --- GRUP ROUTE SUPER ADMIN ---
-Route::prefix('admin')
-    ->name('admin.')
-    ->middleware(['auth', 'admin']) // <--- INI PAGARNYA
-    ->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- INI PAGARNYA
+->group(function () {
        
         // Dashboard Pusat
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
@@ -245,3 +225,43 @@ Route::prefix('admin')
         Route::get('/users/{id}/impersonate', [App\Http\Controllers\Admin\UserController::class, 'impersonate'])->name('users.impersonate');
         Route::delete('/users/{id}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
     });
+
+});
+
+// --- RUTE UNTUK MELIHAT TOKO (STOREFRONT) ---
+
+// GANTI DARI 'domain' KE 'prefix'
+// 🚨 GANTI PREFIX MENJADI DOMAIN
+Route::prefix('s/{subdomain}')
+    ->where(['subdomain' => '.*']) // 🚨 TAMBAHKAN BARIS INI
+    ->group(function () {
+    Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
+        // Di dalam Route Group 's/{subdomain}'
+    Route::get('/products', [App\Http\Controllers\StorefrontController::class, 'products'])->name('store.products');
+    Route::get('products/{product}/insight', [App\Http\Controllers\Client\ProductController::class, 'insight'])->name('store.products.insight');
+
+    Route::get('/product/{slug}', [App\Http\Controllers\StorefrontController::class, 'product'])->name('store.product');
+    
+    // ... Cart Routes (Pastikan controller menerima parameter $subdomain) ...
+    Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
+    Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
+    Route::patch('/cart/update', [App\Http\Controllers\CheckoutController::class, 'updateCart'])->name('store.cart.update');
+    Route::delete('/cart/remove/{id}', [App\Http\Controllers\CheckoutController::class, 'removeFromCart'])->name('store.cart.remove');
+        // Route untuk AJAX Cek Ongkir (Ditaruh di group Storefront)
+    Route::post('/cart/check-shipping', [App\Http\Controllers\CheckoutController::class, 'checkShipping'])->name('store.cart.checkShipping');
+    // Batasi maksimal 5 request per 1 menit per IP
+    Route::middleware(['throttle:5,1'])->group(function () {
+        Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'processCheckout'])->name('store.checkout');
+    });
+        // Route Konfirmasi Pembayaran
+    Route::get('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'payment'])->name('store.payment');
+    Route::post('/payment/{order_number}', [App\Http\Controllers\CheckoutController::class, 'confirmPayment'])->name('store.payment.confirm');
+    // ... di dalam group 's/{subdomain}' ...
+
+    // TRACK ORDER / CEK PESANAN
+    Route::get('/track-order', [App\Http\Controllers\StorefrontController::class, 'trackOrder'])->name('store.track');
+    Route::post('/track-order', [App\Http\Controllers\StorefrontController::class, 'processTrackOrder'])->name('store.track.check');
+    // === ROUTE BLOG (SUDAH BENAR) ===
+    Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('storefront.blog.index');
+    Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('storefronts.blog.show');
+});

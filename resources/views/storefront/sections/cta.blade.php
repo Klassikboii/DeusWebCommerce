@@ -6,7 +6,7 @@
     // Fix Link untuk Halaman Blog
     $rawLink = $data['button_link'] ?? '#products';
     if ($rawLink === '/blog') {
-        $btnLink = route('store.storefront.blog.index', ['subdomain' => $website->subdomain]);
+        $btnLink = route('store.storefront.blog.index', ['subdomain' => $website->active_domain]);
     } else {
         $btnLink = $rawLink;
     }

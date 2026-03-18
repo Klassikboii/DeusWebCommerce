@@ -70,7 +70,7 @@
                             <p class="small mb-0">Status pesanan Anda saat ini: <strong>{{ ucfirst($order->status) }}</strong></p>
                         </div>
                         <div class="d-grid mt-3">
-                            <a href="{{ route('store.home', $website->subdomain) }}" class="btn btn-outline-primary">Kembali ke Toko</a>
+                            <a href="{{ route('store.home', $website->active_domain) }}" class="btn btn-outline-primary">Kembali ke Toko</a>
                         </div>
 
                     {{-- 
@@ -127,7 +127,7 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('store.payment.confirm', ['subdomain' => $website->subdomain, 'order_number' => $order->order_number]) }}" method="POST" enctype="multipart/form-data">
+                        <form action="{{ route('store.payment.confirm', ['subdomain' => $website->active_domain, 'order_number' => $order->order_number]) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             
                             <div class="mb-3">

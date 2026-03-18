@@ -104,13 +104,13 @@
                                 } else {
                                     // Jika pakai subdomain bawaan (elecjos.localhost)
                                     // Kita paksa pakai .localhost agar terbaca di sistem host
-                                    $storeUrl = $protocol . $website->subdomain . '.localhost' . $port;
+                                    $storeUrl = $protocol . $website->active_domain . '.localhost' . $port;
                                 }
                             @endphp
                             <div>
                                 <h5 class="fw-bold mb-1 text-truncate" style="max-width: 200px;">{{ $website->site_name }}</h5>
-                                <a href="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" target="_blank" class="text-decoration-none small text-muted">
-                                    {{ $website->subdomain }}.webcommerce.id <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                <a href="{{ route('store.home', ['subdomain' => $website->active_domain]) }}" target="_blank" class="text-decoration-none small text-muted">
+                                    {{ $website->active_domain }}.webcommerce.id <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                             </div>
                             <span class="badge bg-light text-dark border">
@@ -119,7 +119,7 @@
                         </div>
                     
                         <div class="mt-auto pt-3 border-top d-flex gap-2">
-                            <a href="{{ route('store.home', ['subdomain' => $website->subdomain]) }}" target="_blank" class="btn btn-light flex-fill border btn-sm py-2">
+                            <a href="{{ route('store.home', ['subdomain' => $website->active_domain]) }}" target="_blank" class="btn btn-light flex-fill border btn-sm py-2">
                                 <i class="bi bi-eye"></i> Lihat Toko
                             </a>
                             <a href="{{ route('client.dashboard', $website->id) }}" class="btn btn-primary flex-fill btn-sm py-2">

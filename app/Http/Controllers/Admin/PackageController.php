@@ -31,19 +31,26 @@ class PackageController extends Controller
             'max_products' => 'required|integer',
         ]);
 
+        // 🚨 LOGIKA TEXTAREA KE ARRAY (Untuk fitur checklist)
+        $featuresArray = [];
+        if ($request->has('features') && !empty(trim($request->features))) {
+            $featuresArray = array_values(array_filter(array_map('trim', explode("\n", $request->features))));
+        }
+
         Package::create([
             'name' => $request->name,
-            'slug' => $request->slug, // misal: pro-monthly
+            'slug' => $request->slug, 
             'price' => $request->price,
             'duration_days' => $request->duration_days,
             'max_products' => $request->max_products,
-            'can_custom_domain' => $request->has('can_custom_domain'), // Checkbox
-            'remove_branding' => $request->has('remove_branding'),     // Checkbox
+            'description' => $request->description,
+            'can_custom_domain' => $request->has('custom_domain') ? 1 : 0,
+            'remove_branding' => $request->has('remove_branding') ? 1 : 0,
+            'features' => $featuresArray // 🚨 TAMBAHKAN BARIS INI
         ]);
 
         return redirect()->route('admin.packages.index')->with('success', 'Paket baru berhasil dibuat!');
     }
-
     // Tampilkan Form Edit
     public function edit(Package $package)
     {
@@ -60,13 +67,21 @@ class PackageController extends Controller
             'max_products' => 'required|integer',
         ]);
 
+        // 🚨 LOGIKA TEXTAREA KE ARRAY
+        $featuresArray = [];
+        if ($request->has('features') && !empty(trim($request->features))) {
+            $featuresArray = array_values(array_filter(array_map('trim', explode("\n", $request->features))));
+        }
+      
         $package->update([
             'name' => $request->name,
             'price' => $request->price,
             'duration_days' => $request->duration_days,
             'max_products' => $request->max_products,
-            'can_custom_domain' => $request->has('can_custom_domain'),
-            'remove_branding' => $request->has('remove_branding'),
+            'description' => $request->description,
+            'can_custom_domain' => $request->has('custom_domain') ? 1 : 0,
+            'remove_branding' => $request->has('remove_branding') ? 1 : 0,
+            'features' => $featuresArray // 🚨 TAMBAHKAN BARIS INI
         ]);
 
         return redirect()->route('admin.packages.index')->with('success', 'Paket berhasil diperbarui!');

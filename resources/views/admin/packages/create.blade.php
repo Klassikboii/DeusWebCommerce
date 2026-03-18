@@ -39,17 +39,28 @@
                     <input type="number" name="max_products" class="form-control" placeholder="100" required>
                 </div>
 
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Fitur Tambahan</label>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="can_custom_domain" id="customDomain">
-                        <label class="form-check-label" for="customDomain">Bisa Custom Domain (.com/.id)</label>
+                {{-- Input Deskripsi --}}
+                    <div class="mb-3">
+                        <label for="description" class="form-label fw-bold">Deskripsi Singkat</label>
+                        <input type="text" class="form-control" id="description" name="description" value="{{ old('description', $package->description ?? '') }}" placeholder="Contoh: Cocok untuk bisnis yang sedang berkembang">
                     </div>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="remove_branding" id="removeBrand">
-                        <label class="form-check-label" for="removeBrand">Hapus Branding "Powered by WebCommerce"</label>
+
+                    {{-- Saklar Fitur Sistem (Boolean) --}}
+                    <div class="mb-4 p-3 border rounded bg-light">
+                        <label class="form-label fw-bold d-block text-primary"><i class="bi bi-cpu me-2"></i>Limitasi Sistem (Akses Fitur)</label>
+                        <small class="text-muted d-block mb-3">Nyalakan saklar ini untuk memberikan akses fitur secara sistem kepada Klien.</small>
+                        
+                        <div class="form-check form-switch mb-2">
+                            {{-- Value 1 agar dikirim sebagai true saat dicentang --}}
+                            <input class="form-check-input" type="checkbox" name="custom_domain" id="custom_domain" value="1" {{ old('custom_domain', $package->can_custom_domain ?? 0) ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold" for="custom_domain">Buka Akses Custom Domain</label>
+                        </div>
+                        
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="remove_branding" id="remove_branding" value="1" {{ old('remove_branding', $package->remove_branding ?? 0) ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold" for="remove_branding">Izinkan Hapus Branding (White-label)</label>
+                        </div>
                     </div>
-                </div>
 
                 <div class="d-flex justify-content-between">
                     <a href="{{ route('admin.packages.index') }}" class="btn btn-light border">Batal</a>

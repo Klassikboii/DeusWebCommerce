@@ -48,6 +48,10 @@
                                 <span>Custom Domain</span>
                                 <span>{!! $currentSubscription->package->can_custom_domain ? '<i class="bi bi-check text-success"></i>' : '<i class="bi bi-x text-muted"></i>' !!}</span>
                             </li>
+                            <li class="list-group-item d-flex justify-content-between px-0">
+                                <span>Bebas Watermark</span>
+                                <span>{!! $currentSubscription->package->remove_branding ? '<i class="bi bi-check text-success"></i>' : '<i class="bi bi-x text-muted"></i>' !!}</span>
+                            </li>
                         </ul>
                     @else
                        <div class="text-center py-4">
@@ -74,20 +78,38 @@
                         @csrf
                         
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Pilih Paket</label>
-                            <select name="package_id" class="form-select @error('package_id') is-invalid @enderror" id="packageSelect" required>
-                                <option value="" selected disabled>-- Pilih Paket --</option>
-                                @foreach($packages as $pkg)
-                                    <option value="{{ $pkg->id }}" data-price="{{ $pkg->price }}">
-                                        {{ $pkg->name }} - Rp {{ number_format($pkg->price, 0, ',', '.') }}/bln
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('package_id')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
+                               <label class="form-label fw-bold">Pilih Paket</label>
+                                <select name="package_id" id="packageSelect" class="form-select" required>
+                                    <option value="">-- Pilih Paket --</option>
+                                    @foreach($packages as $package)
+                                        {{-- 🚨 TITIPKAN DATA KOLOM DATABASE KE DALAM ATRIBUT data-* --}}
+                                        <option value="{{ $package->id }}" 
+                                                data-desc="{{ $package->description }}"
+                                                data-max-products="{{ $package->max_products }}"
+                                                data-domain="{{ $package->can_custom_domain }}"
+                                                data-branding="{{ $package->remove_branding }}">
+                                            {{ $package->name }} - Rp {{ number_format($package->price, 0, ',', '.') }} / {{ $package->duration_days }} Hari
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
 
+                            {{-- KOTAK PREVIEW BENEFIT --}}
+                                <div id="featuresPreviewBox" class="card border-primary shadow-sm d-none mb-4 mt-3">
+                                    <div class="card-body bg-light">
+                                        <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                                            <i class="bi bi-stars text-warning me-2"></i>Detail Paket: <span id="previewTitle" class="text-dark"></span>
+                                        </h6>
+                                        
+                                        {{-- Deskripsi Paket --}}
+                                        <p id="previewDesc" class="small text-muted mb-3 font-italic"></p>
+                                        
+                                        {{-- List Checklist Dinamis --}}
+                                        <ul id="featuresList" class="mb-0 list-unstyled">
+                                            {{-- Akan diisi oleh JS --}}
+                                        </ul>
+                                    </div>
+                                </div>
                         <div class="alert alert-info border-0 d-flex align-items-start gap-3 mt-4">
                             <i class="bi bi-bank fs-4 text-primary"></i>
                             <div>
@@ -130,5 +152,83 @@
         const formatted = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(price);
         document.getElementById('totalDisplay').innerText = 'Total: ' + formatted;
     });
+</script><script>
+document.addEventListener('DOMContentLoaded', function() {
+    const packageSelect = document.getElementById('packageSelect');
+    const featuresPreviewBox = document.getElementById('featuresPreviewBox');
+    const featuresList = document.getElementById('featuresList');
+    const previewDesc = document.getElementById('previewDesc');
+    const previewTitle = document.getElementById('previewTitle');
+
+    packageSelect.addEventListener('change', function() {
+        // Ambil opsi yang sedang dipilih
+        const option = this.options[this.selectedIndex];
+        
+        // Kosongkan list sebelumnya
+        featuresList.innerHTML = '';
+        previewDesc.innerHTML = '';
+        previewTitle.innerHTML = '';
+
+        if (this.value) {
+            // 1. Ambil data dari atribut data-*
+            const packageName = option.text.split(' - ')[0]; // Ambil nama paket saja
+            const desc = option.getAttribute('data-desc');
+            const maxProducts = option.getAttribute('data-max-products');
+            const canDomain = option.getAttribute('data-domain') === '1';
+            const removeBranding = option.getAttribute('data-branding') === '1';
+
+            // 2. Isi Judul & Deskripsi
+            previewTitle.innerText = packageName;
+            if (desc && desc !== 'null') {
+                previewDesc.innerText = '"' + desc + '"';
+            }
+
+            // 3. RENDER CHECKLIST BERDASARKAN DATABASE
+            
+            // Limit Produk (Selalu ada)
+            featuresList.innerHTML += `
+                <li class="mb-2">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i> 
+                    Maksimal <b>${maxProducts} Produk</b>
+                </li>`;
+
+            // Custom Domain (Jika 1 Check Hijau, Jika 0 Silang Abu-abu)
+            if (canDomain) {
+                featuresList.innerHTML += `
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> 
+                        Mendukung <b>Custom Domain</b> (Toko Anda.com)
+                    </li>`;
+            } else {
+                featuresList.innerHTML += `
+                    <li class="mb-2 text-muted">
+                        <i class="bi bi-x-circle text-danger opacity-75 me-2"></i> 
+                        <del>Custom Domain</del> <small>(Hanya Subdomain)</small>
+                    </li>`;
+            }
+
+            // Remove Branding (Jika 1 Check Hijau, Jika 0 Silang Abu-abu)
+            if (removeBranding) {
+                featuresList.innerHTML += `
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> 
+                        <b>Bebas Watermark</b> (Hapus Branding ASHOP)
+                    </li>`;
+            } else {
+                featuresList.innerHTML += `
+                    <li class="mb-2 text-muted">
+                        <i class="bi bi-x-circle text-danger opacity-75 me-2"></i> 
+                        <del>Bebas Watermark</del> 
+                    </li>`;
+            }
+
+            // Tampilkan kotaknya
+            featuresPreviewBox.classList.remove('d-none');
+        } else {
+            // Sembunyikan jika user memilih "-- Pilih Paket --"
+            featuresPreviewBox.classList.add('d-none');
+        }
+    });
+});
 </script>
 @endsection

@@ -7,7 +7,7 @@
     $rawLink = $data['button_link'] ?? '#products';
     if ($rawLink === '/blog') {
         // Jika minta ke blog, kita buatkan rute dinamis lengkap dengan subdomain
-        $btnLink = route('storefront.blog.index', ['subdomain' => $website->subdomain]);
+        $btnLink = route('storefront.blog.index', ['subdomain' => $website->active_domain]);
     } else {
         // Jika #anchor atau URL luar, biarkan apa adanya
         $btnLink = $rawLink;

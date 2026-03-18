@@ -16,7 +16,7 @@ class Package extends Model
         'price',
         'duration_days',
         'description',
-        'description', // <--- Pastikan ini ada
+         // <--- Pastikan ini ada
         'features',
         'max_products',
         'can_custom_domain',
@@ -26,5 +26,7 @@ class Package extends Model
     // Casting features array agar otomatis jadi JSON saat diambil
     protected $casts = [
         'features' => 'array',
+        'can_custom_domain' => 'boolean',
+        'remove_branding' => 'boolean',
     ];
 }

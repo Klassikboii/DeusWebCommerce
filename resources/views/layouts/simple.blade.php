@@ -122,8 +122,8 @@
         } else {
             $appUrl = env('APP_URL');
             $cleanAppUrl = str_replace(['http://', 'https://'], '', $appUrl);
-            $storeUrl = 'http://' . $website->subdomain . '.' . $cleanAppUrl;
-            if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->subdomain . '.localhost:8000'; }
+            $storeUrl = 'http://' . $website->active_domain . '.' . $cleanAppUrl;
+            if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->active_domain . '.localhost:8000'; }
         }
     @endphp
 
@@ -181,14 +181,14 @@
                                 if (str_starts_with($url, '#')) {
                                     if (!request()->routeIs('store.home')) {
                                         // Jika sedang tidak di home, arahkan ke home dulu + anchor
-                                        $href = route('store.home', $website->subdomain) . $url; 
+                                        $href = route('store.home', $website->active_domain) . $url; 
                                     }
                                 } 
                                 // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
                                 elseif (str_starts_with($url, '/')) {
                                     // FIX: Gunakan helper 'url' manual agar path-nya bersih
                                     // Hasil: http://domain.com/s/elecjos/blog
-                                    $href = url('/s/' . $website->subdomain . $url);
+                                    $href = url('/s/' . $website->active_domain . $url);
                                 }
                             @endphp
 
@@ -199,7 +199,7 @@
                         @endforeach
                         {{-- ITEM TAMBAHAN: CEK PESANAN --}}
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="{{ route('store.track', $website->subdomain) }}">
+                        <a class="nav-link text-dark" href="{{ route('store.track', $website->active_domain) }}">
                             Cek Pesanan
                         </a>
                     </li>
@@ -210,7 +210,7 @@
                         $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
                     @endphp
                     <li class="nav-item ms-lg-3 mt-3 mt-lg-0">
-                        <a href="{{ route('store.cart', $website->subdomain) }}" class="btn btn-primary rounded-pill px-4 btn-sm">
+                        <a href="{{ route('store.cart', $website->active_domain) }}" class="btn btn-primary rounded-pill px-4 btn-sm">
                             <i class="bi bi-cart"></i> Cart 
                             @if($cartCount > 0)
                             <span class="badge bg-white text-primary ms-1 rounded-pill">{{ $cartCount }}</span>
@@ -232,6 +232,19 @@
             <div class="row g-4">
                 <div class="col-md-5">
                     <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px;">{{ $website->site_name }}</h5>
+                    {{-- 🚨 LOGIKA GEMBOK BRANDING --}}
+                            @php
+                                // Cek apakah Klien berhak menghapus branding
+                                // Menggunakan === true karena kita sudah cast kolom ini jadi boolean di Model
+                                $canRemoveBranding = $website->subscription?->package?->remove_branding === true;
+                            @endphp
+
+                            {{-- Jika TIDAK BISA remove branding, maka tampilkan iklan SaaS Anda --}}
+                            @if(!$canRemoveBranding)
+                                <div class="mt-2 text-muted small">
+                                    Powered by <a href="https://shopadmin.ashop.asia" target="_blank" class="fw-bold text-decoration-none text-primary">Elecios WebCommerce</a>
+                                </div>
+                            @endif
                     @if($website->address) <p class="small text-muted mb-3"><i class="bi bi-geo-alt-fill me-1"></i> {{ $website->address }}</p> @endif
                     <div class="d-flex gap-2">
                         @if($website->whatsapp_number) <a href="https://wa.me/62{{ $website->whatsapp_number }}" target="_blank" class="text-dark text-decoration-none border px-3 py-1 small"><i class="bi bi-whatsapp"></i> WhatsApp</a> @endif
@@ -268,7 +281,7 @@
             if(!input) return;
 
             const getSearchUrl = (query) => {
-                let baseUrl = "{{ route('store.products', $website->subdomain) }}";
+                let baseUrl = "{{ route('store.products', $website->active_domain) }}";
                 let urlObj = new URL(baseUrl);
                 urlObj.searchParams.set('search', query);
                 urlObj.searchParams.set('type', 'dropdown');

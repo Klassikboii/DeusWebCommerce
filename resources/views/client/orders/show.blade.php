@@ -149,7 +149,7 @@
                         }
                         
                         // 2. Generate Link Pembayaran Toko
-                        $paymentLink = route('store.payment', ['subdomain' => $website->subdomain, 'order_number' => $order->order_number]);
+                        $paymentLink = route('store.payment', ['subdomain' => $website->active_domain, 'order_number' => $order->order_number]);
 
                         // 3. Pesan Berdasarkan Status
                         if ($order->status == 'pending') {
@@ -294,7 +294,7 @@
                         <small class="text-muted d-block mb-1">Link Pembayaran Customer:</small>
                         <div class="input-group input-group-sm">
                             <input type="text" class="form-control" id="paymentLinkInput" 
-                                   value="{{ route('store.payment', ['subdomain' => $website->subdomain, 'order_number' => $order->order_number]) }}" readonly>
+                                   value="{{ route('store.payment', ['subdomain' => $website->active_domain, 'order_number' => $order->order_number]) }}" readonly>
                             <button class="btn btn-outline-secondary" type="button" onclick="copyPaymentLink()">
                                 <i class="bi bi-clipboard"></i>
                             </button>

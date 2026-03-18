@@ -8,7 +8,7 @@
     </style>
     <div class="container py-5" style="max-width: 900px;">
         <div class="mb-4">
-            <a href="{{ route('store.home', $website->subdomain) }}" class="text-decoration-none text-muted">
+            <a href="{{ route('store.home', $website->active_domain) }}" class="text-decoration-none text-muted">
                 <i class="bi bi-arrow-left"></i> Kembali Belanja
             </a>
             <h2 class="fw-bold mt-2">Keranjang & Checkout</h2>
@@ -37,7 +37,7 @@
                                     <tr>
                                         <td class="ps-4 py-3">
                                             <div class="d-flex align-items-center gap-3">
-                                                <form action="{{ route('store.cart.remove', ['subdomain' => $website->subdomain, 'id' => $id]) }}" method="POST">
+                                                <form action="{{ route('store.cart.remove', ['subdomain' => $website->active_domain, 'id' => $id]) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-sm btn-link text-danger p-0">
@@ -55,7 +55,7 @@
 
                                        {{-- Update Qty Form --}}
                                         <td class="align-middle text-center" style="width: 140px;">
-                                             <form action="{{ route('store.cart.update', ['subdomain' => $website->subdomain]) }}" method="POST" class="d-flex align-items-center gap-2 justify-content-center">
+                                             <form action="{{ route('store.cart.update', ['subdomain' => $website->active_domain]) }}" method="POST" class="d-flex align-items-center gap-2 justify-content-center">
                                                 @csrf
                                                 @method('PATCH')
                                                 <input type="hidden" name="id" value="{{ $id }}">
@@ -95,7 +95,7 @@
                                     <div class="card-body">
                                         <h5 class="fw-bold mb-3">Informasi Pengiriman</h5>
                                         
-                                        <form action="{{ route('store.checkout', $website->subdomain) }}" method="POST">
+                                        <form action="{{ route('store.checkout', $website->active_domain) }}" method="POST">
                                             @csrf
                                             
                                             {{-- Nama & WA (Tetap) --}}
@@ -189,7 +189,7 @@
             <div class="text-center py-5">
                 <i class="bi bi-cart-x display-1 text-muted opacity-25"></i>
                 <h4 class="mt-3 text-muted">Keranjang Kosong</h4>
-                <a href="{{ route('store.home', $website->subdomain) }}" class="btn btn-primary-custom mt-2">Belanja Dulu</a>
+                <a href="{{ route('store.home', $website->active_domain) }}" class="btn btn-primary-custom mt-2">Belanja Dulu</a>
             </div>
         @endif
 
@@ -197,7 +197,7 @@
 
     <script>
         // URL API Cek Ongkir
-    const checkShippingUrl = "{{ route('store.cart.checkShipping', $website->subdomain) }}";
+    const checkShippingUrl = "{{ route('store.cart.checkShipping', $website->active_domain) }}";
     const csrfToken = "{{ csrf_token() }}";
 
     function formatRupiah(amount) {

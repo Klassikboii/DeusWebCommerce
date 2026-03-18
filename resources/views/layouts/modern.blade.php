@@ -100,8 +100,8 @@
     } else {
         $appUrl = env('APP_URL');
         $cleanAppUrl = str_replace(['http://', 'https://'], '', $appUrl);
-        $storeUrl = 'http://' . $website->subdomain . '.' . $cleanAppUrl;
-        if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->subdomain . '.localhost:8000'; }
+        $storeUrl = 'http://' . $website->active_domain . '.' . $cleanAppUrl;
+        if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->active_domain . '.localhost:8000'; }
     }
 @endphp
 
@@ -120,7 +120,7 @@
                 Hasil: Dropdown di bawahnya.
             --}}
             <div class="d-none d-lg-block flex-grow-1 position-relative mx-4" style="max-width: 600px;">
-                <form action="{{ route('store.products', $website->subdomain) }}" method="GET" id="desktop-search-form">
+                <form action="{{ route('store.products', $website->active_domain) }}" method="GET" id="desktop-search-form">
                     <div class="input-group">
                         <input type="text" class="form-control rounded-start-pill border-end-0 ps-4 bg-light" 
                                name="search" id="desktop-search-input" 
@@ -185,14 +185,14 @@
                                 if (str_starts_with($url, '#')) {
                                     if (!request()->routeIs('store.home')) {
                                         // Jika sedang tidak di home, arahkan ke home dulu + anchor
-                                        $href = route('store.home', $website->subdomain) . $url; 
+                                        $href = route('store.home', $website->active_domain) . $url; 
                                     }
                                 } 
                                 // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
                                 elseif (str_starts_with($url, '/')) {
                                     // FIX: Gunakan helper 'url' manual agar path-nya bersih
                                     // Hasil: http://domain.com/s/elecjos/blog
-                                    $href = url('/s/' . $website->subdomain . $url);
+                                    $href = url('/s/' . $website->active_domain . $url);
                                 }
                             @endphp
 
@@ -203,7 +203,7 @@
                         @endforeach
                         {{-- ITEM TAMBAHAN: CEK PESANAN --}}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('store.track', $website->subdomain) }}">
+                        <a class="nav-link" href="{{ route('store.track', $website->active_domain) }}">
                             Cek Pesanan
                         </a>
                     </li>
@@ -214,7 +214,7 @@
                         $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
                     @endphp
                     <li class="nav-item ms-lg-2 mt-3 mt-lg-0">
-                        <a href="{{ route('store.cart', $website->subdomain) }}" class="btn rounded-pill px-4 position-relative w-100" style="background-color: var(--primary-color); color: white;">
+                        <a href="{{ route('store.cart', $website->active_domain) }}" class="btn rounded-pill px-4 position-relative w-100" style="background-color: var(--primary-color); color: white;">
                             <i class="bi bi-cart"></i> 
                             <span class="d-lg-none ms-2">Keranjang</span>
                             @if($cartCount > 0)
@@ -249,7 +249,19 @@
                     <p class="small" style="color: var(--secondary-color); line-height: 1.6;">
                         {{ $website->address ?: 'Platform toko online terpercaya.' }}
                     </p>
-                    
+                    {{-- 🚨 LOGIKA GEMBOK BRANDING --}}
+                            @php
+                                // Cek apakah Klien berhak menghapus branding
+                                // Menggunakan === true karena kita sudah cast kolom ini jadi boolean di Model
+                                $canRemoveBranding = $website->subscription?->package?->remove_branding === true;
+                            @endphp
+
+                            {{-- Jika TIDAK BISA remove branding, maka tampilkan iklan SaaS Anda --}}
+                            @if(!$canRemoveBranding)
+                                <div class="mt-2 text-muted small">
+                                    Powered by <a href="https://shopadmin.ashop.asia" target="_blank" class="fw-bold text-decoration-none text-primary">Elecios WebCommerce</a>
+                                </div>
+                            @endif
                     {{-- Tombol Sosial Media / Contact (Dari desain lama Anda) --}}
                     <div class="d-flex gap-2 mt-4">
                         @if($website->whatsapp_number)
@@ -300,7 +312,7 @@
                         @php
                             $footerMenus = $website->navigation_menu ?? [
                                 ['label' => 'Beranda', 'url' => '/'],
-                                ['label' => 'Katalog Produk', 'url' => route('store.products', $website->subdomain ?? '')],
+                                ['label' => 'Katalog Produk', 'url' => route('store.products', $website->active_domain ?? '')],
                                 ['label' => 'Cek Pesanan', 'url' => '#']
                             ];
                         @endphp
@@ -349,7 +361,7 @@
 
             // Helper untuk membangun URL
             const getSearchUrl = (query) => {
-                let baseUrl = "{{ route('store.products', $website->subdomain) }}";
+                let baseUrl = "{{ route('store.products', $website->active_domain) }}";
                 let urlObj = new URL(baseUrl);
                 urlObj.searchParams.set('search', query);
                 urlObj.searchParams.set('type', 'dropdown');

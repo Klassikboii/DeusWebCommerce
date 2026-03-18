@@ -39,7 +39,7 @@
                     <div class="card h-100 border-0 shadow-sm product-card hover-up">
                         <div class="position-relative overflow-hidden rounded-top" style="background-color: white">
                             
-                                <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}">
+                                <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $product->slug]) }}">
                                 @if($product->image)
                                     <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" alt="{{ $product->name }}"  style="padding: 20px;">
                                 @else
@@ -68,7 +68,7 @@
                             @endif
                             
                             <h6 class="card-title text-truncate mb-2 fw-bold" style="font-size: 1rem;">
-                                <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}" class="text-decoration-none text-dark stretched-link">
+                                <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $product->slug]) }}" class="text-decoration-none text-dark stretched-link">
                                     {{ $product->name }}
                                 </a>
                             </h6>
@@ -88,7 +88,7 @@
 
         {{-- TOMBOL LIHAT SEMUA --}}
         <div class="text-center mt-5">
-            <a href="{{ route('store.products', $website->subdomain) }}" class="btn btn-outline-primary rounded-pill px-5 py-2">
+            <a href="{{ route('store.products', $website->active_domain) }}" class="btn btn-outline-primary rounded-pill px-5 py-2">
                 Lihat Semua Produk <i class="bi bi-arrow-right ms-2"></i>
             </a>
         </div>

@@ -1,7 +1,7 @@
 @if($products->count() > 0)
     <div class="list-group list-group-flush">
         @foreach($products as $product)
-            <a href="{{ route('store.product', ['subdomain' => $website->subdomain, 'slug' => $product->slug]) }}" 
+            <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $product->slug]) }}" 
                class="list-group-item list-group-item-action d-flex align-items-center gap-2 px-0 py-2">
                 
                 {{-- Gambar Mini --}}
@@ -26,7 +26,7 @@
 
     {{-- Link Lihat Semua --}}
     <div class="text-center mt-2 border-top pt-2">
-        <a href="{{ route('store.products', ['subdomain' => $website->subdomain, 'search' => request('search')]) }}" class="btn btn-link btn-sm text-decoration-none p-0">
+        <a href="{{ route('store.products', ['subdomain' => $website->active_domain, 'search' => request('search')]) }}" class="btn btn-link btn-sm text-decoration-none p-0">
             Lihat semua hasil <i class="bi bi-arrow-right"></i>
         </a>
     </div>

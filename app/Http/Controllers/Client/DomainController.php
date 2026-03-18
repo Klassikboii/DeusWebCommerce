@@ -11,6 +11,21 @@ class DomainController extends Controller
     public function index(Website $website)
     {
         $this->authorize('viewAny', $website);
+
+        // 🚨 ALAT PELACAK: Buka baris ini satu per satu untuk melihat isinya
+        // dd($website->subscription); 
+        // dd($website->subscription->package);
+
+        // Buka Controller Anda dan ubah pelacaknya menjadi ini:
+    // dd([
+    //     'ID_Paket_Yang_Terkait' => $website->subscription->package->id,
+    //     'Nama_Paket' => $website->subscription->package->name,
+    //     'Nilai_Custom_Domain' => $website->subscription->package->can_custom_domain,
+    //     'Nilai_Remove_Branding' => $website->subscription->package->remove_branding,
+    //     'Tipe_Data' => gettype($website->subscription->package->can_custom_domain)
+    // ]);
+        
+        
         return view('client.domains.index', compact('website'));
     }
     //old system
