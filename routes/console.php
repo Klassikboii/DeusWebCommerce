@@ -16,3 +16,5 @@ Schedule::command('orders:cancel-unpaid')->hourly();
 // Menjalankan analisis kecepatan stok setiap 3 jam 
 // (Agar jika ada transaksi besar siang hari, status stok cepat terupdate)
 Schedule::command('stock:analyze')->everyThreeHours();
+
+

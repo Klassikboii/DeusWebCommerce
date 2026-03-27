@@ -100,4 +100,120 @@ class AccurateController extends Controller
 
         return redirect()->back()->with('success', 'Koneksi Accurate berhasil diputuskan. Silakan hubungkan kembali dengan akun atau database yang baru.');
     }
+    // ... (Fungsi redirect, callback, saveDatabase, disconnect biarkan seperti semula) ...
+
+    // 5. Mencari Produk yang Belum Memiliki Gambar (Langkah 1 dari Sistem Cicilan)
+    // 🚨 UBAH PARAMETER MENJADI $websiteId
+    public function getMissingImages(Request $request, $websiteId) 
+    {
+        // Sekarang $websiteId PASTI berisi angka 1 dari URL!
+        
+        $productIds = \Illuminate\Support\Facades\DB::table('products')
+            ->where('website_id', $websiteId) // Gunakan $websiteId di sini
+            ->where(function($query) {
+                $query->whereNull('image')
+                      ->orWhere('image', '');
+            })
+            ->whereNotNull('sku')
+            ->where('sku', '!=', '')
+            ->pluck('id');
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $productIds->toArray() 
+        ]);
+    }
+
+    // 6. Mengunduh Gambar secara Batch / Cicilan (Langkah 2)
+   public function syncImagesBatch(Request $request, $websiteId)
+    {
+        $website = \App\Models\Website::findOrFail($websiteId);
+        $ids = $request->input('ids', []);
+        
+        // 🚨 WADAH LAPORAN CCTV
+        $debugLog = []; 
+
+        if (empty($ids)) {
+            return response()->json(['status' => 'success', 'pesan' => 'ID kosong']);
+        }
+
+        $integration = $website->accurateIntegration;
+        if (!$integration || !$integration->access_token) {
+            return response()->json(['error' => 'Token Accurate tidak valid'], 400);
+        }
+
+        // Buka Sesi Accurate
+        $sessionResponse = Http::withoutRedirecting()
+            ->withToken($integration->access_token)
+            ->get('https://account.accurate.id/api/open-db.do', [
+                'id' => $integration->accurate_database_id
+            ]);
+
+        if ($sessionResponse->status() === 302 || $sessionResponse->status() === 401) {
+            return response()->json(['error' => 'Token Expired/Unauthorized'], 401);
+        }
+
+        $sessionData = $sessionResponse->json();
+        $host = $sessionData['host'] ?? null;
+        $sessionToken = $sessionData['session'] ?? null;
+
+        $products = \App\Models\Product::whereIn('id', $ids)->get();
+
+        foreach ($products as $product) {
+            $debugLog[$product->sku] = 'Memulai... ';
+
+            $detailResponse = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $integration->access_token,
+                'X-Session-ID' => $sessionToken
+            ])->get($host . '/api/item/detail.do', [
+                'no' => $product->sku
+            ]);
+
+            if ($detailResponse->successful() && $detailResponse->json('d')) {
+                $itemData = $detailResponse->json('d');
+                $debugLog[$product->sku] .= 'API Detail OK. ';
+
+                // Cek array imageList
+                if (isset($itemData['imageList']) && count($itemData['imageList']) > 0) {
+                    $imageUrl = $itemData['imageList'][0]['url'];
+                    $debugLog[$product->sku] .= 'URL Ketemu: ' . $imageUrl . ' | ';
+
+                    // 🚨 PERBAIKAN: Gunakan Header Auth untuk mengunduh gambar!
+                    $imageResponse = Http::withHeaders([
+                        'Authorization' => 'Bearer ' . $integration->access_token,
+                        'X-Session-ID' => $sessionToken
+                    ])->get($imageUrl);
+
+                    if ($imageResponse->successful()) {
+                        $imageContent = $imageResponse->body();
+                        
+                        $originalName = basename(parse_url($imageUrl, PHP_URL_PATH));
+                        $fileName = $originalName ?: \Illuminate\Support\Str::slug($product->name) . '.jpg';
+                        $path = 'products/' . $website->id . '/' . time() . '-' . $fileName;
+
+                        // Simpan file
+                        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $imageContent);
+
+                        // 🚨 PERBAIKAN: Gunakan DB Murni untuk menyimpan nama file agar tembus filter
+                        \Illuminate\Support\Facades\DB::table('products')
+                            ->where('id', $product->id)
+                            ->update(['image' => $path]);
+
+                        $debugLog[$product->sku] .= 'SUKSES DISIMPAN: ' . $path;
+                    } else {
+                        $debugLog[$product->sku] .= 'GAGAL UNDUH GAMBAR (Status ' . $imageResponse->status() . '). ';
+                    }
+                } else {
+                    $debugLog[$product->sku] .= 'ARRAY imageList KOSONG/TIDAK ADA! Isi keys: ' . implode(',', array_keys($itemData));
+                }
+            } else {
+                $debugLog[$product->sku] .= 'GAGAL API Detail (Status ' . $detailResponse->status() . ').';
+            }
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'debug_log' => $debugLog
+        ]);
+    }
 }

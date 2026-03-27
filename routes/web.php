@@ -7,6 +7,7 @@ use App\Http\Controllers\Client\ProductController;
 use App\Http\Middleware\ResolveTenant;
 use App\Models\Website;
 use Illuminate\Support\Facades\Session;
+use App\Http\Controllers\Client\AccurateController;
 
 
 // 🚨 1. AMBIL DOMAIN UTAMA DARI .ENV (Akan berisi 'localhost')
@@ -197,6 +198,10 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('auth'); // Pastikan user sedang login
         Route::post('/{website}/accurate/database', [\App\Http\Controllers\Client\AccurateController::class, 'saveDatabase'])->name('client.accurate.save_db');
         Route::post('/settings/accurate/disconnect/{website}', [\App\Http\Controllers\Client\AccurateController::class, 'disconnect'])->name('client.accurate.disconnect');
+
+        Route::get('/manage/{websiteId}/accurate/missing-images', [\App\Http\Controllers\Client\AccurateController::class, 'getMissingImages']);
+
+        Route::post('/manage/{websiteId}/accurate/sync-images-batch', [\App\Http\Controllers\Client\AccurateController::class, 'syncImagesBatch']);
 });
 
 // --- GRUP ROUTE SUPER ADMIN ---

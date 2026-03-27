@@ -27,6 +27,7 @@
         
         {{-- Kumpulan Tombol di Kanan --}}
         <div class="d-flex gap-2 align-items-center">
+            
             <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2 d-none d-md-block">
                 Slot: {{ $currentCount }} / {{ $limit }}
             </div>
@@ -54,6 +55,13 @@
                             </form>
                         </li>
                         <li><a href="https://account.accurate.id/" target="_blank" class="dropdown-item"><i class="bi bi-box-arrow-up-right text-info me-2"></i> Buka Accurate</a></li>
+                        <hr class="dropdown-divider">
+                        <li> 
+                            {{-- Tombol Tarik Gambar --}}
+                                <button id="btnSyncImages" class="btn">
+                                    <i class="bi bi-cloud-arrow-down-fill me-2"></i>Tarik Gambar Accurate
+                                </button>
+                        </li>
                     @endif
                     
                     <li><hr class="dropdown-divider"></li>
@@ -64,10 +72,24 @@
                         </form>
                     </li>
                 </ul>
+                
             </div>
         </div>
+        
 
         </div>
+        {{-- Kotak Progress Bar (Awalnya disembunyikan) --}}
+<div id="syncProgressContainer" class="card border-warning shadow-sm mb-4 d-none">
+    <div class="card-body">
+        <h6 class="text-warning fw-bold mb-2">
+            <i class="spinner-border spinner-border-sm me-2"></i>Sedang menarik gambar... Jangan tutup halaman ini!
+        </h6>
+        <div class="progress" style="height: 25px;">
+            <div id="syncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+        </div>
+        <small id="syncStatusText" class="text-muted mt-2 d-block">Menyiapkan data sinkronisasi...</small>
+    </div>
+</div>
     </div>
 
     {{-- Search Bar (Input Langsung, Tanpa Form Submit) --}}
@@ -181,4 +203,84 @@ document.addEventListener("DOMContentLoaded", function() {
         </div>
     </div>
 </div>
+<script>
+document.getElementById('btnSyncImages').addEventListener('click', async function() {
+    // 1. Kunci tombol dan tampilkan Progress Bar
+    this.disabled = true;
+    const progressContainer = document.getElementById('syncProgressContainer');
+    const progressBar = document.getElementById('syncProgressBar');
+    const statusText = document.getElementById('syncStatusText');
+    progressContainer.classList.remove('d-none');
+
+    try {
+        // 2. Ambil daftar ID Produk yang belum punya gambar
+        statusText.innerText = "Mencari produk yang membutuhkan gambar...";
+        let response = await fetch(`/manage/{{ $website->id }}/accurate/missing-images`);
+        let result = await response.json();
+        
+        // 🚨 KEMBALIKAN KE result.data
+        let productIds = result.data; 
+        
+        console.log("Mencoba menarik gambar untuk ID:", productIds);
+
+        let total = productIds.length;
+
+        if(total === 0) {
+            progressBar.style.width = "100%";
+            progressBar.innerText = "100%";
+            statusText.innerText = "Semua produk sudah memiliki gambar / tidak ada SKU!";
+            
+            progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+            progressBar.classList.add('bg-success');
+            
+            // 🚨 AKTIFKAN LAGI AUTO-REFRESH NYA:
+            setTimeout(() => location.reload(), 2000); 
+            
+            this.disabled = false;
+            return;
+        }
+
+        // ... (Sisa kode ke bawahnya biarkan sama, sistem cicilan / chunkSize) ...
+
+        // 3. Sistem Cicilan: Tarik gambar per 5 produk (Batched)
+        let chunkSize = 5;
+        let processed = 0;
+
+        for (let i = 0; i < total; i += chunkSize) {
+            let chunk = productIds.slice(i, i + chunkSize);
+            
+            statusText.innerText = `Menarik gambar untuk produk ${processed + 1} hingga ${Math.min(processed + chunkSize, total)} dari ${total}...`;
+
+            // Tembak API Controller kita untuk memproses 5 ID ini
+            await fetch(`/manage/{{ $website->id }}/accurate/sync-images-batch`, {
+                    method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({ ids: chunk })
+            });
+
+            // Update Progress Bar
+            processed += chunk.length;
+            let percent = Math.round((processed / total) * 100);
+            progressBar.style.width = percent + "%";
+            progressBar.innerText = percent + "%";
+        }
+
+        // 4. Selesai
+        statusText.innerText = "Sinkronisasi Gambar Selesai!";
+        progressBar.classList.remove('progress-bar-animated');
+        progressBar.classList.add('bg-success');
+        
+        // Refresh halaman setelah 2 detik untuk melihat hasilnya
+        setTimeout(() => location.reload(), 2000);
+
+    } catch (error) {
+        statusText.innerHTML = "<span class='text-danger'>Terjadi kesalahan saat sinkronisasi. Silakan coba lagi.</span>";
+        console.error(error);
+        this.disabled = false;
+    }
+});
+</script>
 @endsection
