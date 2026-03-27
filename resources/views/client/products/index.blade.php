@@ -212,75 +212,77 @@ document.getElementById('btnSyncImages').addEventListener('click', async functio
     const statusText = document.getElementById('syncStatusText');
     progressContainer.classList.remove('d-none');
 
-    try {
-        // 2. Ambil daftar ID Produk yang belum punya gambar
-        statusText.innerText = "Mencari produk yang membutuhkan gambar...";
-        let response = await fetch(`/manage/{{ $website->id }}/accurate/missing-images`);
-        let result = await response.json();
-        
-        // 🚨 KEMBALIKAN KE result.data
-        let productIds = result.data; 
-        
-        console.log("Mencoba menarik gambar untuk ID:", productIds);
-
-        let total = productIds.length;
-
-        if(total === 0) {
-            progressBar.style.width = "100%";
-            progressBar.innerText = "100%";
-            statusText.innerText = "Semua produk sudah memiliki gambar / tidak ada SKU!";
+   try {
+            // 1. CARI PRODUK BOTAK
+            let response = await fetch(`/manage/{{ $website->id }}/accurate/missing-images`);
+            let result = await response.json();
             
+            let productIds = result.data; 
+            let total = productIds.length;
+
+            if(total === 0) {
+                progressBar.style.width = "100%";
+                progressBar.innerText = "100%";
+                statusText.innerHTML = "<b class='text-success'>Semua produk sudah memiliki gambar!</b>";
+                
+                progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                progressBar.classList.add('bg-success');
+                
+                // Refresh halaman otomatis jika sudah lengkap
+                setTimeout(() => location.reload(), 1500); 
+                
+                this.disabled = false;
+                return;
+            }
+
+            let chunkSize = 5; 
+            let processed = 0;
+
+            // 2. PROSES CICILAN UNDUH
+            for (let i = 0; i < total; i += chunkSize) {
+                let chunk = productIds.slice(i, i + chunkSize);
+                
+                statusText.innerText = `Menarik gambar untuk produk ${processed + 1} hingga ${Math.min(processed + chunk.length, total)} dari ${total}...`;
+
+                let syncResponse = await fetch(`/manage/{{ $website->id }}/accurate/sync-images-batch`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ ids: chunk })
+                });
+
+                let syncResult = await syncResponse.json();
+
+                // Airbag jika terjadi error fatal dari server
+                if (syncResult.status === 'fatal_error') {
+                    statusText.innerHTML = `<b class="text-danger">Gagal:</b> <span class="text-danger">${syncResult.pesan_error}</span>`;
+                    progressBar.classList.add('bg-danger');
+                    this.disabled = false;
+                    return; 
+                }
+
+                // Update Progress Bar secara normal (KOTAK KUNING DETEKTIF DIHAPUS)
+                processed += chunk.length;
+                let percent = Math.round((processed / total) * 100);
+                progressBar.style.width = percent + "%";
+                progressBar.innerText = percent + "%";
+            }
+
+            // 3. SEMUA SELESAI
+            statusText.innerHTML = `<b class="text-success">Selesai!</b> Menyegarkan halaman...`;
             progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
             progressBar.classList.add('bg-success');
             
-            // 🚨 AKTIFKAN LAGI AUTO-REFRESH NYA:
-            setTimeout(() => location.reload(), 2000); 
-            
+            // 🚨 INI DIA TOMBOL REFRESH OTOMATISNYA! 🚨
+            setTimeout(() => location.reload(), 1500);
+
+        } catch (error) {
+            console.error("Terjadi kesalahan sistem:", error);
+            statusText.innerHTML = `<b class="text-danger">Terjadi kesalahan pada sistem Javascript.</b>`;
             this.disabled = false;
-            return;
         }
-
-        // ... (Sisa kode ke bawahnya biarkan sama, sistem cicilan / chunkSize) ...
-
-        // 3. Sistem Cicilan: Tarik gambar per 5 produk (Batched)
-        let chunkSize = 5;
-        let processed = 0;
-
-        for (let i = 0; i < total; i += chunkSize) {
-            let chunk = productIds.slice(i, i + chunkSize);
-            
-            statusText.innerText = `Menarik gambar untuk produk ${processed + 1} hingga ${Math.min(processed + chunkSize, total)} dari ${total}...`;
-
-            // Tembak API Controller kita untuk memproses 5 ID ini
-            await fetch(`/manage/{{ $website->id }}/accurate/sync-images-batch`, {
-                    method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ ids: chunk })
-            });
-
-            // Update Progress Bar
-            processed += chunk.length;
-            let percent = Math.round((processed / total) * 100);
-            progressBar.style.width = percent + "%";
-            progressBar.innerText = percent + "%";
-        }
-
-        // 4. Selesai
-        statusText.innerText = "Sinkronisasi Gambar Selesai!";
-        progressBar.classList.remove('progress-bar-animated');
-        progressBar.classList.add('bg-success');
-        
-        // Refresh halaman setelah 2 detik untuk melihat hasilnya
-        setTimeout(() => location.reload(), 2000);
-
-    } catch (error) {
-        statusText.innerHTML = "<span class='text-danger'>Terjadi kesalahan saat sinkronisasi. Silakan coba lagi.</span>";
-        console.error(error);
-        this.disabled = false;
-    }
 });
 </script>
 @endsection
