@@ -12,6 +12,7 @@ class PlatformSeeder extends Seeder
     public function run(): void
     {
         // 1. Buat Paket Langganan (SaaS)
+      // 1. Buat Paket Langganan (SaaS)
         $packages = [
             [
                 'name' => 'Free Starter',
@@ -19,7 +20,10 @@ class PlatformSeeder extends Seeder
                 'price' => 0,
                 'duration_days' => 30,
                 'description' => 'Paket gratis untuk pemula.',
-                'features' => json_encode(['Max 5 Produk', 'Subdomain Only', 'Basic Support']),
+                'features' => json_encode(['Max 10 Produk', 'Subdomain Only', 'Basic Support']),
+                'max_products' => 10,
+                'can_custom_domain' => false,
+                'remove_branding' => false,
             ],
             [
                 'name' => 'Pro Business',
@@ -27,9 +31,16 @@ class PlatformSeeder extends Seeder
                 'price' => 150000,
                 'duration_days' => 30,
                 'description' => 'Untuk bisnis yang berkembang.',
-                'features' => json_encode(['Unlimited Produk', 'Custom Domain', 'Priority Support']),
+                'features' => json_encode(['Max 1000 Produk', 'Custom Domain', 'Priority Support', 'No Watermark']),
+                'max_products' => 100, //  INI DIA KUNCI JAWABANNYA!
+                'can_custom_domain' => true,
+                'remove_branding' => true,
             ]
         ];
+
+        foreach ($packages as $pkg) {
+            Package::updateOrCreate(['slug' => $pkg['slug']], $pkg);
+        }
 
         foreach ($packages as $pkg) {
             Package::updateOrCreate(['slug' => $pkg['slug']], $pkg);

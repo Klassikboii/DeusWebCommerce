@@ -14,12 +14,20 @@ use App\Models\OrderItem;
 
 class ProductController extends Controller
 {
-    private function getLimit($website)
+   private function getLimit($website)
     {
         $subscription = $website->activeSubscription;
+        
+        // 🚨 KODE DEBUG SEMENTARA (Hapus setelah selesai)
+        // dd([
+        //     'Langganan Aktif' => $subscription ? $subscription->toArray() : 'Tidak ada',
+        //     'Paketnya' => $subscription && $subscription->package ? $subscription->package->toArray() : 'Tidak ada paket'
+        // ]);
+
         if ($subscription) {
             return $subscription->package->max_products;
         }
+        
         // Fallback ke Free jika expired/null
         $free = \App\Models\Package::where('price', 0)->first();
         return $free ? $free->max_products : 2;
@@ -52,7 +60,9 @@ class ProductController extends Controller
         $limit = $this->getLimit($website);
         $isLimitReached = $currentCount >= $limit;
 
-        return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached'));
+        $integration = $website->accurateIntegration;
+
+        return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached', 'integration'));
     }
     public function create(Website $website)
     {

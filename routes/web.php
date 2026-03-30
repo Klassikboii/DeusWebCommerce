@@ -202,6 +202,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/manage/{websiteId}/accurate/missing-images', [\App\Http\Controllers\Client\AccurateController::class, 'getMissingImages']);
 
         Route::post('/manage/{websiteId}/accurate/sync-images-batch', [\App\Http\Controllers\Client\AccurateController::class, 'syncImagesBatch']);
+
+        Route::get('/manage/{websiteId}/accurate/preview-products', [\App\Http\Controllers\Client\AccurateController::class, 'previewProducts'])->name('client.accurate.preview');
 });
 
 // --- GRUP ROUTE SUPER ADMIN ---

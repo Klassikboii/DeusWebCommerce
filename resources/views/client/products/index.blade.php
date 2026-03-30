@@ -46,19 +46,42 @@
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                     <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-file-earmark-excel text-success me-2"></i> Import CSV</button></li>
                     
-                    @if($website->accurateIntegration && $website->accurateIntegration->access_token)
+                    @if($website->accurateIntegration && $website->accurateIntegration->access_token && $website->accurateIntegration->accurate_database_id)
                         <li><hr class="dropdown-divider"></li>
+                         <li><a href="https://account.accurate.id/" target="_blank" class="dropdown-item"><i class="bi bi-box-arrow-up-right text-info me-2"></i> Buka Accurate</a></li>
+
                         <li>
                             <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" onsubmit="return confirm('Tarik data terbaru dari Accurate? Harga dan Stok akan tertimpa.');">
                                 @csrf
                                 <button type="submit" class="dropdown-item"><i class="bi bi-arrow-repeat text-primary me-2"></i> Sync Accurate</button>
                             </form>
                         </li>
-                        <li><a href="https://account.accurate.id/" target="_blank" class="dropdown-item"><i class="bi bi-box-arrow-up-right text-info me-2"></i> Buka Accurate</a></li>
+                        
+                        @if ($website->products)
+                            <hr class="dropdown-divider">
+                             <li> 
+                            {{-- Tombol Tarik Gambar --}}
+                                <button id="btnSyncImages" class="btn">
+                                    <i class="bi bi-cloud-arrow-down-fill me-2"></i>Tarik Gambar Accurate
+                                </button>
+                             </li>
+                        @endif
+                       
+                    @else
+                    <li><hr class="dropdown-divider"></li>
+                     <li><a href="https://account.accurate.id/" target="_blank" class="dropdown-item"><i class="bi bi-box-arrow-up-right text-info me-2"></i> Buka Accurate</a></li>
+                        <li>
+                            <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" onsubmit="return confirm('Tarik data terbaru dari Accurate? Harga dan Stok akan tertimpa.');">
+                                @csrf
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncAccurateModal">
+                                    <i class="fas fa-sync"></i> Sync ke Accurate
+                                </button>
+                            </form>
+                        </li>
                         <hr class="dropdown-divider">
                         <li> 
                             {{-- Tombol Tarik Gambar --}}
-                                <button id="btnSyncImages" class="btn">
+                                <button id="btnSyncImages" class="btn" disabled >
                                     <i class="bi bi-cloud-arrow-down-fill me-2"></i>Tarik Gambar Accurate
                                 </button>
                         </li>
@@ -79,17 +102,17 @@
 
         </div>
         {{-- Kotak Progress Bar (Awalnya disembunyikan) --}}
-<div id="syncProgressContainer" class="card border-warning shadow-sm mb-4 d-none">
-    <div class="card-body">
-        <h6 class="text-warning fw-bold mb-2">
-            <i class="spinner-border spinner-border-sm me-2"></i>Sedang menarik gambar... Jangan tutup halaman ini!
-        </h6>
-        <div class="progress" style="height: 25px;">
-            <div id="syncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+        <div id="syncProgressContainer" class="card border-warning shadow-sm mb-4 d-none">
+            <div class="card-body">
+                <h6 class="text-warning fw-bold mb-2">
+                    <i class="spinner-border spinner-border-sm me-2"></i>Sedang menarik gambar... Jangan tutup halaman ini!
+                </h6>
+                <div class="progress" style="height: 25px;">
+                    <div id="syncProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+                <small id="syncStatusText" class="text-muted mt-2 d-block">Menyiapkan data sinkronisasi...</small>
+            </div>
         </div>
-        <small id="syncStatusText" class="text-muted mt-2 d-block">Menyiapkan data sinkronisasi...</small>
-    </div>
-</div>
     </div>
 
     {{-- Search Bar (Input Langsung, Tanpa Form Submit) --}}
@@ -102,7 +125,12 @@
             </div>
         </div>
     </div>
-
+    @if(empty($integration->accurate_database_id))
+        <div class="alert alert-warning d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle me-2"></i> 
+            Pilih dan simpan Database Accurate Anda terlebih dahulu untuk mengaktifkan fitur Sinkronisasi.
+        </div>
+    @endif
     {{-- Product Table Container --}}
     <div class="card border-0 shadow-sm">
         {{-- Loader Overlay --}}
@@ -285,4 +313,5 @@ document.getElementById('btnSyncImages').addEventListener('click', async functio
         }
 });
 </script>
+
 @endsection
