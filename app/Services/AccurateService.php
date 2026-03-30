@@ -165,35 +165,34 @@ class AccurateService
     /**
      * Sinkronisasi Wujud Barang ke Accurate
      */
+   /**
+     * 4. Sinkronisasi Wujud Barang ke Accurate (Dilanjutkan Penyesuaian Stok)
+     */
     public function syncItemToAccurate($item)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
 
         $sku = $item->sku;
-        
-        // Asumsi Awal: Ini adalah Produk Utama
         $itemName = $item->name;
         $itemPrice = $item->price;
+        $itemStock = $item->stock ?? 0;
 
-        // PENGECEKAN VARIAN: Jika objek punya 'product_id', berarti ini Varian
         if (isset($item->product_id) && $item->product) {
-            // Gabungkan nama Induk + Varian (Misal: "Manhattan Cafe - Ukuran Besar")
             $itemName = $item->product->name . ' - ' . $item->name;
-            // Jika harga varian 0, gunakan harga induk
             $itemPrice = $item->price > 0 ? $item->price : $item->product->price;
+            $itemStock = $item->stock ?? 0;
         }
 
-        // Siapkan keranjang data barang
+        // KITA HANYA KIRIM WUJUD BARANGNYA SAJA (Stok 0)
         $itemData = [
             'itemType' => 'INVENTORY',
-            'name' => mb_substr($itemName, 0, 100), // Batasi nama maks 100 karakter
+            'name' => mb_substr($itemName, 0, 100),
             'no' => $sku,
             'unit1Name' => 'PCS',
             'unitPrice' => $itemPrice,
         ];
 
-        // Tembak API Pembuatan Barang Accurate
         $response = Http::timeout(30)->retry(3, 1000)
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
@@ -203,19 +202,27 @@ class AccurateService
         $responseData = $response->json();
         $rawBody = $response->body();
 
-        // 1. JIKA SUKSES TERBUAT BARU (Tadinya tidak ada, sekarang ada)
-        if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
-            Log::info("Auto-Create Berhasil: SKU {$sku} otomatis ditambahkan ke Accurate.");
-            return true; 
+        // CEK APAKAH BARANG BERHASIL DIBUAT (Atau sudah pernah ada)
+        $isSuccess = $response->successful() && isset($responseData['s']) && $responseData['s'] === true;
+        $isDuplicate = stripos($rawBody, 'Sudah ada data lain') !== false || stripos($rawBody, 'DUMM') !== false;
+
+        if ($isSuccess || $isDuplicate) {
+            Log::info("Barang SKU {$sku} aman di Accurate. Melanjutkan proses injeksi stok...");
+            
+            // =========================================================
+            // 🚨 STRATEGI DOUBLE STRIKE: TEMBAK STOKNYA SEKARANG!
+            // =========================================================
+            if ($itemStock > 0) {
+                // Kita pakai Harga Jual sebagai Biaya Satuan (Minimal 1 agar tidak ditolak)
+                $cost = $itemPrice > 0 ? $itemPrice : 1; 
+                
+                // Panggil fungsi penyesuaian persediaan yang baru saja kita edit!
+                $this->syncInventoryAdjustment($sku, $itemStock, $cost);
+            }
+            
+            return true;
         }
 
-        // 2. JIKA GAGAL KARENA DUPLIKAT (Artinya barang sudah aman ada di Accurate)
-        if (stripos($rawBody, 'Sudah ada data lain') !== false || stripos($rawBody, 'DUMM') !== false) {
-            Log::info("Bypass: Barang SKU {$sku} sudah ada di Accurate. Aman untuk update stok.");
-            return true; 
-        }
-
-        // 3. JIKA ERROR LAIN (Misal: 401 Token Expired)
         Log::error("Gagal Auto-Create SKU {$sku}. RAW: " . $rawBody);
         return false;
     }
@@ -453,7 +460,10 @@ class AccurateService
    /**
      * 8. Penyesuaian Persediaan (Inisialisasi & Update Stok)
      */
-    public function syncInventoryAdjustment($sku, $qtyDifference)
+   /**
+     * 8. Penyesuaian Persediaan (Inisialisasi & Update Stok + Biaya Satuan)
+     */
+    public function syncInventoryAdjustment($sku, $qtyDifference, $unitCost = 1) // 🚨 Tambah parameter $unitCost
     {
         if ($qtyDifference == 0) return true; 
 
@@ -461,7 +471,7 @@ class AccurateService
         if (!$sessionData) return false;
 
         $isAddition = $qtyDifference > 0;
-        $absoluteQty = abs($qtyDifference); // Pastikan selalu positif (misal: 111)
+        $absoluteQty = abs($qtyDifference); 
 
         $adjustmentData = [
             'transDate' => now()->format('d/m/Y'),
@@ -471,32 +481,29 @@ class AccurateService
                 [
                     'itemNo' => $sku,
                     'quantity' => $absoluteQty, 
+                    'itemAdjustmentType' => $isAddition ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT',
                     
-                    // ==========================================
-                    // 🚨 BINGO! INI KATA SANDI ASLI DARI ACCURATE
-                    // ==========================================
-                    'itemAdjustmentType' => $isAddition ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT'
+                    // 🚨 INJEKSI BIAYA SATUAN DI SINI! (Hanya perlu saat penambahan stok)
+                    'unitCost' => $isAddition ? $unitCost : 0 
                 ]
             ]
         ];
 
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
-    ->withHeaders([
-            'Authorization' => 'Bearer ' . $sessionData['token'],
-            'X-Session-ID' => $sessionData['session_id']
-        ])->post($sessionData['host'] . '/accurate/api/item-adjustment/save.do', $adjustmentData);
+        $response = Http::timeout(30)->retry(3, 1000)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $sessionData['token'],
+                'X-Session-ID' => $sessionData['session_id']
+            ])->post($sessionData['host'] . '/accurate/api/item-adjustment/save.do', $adjustmentData);
 
         $responseData = $response->json();
-        $rawBody = $response->body();
 
         if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
             $tipeTeks = $isAddition ? 'Penambahan' : 'Pengurangan';
-            Log::info("Sukses {$tipeTeks} Stok SKU {$sku} di Accurate sebanyak {$absoluteQty} pcs.");
+            Log::info("Sukses {$tipeTeks} Stok SKU {$sku} di Accurate sebanyak {$absoluteQty} pcs (Biaya: {$unitCost}).");
             return true;
         }
 
-        Log::error("Gagal Penyesuaian Stok SKU {$sku} di Accurate. RAW RESPONSE: " . $rawBody);
+        Log::error("Gagal Penyesuaian Stok SKU {$sku} di Accurate. RAW RESPONSE: " . $response->body());
         return false;
     }
     /**

@@ -175,7 +175,8 @@ class ProductController extends Controller
                         'sku' => $product->sku,
                         'price' => $product->price,
                         'name' => $product->name,
-                        'product' => $product
+                        'product' => $product,
+                        'stock' => $product->stock // 🚨 INI YANG KEMARIN HILANG!
                     ];
                     // Sync Barang
                     $status = $accurateService->syncItemToAccurate($singleItem);
