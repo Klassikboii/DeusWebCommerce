@@ -111,6 +111,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Rute untuk memproses file CSV yang diupload
         Route::post('/products/import-csv', [\App\Http\Controllers\Client\ProductController::class, 'importCsv'])->name('client.products.import');
+        Route::post('/products/{product}/toggle-active', [\App\Http\Controllers\Client\ProductController::class, 'toggleActive'])->name('client.products.toggle_active');
         // 3. Proses Hapus Data (DELETE)
         Route::delete('/products/{product}', [App\Http\Controllers\Client\ProductController::class, 'destroy'])->name('client.products.destroy');
         // ... route produk & kategori ...
@@ -189,7 +190,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'index'])->name('client.shipping_markups.index');
         Route::post('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'store'])->name('client.shipping_markups.store');
         Route::delete('shipping-markups/{id}', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'destroy'])->name('client.shipping_markups.destroy');
-        });
+        // ... (Rute Shipping Markups) ...
+
+        // Accurate Integration Routes (Pindah ke dalam grup)
+        Route::get('/accurate/missing-images', [\App\Http\Controllers\Client\AccurateController::class, 'getMissingImages']);
+        Route::post('/accurate/sync-images-batch', [\App\Http\Controllers\Client\AccurateController::class, 'syncImagesBatch']);
+        Route::get('/accurate/preview-products', [\App\Http\Controllers\Client\AccurateController::class, 'previewProducts'])->name('client.accurate.preview');
+        Route::post('/accurate/import-selected', [\App\Http\Controllers\Client\AccurateController::class, 'importSelected'])->name('client.accurate.import_selected');
+
+    }); // <-- Penutup grup pindah ke paling bawah sini
 
         // Accurate Integration Routes
         Route::get('/{website}/accurate/redirect', [\App\Http\Controllers\Client\AccurateController::class, 'redirect'])->name('client.accurate.redirect');
@@ -199,11 +208,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{website}/accurate/database', [\App\Http\Controllers\Client\AccurateController::class, 'saveDatabase'])->name('client.accurate.save_db');
         Route::post('/settings/accurate/disconnect/{website}', [\App\Http\Controllers\Client\AccurateController::class, 'disconnect'])->name('client.accurate.disconnect');
 
-        Route::get('/manage/{websiteId}/accurate/missing-images', [\App\Http\Controllers\Client\AccurateController::class, 'getMissingImages']);
-
-        Route::post('/manage/{websiteId}/accurate/sync-images-batch', [\App\Http\Controllers\Client\AccurateController::class, 'syncImagesBatch']);
-
-        Route::get('/manage/{websiteId}/accurate/preview-products', [\App\Http\Controllers\Client\AccurateController::class, 'previewProducts'])->name('client.accurate.preview');
 });
 
 // --- GRUP ROUTE SUPER ADMIN ---

@@ -29,14 +29,12 @@
         <div class="d-flex gap-2 align-items-center">
             
             <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2 d-none d-md-block">
-                Slot: {{ $currentCount }} / {{ $limit }}
+                Produk Aktif: {{ $currentCount }} / {{ $limit }}
             </div>
-            
-            @if($isLimitReached)
-                <button class="btn btn-secondary" disabled><i class="bi bi-lock-fill me-1"></i> Penuh</button>
-            @else
-                <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Tambah</a>
-            @endif
+                        
+            <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Tambah
+            </a>
 
             {{-- 🚨 MENU DROPDOWN RAPI --}}
             <div class="dropdown">
@@ -125,7 +123,7 @@
             </div>
         </div>
     </div>
-    @if(empty($integration->accurate_database_id))
+    @if(empty($website->accurateIntegration->accurate_database_id))
         <div class="alert alert-warning d-flex align-items-center">
             <i class="fas fa-exclamation-triangle me-2"></i> 
             Pilih dan simpan Database Accurate Anda terlebih dahulu untuk mengaktifkan fitur Sinkronisasi.

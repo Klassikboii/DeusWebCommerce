@@ -625,6 +625,12 @@ class AccurateService
         $accurateItems = $response->json()['d'] ?? [];
         $syncedSkus = [];
 
+                // 🚨 LOGIKA SAAS FREEMIUM: Hitung produk yang sudah aktif
+        $activeCount = \App\Models\Product::where('website_id', $this->website->id)
+                                            ->where('is_active', true)
+                                            ->count();
+        // Ambil Limit Langganan
+        $limit = $this->website->activeSubscription ? $this->website->activeSubscription->package->max_products : 10;
        // 3. Looping data dari Accurate dan masukkan ke Database Web
        // 3. Looping data dari Accurate
         foreach ($accurateItems as $item) {
@@ -665,29 +671,38 @@ class AccurateService
             // ==========================================
             // CEK 2: JIKA BUKAN VARIAN, UPDATE/BUAT SEBAGAI PRODUK UTAMA
             // ==========================================
+           // 2. Buat / Update Produk Utama
             $product = \App\Models\Product::firstOrNew([
                 'website_id' => $this->website->id,
                 'sku'        => $sku,
             ]);
 
             $isNewProduct = !$product->exists;
-            // 🚨 LOGIKA SMART ACTIVATION: Aktif jika harga lebih dari 0
             $isEligibleForSale = $price > 0 ? true : false;
 
-            $product->name      = $item['name'];
-            $product->price     = $price;
-            $product->stock     = $stock;
-            $product->is_active = true;
-            // Jika produk baru DAN belum ada harga, paksa jadi Inaktif (Draft)
-            $product->is_active = $isNewProduct ? $isEligibleForSale : $product->is_active;
+            // 🚨 GUNAKAN forceFill() AGAR LARAVEL MEMAKSA DATA MASUK KE DATABASE
+            $product->forceFill([
+                'name'  => $item['name'] ?? ('Produk ' . $sku), // Fallback jika nama kosong
+                'price' => $price,
+                'stock' => $stock,
+            ]);
 
             if ($isNewProduct) {
-                $product->slug        = \Illuminate\Support\Str::slug($item['name']) . '-' . \Illuminate\Support\Str::random(4);
-                $product->weight      = 1000;
-                $product->description = 'Produk ' . $item['name'] . ' original.';
+                // 🚨 Pakai forceFill() juga untuk kolom tambahan
+                $product->forceFill([
+                    'slug'        => \Illuminate\Support\Str::slug($item['name'] ?? $sku) . '-' . \Illuminate\Support\Str::random(4),
+                    'weight'      => 1000,
+                    'description' => 'Produk ' . ($item['name'] ?? $sku) . ' original.',
+                    'is_active'   => ($activeCount < $limit) && $isEligibleForSale,
+                ]);
+                
+                // Jika berhasil aktif, tambah counternya agar tidak kebobolan di loop berikutnya
+                if ($product->is_active) {
+                    $activeCount++; 
+                }
             }
 
-            $product->save(); 
+            $product->save();
 
             // (Logika Tarik Gambar tetap sama seperti sebelumnya di sini) ...
         }
@@ -696,6 +711,92 @@ class AccurateService
         \App\Models\Product::where('website_id', $this->website->id)
             ->whereNotIn('sku', $syncedSkus)
             ->update(['is_active' => false, 'stock' => 0]);
+
+        return true;
+    }
+    /**
+     * TAHAP 2 (SELECTIVE IMPORT): Menyimpan hanya barang yang dicentang user
+     */
+    public function syncSelectedProductsFromAccurate(array $selectedSkus)
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return false;
+
+        $response = Http::timeout(30)->retry(3, 1000)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $sessionData['token'],
+                'X-Session-ID'  => $sessionData['session_id'],
+            ])->get($sessionData['host'] . '/accurate/api/item/list.do', [
+                'fields' => 'id,no,name,unitPrice,quantity',
+            ]);
+
+        if (!$response->successful()) return false;
+
+        $accurateItems = $response->json()['d'] ?? [];
+        
+        // 🚨 LOGIKA SAAS FREEMIUM: Hitung produk yang sudah aktif
+        $activeCount = \App\Models\Product::where('website_id', $this->website->id)
+                                            ->where('is_active', true)
+                                            ->count();
+        // Ambil Limit Langganan
+        $limit = $this->website->activeSubscription ? $this->website->activeSubscription->package->max_products : 10;
+
+        foreach ($accurateItems as $item) {
+            $sku = $item['no'] ?? null;
+
+            // 🚨 KUNCI UTAMA: Jika SKU tidak ada di dalam array yang dikirim Javascript, LOMPATI!
+            if (!$sku || !in_array($sku, $selectedSkus)) {
+                continue;
+            }
+
+            $price = $item['unitPrice'] ?? 0;
+            $stock = $item['quantity'] ?? 0;
+
+            // 1. Cek Varian (Sama seperti sebelumnya)
+            if (class_exists('\App\Models\ProductVariant')) {
+                $variant = \App\Models\ProductVariant::whereHas('product', function($query) {
+                    $query->where('website_id', $this->website->id);
+                })->where('sku', $sku)->first();
+
+                if ($variant) {
+                    $variant->update(['price' => $price, 'stock' => $stock]);
+                    continue; 
+                }
+            }
+
+         // 2. Buat / Update Produk Utama
+            $product = \App\Models\Product::firstOrNew([
+                'website_id' => $this->website->id,
+                'sku'        => $sku,
+            ]);
+
+            $isNewProduct = !$product->exists;
+            $isEligibleForSale = $price > 0 ? true : false;
+
+            // 🚨 GUNAKAN forceFill() AGAR LARAVEL MEMAKSA DATA MASUK KE DATABASE
+            $product->forceFill([
+                'name'  => $item['name'] ?? ('Produk ' . $sku), // Fallback jika nama kosong
+                'price' => $price,
+                'stock' => $stock,
+            ]);
+
+            if ($isNewProduct) {
+                // 🚨 Pakai forceFill() juga untuk kolom tambahan
+                $product->forceFill([
+                    'slug'        => \Illuminate\Support\Str::slug($item['name'] ?? $sku) . '-' . \Illuminate\Support\Str::random(4),
+                    'weight'      => 1000,
+                    'description' => 'Produk ' . ($item['name'] ?? $sku) . ' original.',
+                    'is_active'   => ($activeCount < $limit) && $isEligibleForSale,
+                ]);
+                
+                // Jika berhasil aktif, tambah counternya agar tidak kebobolan di loop berikutnya
+                if ($product->is_active) {
+                    $activeCount++; 
+                }
+            }
+
+            $product->save();
+        }
 
         return true;
     }

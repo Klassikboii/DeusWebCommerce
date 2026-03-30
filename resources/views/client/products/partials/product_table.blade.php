@@ -91,12 +91,17 @@
                                 <span class="badge bg-secondary mt-1">Kosong</span>
                             @endif
                         </td>
-                <td style="text-align: center;">
-                    @if($product->is_active == 1) 
-                        <span class="badge bg-success-subtle text-success">Aktif</span>
-                    @else
-                        <span class="badge bg-secondary-subtle text-secondary">Nonaktif</span>
-                    @endif
+                <td class="align-middle text-center">
+                    <div class="form-check form-switch d-flex justify-content-center">
+                        <input class="form-check-input toggle-active-switch" type="checkbox" role="switch" 
+                            id="switch_{{ $product->id }}" 
+                            data-id="{{ $product->id }}" 
+                            {{ $product->is_active ? 'checked' : '' }}
+                            style="cursor: pointer; transform: scale(1.2);">
+                    </div>
+                    <small class="text-muted status-label-{{ $product->id }} mt-1 d-block">
+                        {{ $product->is_active ? 'Aktif' : 'Draft' }}
+                    </small>
                 </td>
                 <td class="pe-4 text-end">
                         {{-- 🚨 UBAH btn-group MENJADI d-flex gap-1 --}}
@@ -138,3 +143,59 @@
         {{ $products->links() }}
     </div>
 @endif
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gunakan Event Delegation karena tabelnya sering di-reload oleh fitur Search/Pagination AJAX
+    document.getElementById('productTableContainer').addEventListener('change', async function(e) {
+        
+        // Jika yang diklik adalah tombol Switch Status
+        if (e.target.classList.contains('toggle-active-switch')) {
+            const checkbox = e.target;
+            const productId = checkbox.dataset.id;
+            const isChecked = checkbox.checked;
+            const label = document.querySelector(`.status-label-${productId}`);
+            
+            // Kunci sementara (Loading)
+            checkbox.disabled = true;
+            const originalLabel = label.innerText;
+            label.innerText = 'Menyimpan...';
+
+            try {
+                const response = await fetch(`/manage/{{ $website->id }}/products/${productId}/toggle-active`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ is_active: isChecked })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.status === 'success') {
+                    // Berhasil! Ubah teks labelnya
+                    label.innerText = isChecked ? 'Aktif' : 'Draft';
+                    
+                    // UPDATE ANGKA BADGE DI ATAS (Misal: Produk Aktif: 8 / 10)
+                    // Pastikan Anda memberi ID="activeCountBadge" pada elemen badge slot di atas
+                    const badge = document.getElementById('activeCountBadge');
+                    if(badge) badge.innerText = result.active_count;
+
+                } else {
+                    // DITOLAK KARENA KUOTA PENUH! Kembalikan posisi saklar
+                    alert(result.message);
+                    checkbox.checked = !isChecked; 
+                    label.innerText = originalLabel;
+                }
+            } catch (error) {
+                alert('Gagal menghubungi server.');
+                checkbox.checked = !isChecked;
+                label.innerText = originalLabel;
+            } finally {
+                // Buka kuncinya kembali
+                checkbox.disabled = false;
+            }
+        }
+    });
+});
+</script>

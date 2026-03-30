@@ -14,20 +14,12 @@ use App\Models\OrderItem;
 
 class ProductController extends Controller
 {
-   private function getLimit($website)
+    private function getLimit($website)
     {
         $subscription = $website->activeSubscription;
-        
-        // 🚨 KODE DEBUG SEMENTARA (Hapus setelah selesai)
-        // dd([
-        //     'Langganan Aktif' => $subscription ? $subscription->toArray() : 'Tidak ada',
-        //     'Paketnya' => $subscription && $subscription->package ? $subscription->package->toArray() : 'Tidak ada paket'
-        // ]);
-
         if ($subscription) {
             return $subscription->package->max_products;
         }
-        
         // Fallback ke Free jika expired/null
         $free = \App\Models\Package::where('price', 0)->first();
         return $free ? $free->max_products : 2;
@@ -60,9 +52,7 @@ class ProductController extends Controller
         $limit = $this->getLimit($website);
         $isLimitReached = $currentCount >= $limit;
 
-        $integration = $website->accurateIntegration;
-
-        return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached', 'integration'));
+        return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached'));
     }
     public function create(Website $website)
     {
@@ -670,5 +660,45 @@ $penjualantotal = OrderItem::where('product_id', $product->id)->sum('qty');
         return view('client.products.insight', compact(
             'website', 'product', 'targetDays', 'recommendedRestock', 'chartLabels', 'chartData', 'targetLineData', 'penjualantotal'
         ));
+    }
+    /**
+     * Mengubah status Aktif/Inaktif langsung dari tabel Index (Inline Toggle)
+     */
+    public function toggleActive(Request $request, $websiteId, $productId)
+    {
+        try {
+            $website = Website::findOrFail($websiteId);
+            $product = $website->products()->findOrFail($productId);
+            
+            $newStatus = filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN);
+
+            // 🚨 SATPAM KUOTA: Jika klien mencoba MENGAKTIFKAN produk
+            if ($newStatus === true) {
+                $activeCount = $website->products()->where('is_active', true)->count();
+                $limit = $this->getLimit($website);
+
+                if ($activeCount >= $limit) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => "Kuota produk aktif penuh! Maksimal {$limit} produk. Silakan nonaktifkan produk lain terlebih dahulu."
+                    ], 403); // 403 = Forbidden (Ditolak)
+                }
+            }
+
+            // Jika aman, atau jika klien MENGINAKTIFKAN produk, simpan perubahannya
+            $product->update(['is_active' => $newStatus]);
+
+            // Hitung ulang jumlah produk aktif untuk memperbarui angka di UI
+            $newActiveCount = $website->products()->where('is_active', true)->count();
+
+            return response()->json([
+                'status' => 'success',
+                'active_count' => $newActiveCount,
+                'message' => 'Status produk berhasil diperbarui!'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan sistem.'], 500);
+        }
     }
 }
