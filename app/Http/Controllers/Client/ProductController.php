@@ -49,10 +49,11 @@ class ProductController extends Controller
 
         // Data statistik limit (tetap dikirim untuk view utama)
         $currentCount = $website->products()->count();
+        $activeCount = $website->products()->where('is_active', true)->count();
         $limit = $this->getLimit($website);
         $isLimitReached = $currentCount >= $limit;
 
-        return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached'));
+        return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached', 'activeCount'));
     }
     public function create(Website $website)
     {

@@ -29,7 +29,9 @@
         <div class="d-flex gap-2 align-items-center">
             
             <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2 d-none d-md-block">
-                Produk Aktif: {{ $currentCount }} / {{ $limit }}
+                <div style="font-size: 1.0rem;">Slot Produk Aktif: {{ $activeCount }} / {{ $limit }} </div>
+                <hr style="margin-top: 3px; margin-bottom: 3px; height: 5px; background-color: white; border:none">
+                <div style="font-size: 0.75rem;">Total Produk: {{ $currentCount }}</div>
             </div>
                         
             <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">

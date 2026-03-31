@@ -195,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Buka kuncinya kembali
                 checkbox.disabled = false;
             }
+            window.location.reload();
         }
     });
 });
