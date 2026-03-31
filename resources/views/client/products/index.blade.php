@@ -115,16 +115,40 @@
         </div>
     </div>
 
-    {{-- Search Bar (Input Langsung, Tanpa Form Submit) --}}
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <div class="input-group">
-                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" 
-                       placeholder="Cari nama produk atau SKU..." value="{{ request('search') }}">
-            </div>
-        </div>
-    </div>
+    <form id="filterForm" action="{{ url()->current() }}" method="GET" class="d-flex flex-wrap gap-2 mb-4">
+    
+    <input type="text" name="search" id="searchInput" class="form-control" placeholder="Cari nama atau SKU..." value="{{ request('search') }}" style="max-width: 250px;">
+
+    <select name="status" class="form-select w-auto filter-select">
+        <option value="">Semua Status</option>
+        <option value="1" {{ request('status') == '1' ? 'selected' : '' }}>Aktif</option>
+        <option value="0" {{ request('status') == '0' ? 'selected' : '' }}>Non-Aktif</option>
+    </select>
+
+    <select name="stock_status" class="form-select w-auto filter-select">
+        <option value="">Semua Stok</option>
+        <option value="Safe" {{ request('stock_status') == 'Safe' ? 'selected' : '' }}>Aman</option>
+        <option value="Critical" {{ request('stock_status') == 'Critical' ? 'selected' : '' }}>Kritis</option>
+        <option value="Overstock" {{ request('stock_status') == 'Overstock' ? 'selected' : '' }}>Overstock</option>
+    </select>
+
+    <select name="image_status" class="form-select w-auto filter-select">
+        <option value="">Semua Gambar</option>
+        <option value="has_image" {{ request('image_status') == 'has_image' ? 'selected' : '' }}>Sudah Ada Gambar</option>
+        <option value="missing" {{ request('image_status') == 'missing' ? 'selected' : '' }}>Belum Ada Gambar</option>
+    </select>
+
+    <select name="sort" class="form-select w-auto filter-select">
+        <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Terbaru Ditambahkan</option>
+        <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Paling Lama</option>
+        <option value="price_asc" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>Harga (Termurah)</option>
+        <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Harga (Termahal)</option>
+        <option value="name_asc" {{ request('sort') == 'name_asc' ? 'selected' : '' }}>Nama (A - Z)</option>
+        <option value="name_desc" {{ request('sort') == 'name_desc' ? 'selected' : '' }}>Nama (Z - A)</option>
+        <option value="status_active_first" {{ request('sort') == 'status_active_first' ? 'selected' : '' }}>Status (Aktif di atas)</option>
+        <option value="status_inactive_first" {{ request('sort') == 'status_inactive_first' ? 'selected' : '' }}>Status (Non-Aktif di atas)</option>
+    </select>
+</form>
     @if(empty($website->accurateIntegration->accurate_database_id))
         <div class="alert alert-warning d-flex align-items-center">
             <i class="fas fa-exclamation-triangle me-2"></i> 
@@ -313,5 +337,57 @@ document.getElementById('btnSyncImages').addEventListener('click', async functio
         }
 });
 </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    const searchInput = document.getElementById('searchInput');
+    const filterSelects = document.querySelectorAll('.filter-select');
+    
+    // GANTI ID INI jika container tabel Anda memiliki ID yang berbeda
+    const tableContainer = document.getElementById('productTableContainer'); 
 
+    function fetchProducts(url) {
+        // Opsional: Tambahkan efek loading di sini jika mau
+        tableContainer.style.opacity = '0.5';
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            tableContainer.innerHTML = html;
+            tableContainer.style.opacity = '1'; // Kembalikan opacity
+        })
+        .catch(error => {
+            console.error('Error fetching products:', error);
+            tableContainer.style.opacity = '1';
+        });
+    }
+
+    function updateFilters() {
+        const formData = new FormData(filterForm);
+        const params = new URLSearchParams(formData).toString();
+        const url = `${filterForm.action}?${params}`;
+        
+        // Update URL di browser tanpa reload (agar jika di-refresh, filter tidak hilang)
+        window.history.pushState({}, '', url);
+        
+        fetchProducts(url);
+    }
+
+    let typingTimer;
+    searchInput.addEventListener('input', function() {
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(updateFilters, 500);
+    });
+
+    filterSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            updateFilters();
+        });
+    });
+});
+</script>
 @endsection

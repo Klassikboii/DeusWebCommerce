@@ -444,13 +444,13 @@
                     <div class="row g-2">
                         <div class="col-6">
                             {{-- Arahkan ke halaman produk (bisa ditambahkan parameter ?status=Critical nanti jika fitur filter sudah ada) --}}
-                            <a href="{{ route('client.products.index', [$website->id]) }}" class="btn btn-outline-danger w-100 btn-sm d-flex justify-content-between align-items-center">
+                            <a href="{{ route('client.products.index', [$website, 'stock_status' => 'Critical']) }}" class="btn btn-outline-danger w-100 btn-sm d-flex justify-content-between align-items-center">
                                 <span><i class="bi bi-exclamation-circle me-1"></i> Kritis</span>
                                 <span class="badge bg-danger rounded-pill">{{ $totalCritical ?? 0 }}</span>
                             </a>
                         </div>
                         <div class="col-6">
-                            <a href="{{ route('client.products.index', [$website->id]) }}" class="btn btn-outline-secondary w-100 btn-sm d-flex justify-content-between align-items-center">
+                            <a href="{{ route('client.products.index', [$website, 'stock_status' => 'Overstock']) }}" class="btn btn-outline-secondary w-100 btn-sm d-flex justify-content-between align-items-center">
                                 <span><i class="bi bi-box-seam me-1"></i> Overstock</span>
                                 <span class="badge bg-secondary rounded-pill">{{ $totalOverstock ?? 0 }}</span>
                             </a>

@@ -30,7 +30,7 @@ class ProductController extends Controller
 
         $query = $website->products();
         
-        // Logika Search (Real-time compatible)
+        // 1. PENCARIAN (Nama & SKU)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -39,19 +39,72 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->latest()->paginate(10)->withQueryString();
+        // 2. FILTER STATUS
+        $query->when($request->filled('status'), function ($q) use ($request) {
+            $q->where('is_active', $request->status);
+        });
 
-        // === TAMBAHAN LOGIKA AJAX ===
+        // 3. FILTER STOK
+        $query->when($request->filled('stock_status'), function ($q) use ($request) {
+            $q->where('stock_status', $request->stock_status); 
+        });
+
+        // 4. FILTER GAMBAR
+        $query->when($request->filled('image_status'), function ($q) use ($request) {
+            if ($request->image_status == 'missing') {
+                $q->where(function($subQ) {
+                    $subQ->whereNull('image')->orWhere('image', '');
+                });
+            } else {
+                $q->whereNotNull('image')->where('image', '!=', '');
+            }
+        });
+
+        // 5. SISTEM SORTING (Termasuk Status)
+        $sort = $request->input('sort', 'newest'); 
+        switch ($sort) {
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'status_active_first':
+                $query->orderBy('is_active', 'desc'); // 1 (Aktif) di atas
+                break;
+            case 'status_inactive_first':
+                $query->orderBy('is_active', 'asc');  // 0 (Non-Aktif) di atas
+                break;
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'newest':
+            default:
+                $query->orderBy('created_at', 'desc');
+                break;
+        }
+
+        // 6. PAGINATION
+        $products = $query->paginate(10)->withQueryString();
+
+        // === LOGIKA AJAX ===
         if ($request->ajax()) {
+            // Pastikan path view ini sesuai dengan file partial Anda
             return view('client.products.partials.product_table', compact('website', 'products'))->render();
         }
-        // ============================
+        // ===================
 
-        // Data statistik limit (tetap dikirim untuk view utama)
+        // 7. STATISTIK & LIMIT
         $currentCount = $website->products()->count();
-        $activeCount = $website->products()->where('is_active', true)->count();
         $limit = $this->getLimit($website);
         $isLimitReached = $currentCount >= $limit;
+        $activeCount = $website->products()->where('is_active', true)->count();
 
         return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached', 'activeCount'));
     }
