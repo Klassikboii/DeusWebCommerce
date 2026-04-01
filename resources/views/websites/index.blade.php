@@ -167,7 +167,7 @@
                                         <input type="text" id="subdomainInput" name="subdomain" 
                                                class="form-control @error('subdomain') is-invalid @enderror" 
                                                placeholder="sepatukerenbudi" value="{{ old('subdomain') }}" required>
-                                        <span class="input-group-text bg-light text-muted small">.webcommerce.id</span>
+                                        <span class="input-group-text bg-light text-muted small">.deusserver.ashop.asia</span>
                                         @error('subdomain')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
