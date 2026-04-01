@@ -9,31 +9,19 @@ use App\Models\Post;
 
 class StorefrontController extends Controller
 {
-    public function index($subdomain)
-    {
-        // 🚨 Cari di kolom 'subdomain' ATAU 'custom_domain'
-        // 🚨 Wajib tambahkan orWhere untuk custom_domain
-        $website = \App\Models\Website::where('subdomain', $subdomain)
-                                      ->orWhere('custom_domain', $subdomain)
-                                      ->firstOrFail();
+    // Contoh di StorefrontController.php
 
-        // Fallback jika null (misal akses manual tanpa middleware yang benar)
-        if (!$website) {
-             abort(404, 'Data Website tidak ditemukan di Request.');
-        }
+public function index(Request $request) 
+{
+    // Kamu bisa mengambil data website yang disuntikkan oleh Middleware seperti ini:
+    $website = $request->website; 
 
-        // 2. Ambil Template & Produk
-        $templateName = $website->active_template ?? 'modern';
-        $products = $website->products()->where('is_active', true)->where('price', '>', 0)->latest()->get();
-        $sections = $website->sections ?? []; // Data section builder
-
-        // 3. Tampilkan View TANPA Redirect ke Dashboard
-        return view("storefront.index", [
-            'website' => $website,
-            'products' => $products,
-            'sections' => $sections, 
-        ]);
-    }
+    // ATAU: Karena di middleware kamu sudah melakukan View::share('website', $website);
+    // Kamu bahkan bisa langsung me-return view tanpa melempar variabel $website lagi!
+    
+    return view('storefront.index'); 
+    // Di dalam file blade storefront.index, variabel $website sudah otomatis tersedia!
+}
     
    // Tambahkan parameter $subdomain di sini
     public function blogIndex(Request $request, $subdomain)

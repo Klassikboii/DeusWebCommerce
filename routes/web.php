@@ -198,7 +198,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/accurate/preview-products', [\App\Http\Controllers\Client\AccurateController::class, 'previewProducts'])->name('client.accurate.preview');
         Route::post('/accurate/import-selected', [\App\Http\Controllers\Client\AccurateController::class, 'importSelected'])->name('client.accurate.import_selected');
 
-    }); // <-- Penutup grup pindah ke paling bawah sini
+    }); // <-- Penutup grup pindah ke paling bawah sini     
 
         // Accurate Integration Routes
         Route::get('/{website}/accurate/redirect', [\App\Http\Controllers\Client\AccurateController::class, 'redirect'])->name('client.accurate.redirect');
@@ -243,8 +243,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
 
 // GANTI DARI 'domain' KE 'prefix'
 // 🚨 GANTI PREFIX MENJADI DOMAIN
-Route::prefix('s/{subdomain}')
-    ->where(['subdomain' => '[a-zA-Z0-9.-]+']) // 🚨 TAMBAHKAN BARIS INI
+// Jaring penangkap untuk SEMUA domain selain $mainDomain
+// Ini akan memaksa Laravel hanya mengambil kata depan sebelum titik sebagai {subdomain}
+Route::domain('{subdomain}.' . $mainDomain)
+    ->middleware([\App\Http\Middleware\ResolveTenant::class]) // <--- Panggil Middleware di sini
     ->group(function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
         // Di dalam Route Group 's/{subdomain}'

@@ -15,6 +15,9 @@ class ResolveTenant
         // 1. Ambil parameter 'subdomain' dari URL (prefix: s/{subdomain})
         $subdomain = $request->route('subdomain');
 
+        // Jika user mengakses http://elecjos.deusserver.test, 
+    // nilai $subdomain di sini SEKARANG ADALAH "elecjos". Sempurna!
+
         if (!$subdomain) {
             abort(404, 'Toko tidak ditemukan (Parameter URL hilang).');
         }
