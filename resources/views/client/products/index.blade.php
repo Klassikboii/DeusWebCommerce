@@ -18,6 +18,13 @@
              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
          </div>
      @endif
+        {{-- Letakkan di bawah @if(session('success')) --}}
+    @if (session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+            <strong><i class="bi bi-exclamation-triangle-fill me-2"></i> Perhatian:</strong> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
         
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>

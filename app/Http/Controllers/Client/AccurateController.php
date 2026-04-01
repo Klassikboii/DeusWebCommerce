@@ -104,19 +104,23 @@ class AccurateController extends Controller
 
     // 5. Mencari Produk yang Belum Memiliki Gambar (Langkah 1 dari Sistem Cicilan)
     // 🚨 UBAH PARAMETER MENJADI $websiteId
-    public function getMissingImages(Request $request, $websiteId) 
+   public function getMissingImages(Request $request, $websiteId) 
     {
-        // Sekarang $websiteId PASTI berisi angka 1 dari URL!
-        
+        // Cari ID produk yang: Induknya kosong ATAU punya varian yang kosong
         $productIds = \Illuminate\Support\Facades\DB::table('products')
-            ->where('website_id', $websiteId) // Gunakan $websiteId di sini
+            ->leftJoin('product_variants', 'products.id', '=', 'product_variants.product_id')
+            ->where('products.website_id', $websiteId)
             ->where(function($query) {
-                $query->whereNull('image')
-                      ->orWhere('image', '');
+                // Syarat 1: Induknya Kosong
+                $query->whereNull('products.image')
+                      ->orWhere('products.image', '')
+                // Syarat 2: ATAU Variannya Kosong
+                      ->orWhereNull('product_variants.image')
+                      ->orWhere('product_variants.image', '');
             })
-            ->whereNotNull('sku')
-            ->where('sku', '!=', '')
-            ->pluck('id');
+            // Gunakan distinct agar ID produk tidak dobel jika ada banyak varian yang kosong
+            ->distinct()
+            ->pluck('products.id');
 
         return response()->json([
             'status' => 'success',
@@ -165,75 +169,136 @@ public function syncImagesBatch(Request $request, $websiteId)
                 ->whereIn('id', $ids)
                 ->get();
 
-            // 3. Mulai Perburuan Gambar
-           // 3. Mulai Perburuan Gambar
+          // --- FUNGSI BANTUAN UNDUH GAMBAR (Agar kode tidak panjang & berulang) ---
+            $downloadImage = function($imagePath, $originalName, $productName) use ($host, $integration, $sessionToken, $websiteId) {
+                $parsedHost = parse_url($host);
+                $domainOnly = $parsedHost['scheme'] . '://' . $parsedHost['host'];
+                $fullImageUrl = $domainOnly . $imagePath;
+
+                $imageResponse = \Illuminate\Support\Facades\Http::withHeaders([
+                    'Authorization' => 'Bearer ' . $integration->access_token,
+                    'X-Session-ID' => $sessionToken,
+                    'Cookie' => 'X-Session-ID=' . $sessionToken . '; Authorization=Bearer ' . $integration->access_token
+                ])->get($fullImageUrl, [
+                    'access_token' => $integration->access_token,
+                    'session' => $sessionToken,
+                    'Authorization' => 'Bearer ' . $integration->access_token
+                ]);
+
+                if ($imageResponse->successful()) {
+                    $imageContent = $imageResponse->body();
+                    $slugName = \Illuminate\Support\Str::slug($productName);
+                    // Tambahkan uniqid() sedikit agar jika namanya sama, tidak saling timpa
+                    $fileName = $originalName ?: $slugName . '-' . uniqid() . '.png'; 
+                    $path = 'products/' . $websiteId . '/' . time() . '-' . $fileName;
+                    
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($path, $imageContent);
+                    return $path; // Kembalikan alamat penyimpanannya
+                }
+                return null;
+            };
+            // ------------------------------------------------------------------------
+
+            // 3. Mulai Perburuan Gambar (Sapu Jagat: Induk & Varian)
             foreach ($products as $product) {
                 
-                // 3. Mulai Perburuan Gambar (Di dalam foreach)
-                $cleanSku = trim(str_replace(["\r", "\n", "\t"], '', $product->sku));
+                $logKey = $product->sku ? $product->sku : 'ID-'.$product->id.' ('.$product->name.')';
                 $apiUrl = rtrim($host, '/') . '/accurate/api/item/detail.do';
 
-                $detailResponse = \Illuminate\Support\Facades\Http::withoutRedirecting()
-                    ->withHeaders([
-                        'Authorization' => 'Bearer ' . $integration->access_token,
-                        'X-Session-ID' => $sessionToken
-                    ])->get($apiUrl, [
-                        'no' => $cleanSku 
-                    ]);
+                $parentImagePathLocal = null; 
 
-                if ($detailResponse->successful() && $detailResponse->json('d')) {
-                    $itemData = $detailResponse->json('d');
-                    
-                    // 🚨 PERUBAHAN BESAR: Cari array 'detailItemImage'
-                    if (isset($itemData['detailItemImage']) && count($itemData['detailItemImage']) > 0) {
-                        
-                        // Ambil path file-nya
-                        $imagePath = $itemData['detailItemImage'][0]['fileName'];
-                        
-                        // 🚨 PERBAIKAN: Ambil domain utamanya saja (https://odin.accurate.id)
-                        $parsedHost = parse_url($host);
-                        $domainOnly = $parsedHost['scheme'] . '://' . $parsedHost['host'];
-                        
-                        // Rangkai menjadi Full URL yang benar!
-                        $fullImageUrl = $domainOnly . $imagePath;
-                        
-                        // UNDUH FISIK GAMBARNYA
-                        // 🚨 KUNCI MASTER: Kirim otorisasi lewat Header, Cookie, DAN Query URL sekaligus!
-                        $imageResponse = \Illuminate\Support\Facades\Http::withHeaders([
+               // --- TAHAP A: PROSES PRODUK INDUK ---
+                $cleanParentSku = trim(str_replace(["\r", "\n", "\t"], '', $product->sku ?? ''));
+                $parentImagePathLocal = $product->image; // Bawaan dari DB lokal
+                $isParentEmpty = empty($parentImagePathLocal);
+
+                if ($isParentEmpty && !empty($cleanParentSku)) {
+                    // Hanya tarik dari Accurate jika di lokal BENAR-BENAR kosong
+                    $parentRes = \Illuminate\Support\Facades\Http::withoutRedirecting()
+                        ->withHeaders([
                             'Authorization' => 'Bearer ' . $integration->access_token,
-                            'X-Session-ID' => $sessionToken,
-                            // Paksa masukkan sebagai Cookie juga
-                            'Cookie' => 'X-Session-ID=' . $sessionToken . '; Authorization=Bearer ' . $integration->access_token
-                        ])->get($fullImageUrl, [
-                            // Paksa masukkan ke ujung URL (?access_token=...&session=...)
-                            'access_token' => $integration->access_token,
-                            'session' => $sessionToken,
-                            'Authorization' => 'Bearer ' . $integration->access_token
-                        ]);
+                            'X-Session-ID' => $sessionToken
+                        ])->get($apiUrl, ['no' => $cleanParentSku]);
 
-                        if ($imageResponse->successful()) {
-                            // ... (Biarkan kode sukses sama seperti sebelumnya) ...
-                            $imageContent = $imageResponse->body();
-                            $originalName = $itemData['detailItemImage'][0]['originalName'] ?? '';
-                            $slugName = \Illuminate\Support\Str::slug($product->name);
-                            $fileName = $originalName ?: $slugName . '.png'; 
-                            
-                            $path = 'products/' . $websiteId . '/' . time() . '-' . $fileName;
-                            \Illuminate\Support\Facades\Storage::disk('public')->put($path, $imageContent);
-                            \Illuminate\Support\Facades\DB::table('products')->where('id', $product->id)->update(['image' => $path]);
+                    if ($parentRes->successful() && $parentRes->json('d')) {
+                        $itemData = $parentRes->json('d');
+                        if (isset($itemData['detailItemImage']) && count($itemData['detailItemImage']) > 0) {
+                            $imgPath = $itemData['detailItemImage'][0]['fileName'];
+                            $oriName = $itemData['detailItemImage'][0]['originalName'] ?? '';
 
-                            $debugLog[$product->sku] = 'Sukses ditarik dan disimpan!';
-                        } else {
-                            // 🚨 CCTV TAMBAHAN: Tampilkan URL-nya jika masih gagal
-                            $debugLog[$product->sku] = 'GAGAL UNDUH FISIK. Status: ' . $imageResponse->status() . ' | URL: ' . $fullImageUrl;
+                            $downloadedPath = $downloadImage($imgPath, $oriName, $product->name);
+                            if ($downloadedPath) {
+                                \Illuminate\Support\Facades\DB::table('products')
+                                    ->where('id', $product->id)
+                                    ->update(['image' => $downloadedPath]);
+                                $parentImagePathLocal = $downloadedPath; // Update variabel lokal
+                                $debugLog[$logKey] = 'Gambar Induk ditarik dari Accurate!';
+                            }
                         }
-                    } else {
-                        $debugLog[$product->sku] = 'TIDAK ADA GAMBAR DI ACCURATE (Array detailItemImage kosong).';
                     }
                 } else {
-                    $debugLog[$product->sku] = "GAGAL API DETAIL. Status: " . $detailResponse->status();
+                    if (!$isParentEmpty) {
+                        $debugLog[$logKey] = 'Induk diabaikan (Sudah punya gambar lokal).';
+                    }
                 }
-            } // (Akhir dari foreach)
+
+                // --- TAHAP B: PROSES SEMUA ANAK VARIAN ---
+                $variants = \Illuminate\Support\Facades\DB::table('product_variants')
+                    ->where('product_id', $product->id)
+                    ->get(); // Hapus 'whereNotNull' agar kita bisa memproses semua varian
+
+                $firstVariantImagePathLocal = null;
+
+                foreach ($variants as $variant) {
+                    // Cek gambar varian di lokal
+                    $isVariantEmpty = empty($variant->image);
+                    
+                    // Jika varian sudah punya gambar, simpan path-nya untuk pewarisan & skip proses download
+                    if (!$isVariantEmpty) {
+                        if (!$firstVariantImagePathLocal) $firstVariantImagePathLocal = $variant->image;
+                        $debugLog[$variant->sku ?? 'Varian-'.$variant->id] = 'Varian diabaikan (Sudah punya gambar lokal).';
+                        continue; // Lanjut ke varian berikutnya!
+                    }
+
+                    // Jika kosong dan punya SKU, baru meluncur ke Accurate
+                    $cleanVariantSku = trim(str_replace(["\r", "\n", "\t"], '', $variant->sku ?? ''));
+                    if (!empty($cleanVariantSku)) {
+                        $variantRes = \Illuminate\Support\Facades\Http::withoutRedirecting()
+                            ->withHeaders([
+                                'Authorization' => 'Bearer ' . $integration->access_token,
+                                'X-Session-ID' => $sessionToken
+                            ])->get($apiUrl, ['no' => $cleanVariantSku]);
+
+                        if ($variantRes->successful() && $variantRes->json('d')) {
+                            $vData = $variantRes->json('d');
+                            if (isset($vData['detailItemImage']) && count($vData['detailItemImage']) > 0) {
+                                $vImgPath = $vData['detailItemImage'][0]['fileName'];
+                                $vOriName = $vData['detailItemImage'][0]['originalName'] ?? '';
+
+                                $vLocalPath = $downloadImage($vImgPath, $vOriName, $product->name . '-' . $variant->sku);
+
+                                if ($vLocalPath) {
+                                    \Illuminate\Support\Facades\DB::table('product_variants')
+                                        ->where('id', $variant->id)
+                                        ->update(['image' => $vLocalPath]);
+                                    
+                                    $debugLog[$variant->sku] = 'Gambar Varian ditarik dari Accurate!';
+                                    if (!$firstVariantImagePathLocal) $firstVariantImagePathLocal = $vLocalPath;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- TAHAP C: FALLBACK / PEWARISAN (Tetap sama) ---
+                if (empty($parentImagePathLocal) && !empty($firstVariantImagePathLocal)) {
+                    \Illuminate\Support\Facades\DB::table('products')
+                        ->where('id', $product->id)
+                        ->update(['image' => $firstVariantImagePathLocal]);
+                    $debugLog[$logKey] = 'Induk Kosong: Meminjam gambar dari varian.';
+                }
+                
+            } // (Akhir dari foreach products)
             return response()->json([
                 'status' => 'success',
                 'debug_log' => $debugLog

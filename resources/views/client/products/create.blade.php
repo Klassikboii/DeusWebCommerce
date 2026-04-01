@@ -28,7 +28,15 @@
                 <h6 class="fw-bold mb-3 text-primary">Informasi Dasar</h6>
                 <div class="mb-3">
                     <label class="form-label">Foto Produk</label>
-                    <input type="file" name="image" class="form-control @error('image') is-invalid @enderror" accept="image/*">
+                    
+                    {{-- 🚨 WADAH PREVIEW: Ditambahkan di sini --}}
+                    <div class="mb-2" id="preview-container" style="display: none;">
+                        <img id="image-preview" src="#" alt="Preview" class="img-thumbnail rounded" style="height: 100px; width: 100px; object-fit: cover;">
+                    </div>
+                    
+                    {{-- 🚨 TRIGGER ONCHANGE: Ditambahkan di sini --}}
+                    <input type="file" name="image" class="form-control @error('image') is-invalid @enderror" accept="image/*" onchange="window.previewNewImage(event)">
+                    
                     <div class="form-text small text-muted">Format: JPG, PNG, JPEG. Maksimal 2MB.</div>
                     @error('image') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
@@ -148,17 +156,119 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        
+        // ==========================================
+        // 1. DAFTARKAN SEMUA FUNGSI TERLEBIH DAHULU
+        // ==========================================
+
+        // Fungsi Preview Gambar Utama
+        window.previewNewImage = function(event) {
+            const input = event.target;
+            const previewContainer = document.getElementById('preview-container');
+            const imagePreview = document.getElementById('image-preview');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        // Fungsi Preview Gambar Varian
+        window.previewVariantImage = function(input, index) {
+            let flagInput = input.closest('td').querySelector('.remove-image-flag');
+            if(flagInput) flagInput.value = '0';
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    let previewContainer = input.closest('td').querySelector('.variant-image-preview');
+                    if (previewContainer) {
+                        previewContainer.innerHTML = `
+                            <div class="position-relative d-inline-block mb-1">
+                                <img src="${e.target.result}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
+                                <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
+                                    <i class="bi bi-x" style="font-size: 14px;"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        // Fungsi Hapus Gambar Varian
+        window.removeVariantImage = function(btn) {
+            let td = btn.closest('td');
+            td.querySelector('.variant-image-preview').innerHTML = '';
+            let fileInput = td.querySelector('input[type="file"]');
+            if(fileInput) fileInput.value = '';
+            let flagInput = td.querySelector('.remove-image-flag');
+            if(flagInput) flagInput.value = '1';
+        };
+
+        // Fungsi Tambah Baris Varian (Versi Create - Tanpa Kunci SKU)
+        window.addVariantRow = function() {
+            const index = Date.now() + Math.floor(Math.random() * 1000); 
+            const tableBody = document.querySelector('#variant-table tbody');
+
+            const row = `
+                <tr>
+                    <td>
+                        <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Misal: Merah" required>
+                    </td>
+                    <td class="text-center">
+                        <div class="variant-image-preview text-center"></div>
+                        <input type="file" name="variants[${index}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="window.previewVariantImage(this, ${index})">
+                        <input type="hidden" name="variants[${index}][remove_image]" value="0" class="remove-image-flag">
+                    </td>
+                    <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" required></td>
+                    <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" required></td>
+                    <td>
+                        <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1" placeholder="SKU">
+                        <select name="variants[${index}][is_active]" class="form-select form-select-sm">
+                            <option value="1" selected>Aktif</option>
+                            <option value="0">Mati</option>
+                        </select>
+                    </td>
+                    <td class="text-center align-middle">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="window.removeRow(this)"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+            tableBody.insertAdjacentHTML('beforeend', row);
+        };
+
+        // Fungsi Hapus Baris
+        window.removeRow = function(btn) {
+            const tableBody = document.querySelector('#variant-table tbody');
+            if (tableBody.children.length > 1) {
+                btn.closest('tr').remove();
+            } else {
+                alert('Minimal harus ada 1 varian aktif jika opsi variasi dinyalakan.');
+            }
+        };
+
+        // ==========================================
+        // 2. LOGIKA TOGGLE SINGLE VS VARIAN
+        // ==========================================
         const checkbox = document.getElementById('has_variants');
         const singleFields = document.getElementById('single-product-fields');
         const variantFields = document.getElementById('variant-product-fields');
         const tableBody = document.querySelector('#variant-table tbody');
 
-        // LOGIKA TOGGLE SINGLE VS VARIAN
         function toggleVariantFields() {
             if (checkbox.checked) {
                 singleFields.style.display = 'none';
                 variantFields.style.display = 'block';
                 toggleInputs(singleFields, true);
+                
+                // Tambahkan 1 baris otomatis jika tabel kosong saat diaktifkan
+                if(tableBody.children.length === 0) window.addVariantRow();
             } else {
                 singleFields.style.display = 'block';
                 variantFields.style.display = 'none';
@@ -171,113 +281,8 @@
         }
 
         checkbox.addEventListener('change', toggleVariantFields);
-        toggleVariantFields(); // Inisialisasi awal
-
-        // Jika user mencentang checkbox, berikan 1 baris kosong otomatis
-        checkbox.addEventListener('change', () => {
-            if(checkbox.checked && tableBody.children.length === 0) window.addVariantRow();
-        });
+        toggleVariantFields(); // Inisialisasi awal saat halaman diload
     });
-
-   // 🚨 1. FUNGSI PREVIEW GAMBAR (Diperbarui dengan tombol X melayang)
-    window.previewVariantImage = function(input, index) {
-        // Reset flag hapus gambar jika user memilih file baru
-        let flagInput = input.closest('td').querySelector('.remove-image-flag');
-        if(flagInput) flagInput.value = '0';
-
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                let previewContainer = input.closest('td').querySelector('.variant-image-preview');
-                if (previewContainer) {
-                    previewContainer.innerHTML = `
-                        <div class="position-relative d-inline-block mb-1">
-                            <img src="${e.target.result}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
-                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
-                                <i class="bi bi-x" style="font-size: 14px;"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-            reader.readAsDataURL(input.files[0]);
-        }
-    };🚨 2. FUNGSI HAPUS GAMBAR VARIAN (Hanya Hapus Preview & Set Flag)
-    window.removeVariantImage = function(btn) {
-        let td = btn.closest('td');
-        
-        // 1. Kosongkan wadah preview
-        td.querySelector('.variant-image-preview').innerHTML = '';
-        
-        // 2. Kosongkan form input file
-        let fileInput = td.querySelector('input[type="file"]');
-        if(fileInput) fileInput.value = '';
-        
-        // 3. Ubah nilai input tersembunyi (flag) menjadi 1 agar Laravel tahu ini dihapus
-        let flagInput = td.querySelector('.remove-image-flag');
-        if(flagInput) flagInput.value = '1';
-    };
-   // 🚨 3. FUNGSI TAMBAH BARIS (Diperbarui)
-    window.addVariantRow = function(data = null) {
-        const index = Date.now() + Math.floor(Math.random() * 1000); 
-        const tableBody = document.querySelector('#variant-table tbody');
-        
-        const idInput = data ? `<input type="hidden" name="variants[${index}][id]" value="${data.id}">` : '';
-        const name = data ? data.name : '';
-        const price = data ? data.price : '';
-        const stock = data ? data.stock : '';
-        const sku = data ? (data.sku || '') : '';
-        const isActive = data ? data.is_active : 1;
-
-        // Kontainer preview dengan tombol X jika gambar dari database sudah ada
-        const imagePreview = (data && data.image) 
-            ? `<div class="position-relative d-inline-block mb-1">
-                 <img src="/storage/${data.image}" class="rounded border" style="height:50px; width:50px; object-fit:cover;">
-                 <button type="button" class="btn btn-danger btn-sm position-absolute top-0 start-100 translate-middle rounded-circle p-0" style="width:20px; height:20px; line-height:1;" onclick="window.removeVariantImage(this)">
-                     <i class="bi bi-x" style="font-size: 14px;"></i>
-                 </button>
-               </div>` 
-            : '';
-
-        const row = `
-            <tr>
-                <td>
-                    ${idInput}
-                    <input type="text" name="variants[${index}][name]" class="form-control form-control-sm" placeholder="Misal: Merah" value="${name}" required>
-                </td>
-                <td class="text-center">
-                    <div class="variant-image-preview text-center">
-                        ${imagePreview}
-                    </div>
-                    <input type="file" name="variants[${index}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="window.previewVariantImage(this, ${index})">
-                    
-                    <input type="hidden" name="variants[${index}][remove_image]" value="0" class="remove-image-flag">
-                </td>
-                <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
-                <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
-                <td>
-                    <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1" placeholder="SKU" value="${sku}">
-                    <select name="variants[${index}][is_active]" class="form-select form-select-sm">
-                        <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
-                        <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
-                    </select>
-                </td>
-                <td class="text-center align-middle">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="window.removeRow(this)"><i class="bi bi-trash"></i></button>
-                </td>
-            </tr>
-        `;
-        tableBody.insertAdjacentHTML('beforeend', row);
-    };
-
-    // FUNGSI HAPUS BARIS
-    window.removeRow = function(btn) {
-        const tableBody = document.querySelector('#variant-table tbody');
-        if (tableBody.children.length > 1) {
-            btn.closest('tr').remove();
-        } else {
-            alert('Minimal harus ada 1 varian aktif jika opsi variasi dinyalakan.');
-        }
-    };
 </script>
+
 @endsection

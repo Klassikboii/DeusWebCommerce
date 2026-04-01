@@ -659,19 +659,30 @@ class AccurateService
             // ==========================================
             // CEK 1: APAKAH INI VARIAN DARI PRODUK YANG SUDAH ADA?
             // ==========================================
-            // (Asumsi nama model Anda adalah ProductVariant)
             if (class_exists('\App\Models\ProductVariant')) {
                 $variant = \App\Models\ProductVariant::whereHas('product', function($query) {
                     $query->where('website_id', $this->website->id);
                 })->where('sku', $sku)->first();
 
                 if ($variant) {
-                    // Jika ketemu sebagai varian, update variannya saja dan lompati kode di bawahnya
+                    // Update harga & stok varian
                     $variant->update([
                         'price' => $price,
                         'stock' => $stock,
                     ]);
-                    continue; 
+
+                    // 🚨 INJEKSI BARU: RE-KALKULASI STOK INDUK!
+                    // 1. Hitung total stok semua varian dari induk yang sama
+                    $totalVariantStock = \Illuminate\Support\Facades\DB::table('product_variants')
+                        ->where('product_id', $variant->product_id)
+                        ->sum('stock');
+                    
+                    // 2. Timpa (update) stok induknya
+                    \Illuminate\Support\Facades\DB::table('products')
+                        ->where('id', $variant->product_id)
+                        ->update(['stock' => $totalVariantStock]);
+
+                    continue; // Sekarang aman untuk lanjut ke barang berikutnya
                 }
             }
 
@@ -759,15 +770,33 @@ class AccurateService
             $price = $item['unitPrice'] ?? 0;
             $stock = $item['quantity'] ?? 0;
 
-            // 1. Cek Varian (Sama seperti sebelumnya)
+            // ==========================================
+            // CEK 1: APAKAH INI VARIAN DARI PRODUK YANG SUDAH ADA?
+            // ==========================================
             if (class_exists('\App\Models\ProductVariant')) {
                 $variant = \App\Models\ProductVariant::whereHas('product', function($query) {
                     $query->where('website_id', $this->website->id);
                 })->where('sku', $sku)->first();
 
                 if ($variant) {
-                    $variant->update(['price' => $price, 'stock' => $stock]);
-                    continue; 
+                    // Update harga & stok varian
+                    $variant->update([
+                        'price' => $price,
+                        'stock' => $stock,
+                    ]);
+
+                    // 🚨 INJEKSI BARU: RE-KALKULASI STOK INDUK!
+                    // 1. Hitung total stok semua varian dari induk yang sama
+                    $totalVariantStock = \Illuminate\Support\Facades\DB::table('product_variants')
+                        ->where('product_id', $variant->product_id)
+                        ->sum('stock');
+                    
+                    // 2. Timpa (update) stok induknya
+                    \Illuminate\Support\Facades\DB::table('products')
+                        ->where('id', $variant->product_id)
+                        ->update(['stock' => $totalVariantStock]);
+
+                    continue; // Sekarang aman untuk lanjut ke barang berikutnya
                 }
             }
 

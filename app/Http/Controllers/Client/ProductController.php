@@ -30,12 +30,18 @@ class ProductController extends Controller
 
         $query = $website->products();
         
-        // 1. PENCARIAN (Nama & SKU)
+        // 1. PENCARIAN (Nama & SKU Induk + Varian)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
+                // A. Cari di tabel Induk
                 $q->where('name', 'like', '%'.$search.'%')
-                  ->orWhere('sku', 'like', '%'.$search.'%');
+                  ->orWhere('sku', 'like', '%'.$search.'%')
+                // B. Cari di tabel Anak (Varian)
+                  ->orWhereHas('variants', function($qVarian) use ($search) {
+                      $qVarian->where('name', 'like', '%'.$search.'%')
+                              ->orWhere('sku', 'like', '%'.$search.'%');
+                  });
             });
         }
 
@@ -103,8 +109,9 @@ class ProductController extends Controller
         // 7. STATISTIK & LIMIT
         $currentCount = $website->products()->count();
         $limit = $this->getLimit($website);
-        $isLimitReached = $currentCount >= $limit;
+        
         $activeCount = $website->products()->where('is_active', true)->count();
+        $isLimitReached = $activeCount >= $limit;
 
         return view('client.products.index', compact('website', 'products', 'currentCount', 'limit', 'isLimitReached', 'activeCount'));
     }
@@ -114,17 +121,19 @@ class ProductController extends Controller
 
         // --- CEGAT DI PINTU DEPAN (Redirect sebelum ngisi form) ---
         $limit = $this->getLimit($website);
-        if ($website->products()->count() >= $limit) {
-            return redirect()->route('client.products.index', $website->id)
-                             ->with('error', "Limit produk tercapai ({$limit} item). Silakan upgrade paket.");
-        }
-        // ----------------------------------------------------------
+        // if ($website->products()->count() >= $limit) {
+        //     return redirect()->route('client.products.index', $website->id)
+        //                      ->with('error', "Limit produk tercapai ({$limit} item). Silakan upgrade paket.");
+        // }
+        // // ----------------------------------------------------------
 
         $categories = $website->categories;
         return view('client.products.create', compact('website', 'categories'));
     }
     public function store(Request $request, Website $website)
     {
+        $this->authorize('create', $website);
+
         // --- 1. TENTUKAN BATAS LIMIT ---
         $limit = 0;
         $subscription = $website->activeSubscription;
@@ -137,12 +146,22 @@ class ProductController extends Controller
         }
 
         // --- 2. CEK JUMLAH PRODUK VS LIMIT ---
-        $currentCount = $website->products()->count();
-        if ($currentCount >= $limit) {
-            return redirect()->back()->with('error', "Ups! Batas produk tercapai ({$limit} item). Paket Anda mungkin telah berakhir. Silakan upgrade.");
-        }
+        $activeCount = $website->products()->where('is_active', true)->count();
 
-        $this->authorize('create', $website);
+        // Tentukan Niat Awal User (Apakah dia centang checkbox?)
+        $userWantsActive = $request->has('is_active') && $request->is_active != '0';
+        
+        // Siapkan variabel default
+        $finalIsActive = $userWantsActive; 
+        $alertType = 'success';
+        $alertMessage = 'Produk berhasil ditambahkan dan tersinkronisasi dengan Accurate!';
+
+        // 🚨 LOGIKA PEMAKSAAN LIMIT 
+        if ($userWantsActive && $activeCount >= $limit) {
+            $finalIsActive = false; // PAKSA MATIKAN!
+            $alertType = 'warning';
+            $alertMessage = "Produk berhasil disimpan, namun diset Non-Aktif karena Kuota Etalase penuh (Maksimal {$limit} produk).";
+        }
 
         // --- 3. VALIDASI INPUT YANG BENAR ---
         $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
@@ -156,12 +175,12 @@ class ProductController extends Controller
             'weight' => 'nullable|numeric|min:0',
         ];
 
-        // Jika TIDAK pakai varian, Harga & Stok Utama WAJIB diisi
         if (!$hasVariants) {
             $rules['price'] = 'required|numeric|min:0';
             $rules['stock'] = 'required|numeric|min:0';
         }
         $request->validate($rules);
+        
         DB::beginTransaction();
 
         try {
@@ -169,14 +188,15 @@ class ProductController extends Controller
             $product = $website->products()->create([
                 'category_id' => $request->category_id,
                 'name'        => $request->name,
-                'slug'        => Str::slug($request->name) . '-' . Str::random(4),
+                'slug'        => \Illuminate\Support\Str::slug($request->name) . '-' . \Illuminate\Support\Str::random(4),
                 'description' => $request->description,
                 'image'       => $request->file('image') ? $request->file('image')->store('products', 'public') : null,
                 'price'       => $hasVariants ? 0 : $request->price,
                 'stock'       => $hasVariants ? 0 : $request->stock,
                 'weight'      => $request->weight ?? 1000,
                 'sku'         => $request->sku,
-                'is_active'   => $request->has('is_active'), // 🚨 TAMBAHAN
+                // 🚨 GUNAKAN VARIABEL FINAL DI SINI
+                'is_active'   => $finalIsActive, 
             ]);
 
             // 2. Simpan Varian (Jika Ada)
@@ -186,14 +206,20 @@ class ProductController extends Controller
                 
                 foreach ($request->variants as $variantData) {
                     if (empty($variantData['name'])) continue;
+                    
+                    // Varian juga mengikuti status induknya
+                    $variantIsActive = isset($variantData['is_active']) ? $variantData['is_active'] : 1;
+                    if (!$finalIsActive) $variantIsActive = 0; // Jika induk dipaksa mati, varian ikut mati
+
                     $product->variants()->create([
-                        'name'    => $variantData['name'],
-                        'options' => ['name' => $variantData['name']], 
-                        'price'   => $variantData['price'] ?? 0,
-                        'stock'   => $variantData['stock'] ?? 0,
-                        'sku'     => $variantData['sku'] ?? null,
-                        'weight'  => $request->weight ?? 1000, 
-                        'is_active' => isset($variantData['is_active']) ? $variantData['is_active'] : 1, // 🚨 TAMBAHAN
+                        'name'      => $variantData['name'],
+                        'options'   => ['name' => $variantData['name']], 
+                        'price'     => $variantData['price'] ?? 0,
+                        'stock'     => $variantData['stock'] ?? 0,
+                        'sku'       => $variantData['sku'] ?? null,
+                        'weight'    => $request->weight ?? 1000, 
+                        // 🚨 GUNAKAN STATUS YANG SUDAH DISESUAIKAN
+                        'is_active' => $variantIsActive, 
                     ]);
                     
                     $price = (int) ($variantData['price'] ?? 0);
@@ -207,7 +233,7 @@ class ProductController extends Controller
             DB::commit();
 
             // =========================================================
-            // 3. SINKRONISASI KE ACCURATE (BARANG + INISIALISASI STOK)
+            // 3. SINKRONISASI KE ACCURATE 
             // =========================================================
             $accurateSyncFailed = false; 
             try {
@@ -216,9 +242,7 @@ class ProductController extends Controller
 
                 if ($hasVariants && $product->variants->count() > 0) {
                     foreach ($product->variants as $variant) {
-                        // Sync Barang
                         $status = $accurateService->syncItemToAccurate($variant);
-                        // Sync Stok Awal (Jika barang sukses dibuat)
                         if ($status && $variant->stock > 0) {
                             $accurateService->syncInventoryAdjustment($variant->sku, $variant->stock);
                         }
@@ -230,11 +254,9 @@ class ProductController extends Controller
                         'price' => $product->price,
                         'name' => $product->name,
                         'product' => $product,
-                        'stock' => $product->stock // 🚨 INI YANG KEMARIN HILANG!
+                        'stock' => $product->stock 
                     ];
-                    // Sync Barang
                     $status = $accurateService->syncItemToAccurate($singleItem);
-                    // Sync Stok Awal (Jika barang sukses dibuat)
                     if ($status && $product->stock > 0) {
                         $accurateService->syncInventoryAdjustment($product->sku, $product->stock);
                     }
@@ -245,13 +267,15 @@ class ProductController extends Controller
                 $accurateSyncFailed = true;
             }
 
+            // 🚨 TIMPA PESAN JIKA ACCURATE GAGAL TAPI PRODUK TERSIMPAN
             if ($accurateSyncFailed) {
-                return redirect()->route('client.products.index', $website->id)
-                    ->with('warning', 'Produk tersimpan, namun sinkronisasi Accurate gagal (Cek SKU).');
+                $alertType = 'warning';
+                $alertMessage = 'Produk tersimpan, namun sinkronisasi Accurate gagal (Cek SKU/Koneksi).';
             }
 
+            // 🚨 RETURN DENGAN VARIABEL DINAMIS
             return redirect()->route('client.products.index', $website->id)
-                ->with('success', 'Produk berhasil ditambahkan dan tersinkronisasi dengan Accurate!');
+                ->with($alertType, $alertMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -268,19 +292,48 @@ class ProductController extends Controller
         $categories = $website->categories;
         return view('client.products.edit', compact('website', 'product', 'categories'));
     }
-
-    // 2. PROSES UPDATE DATA
-  // 2. PROSES UPDATE DATA
-    public function update(Request $request, Website $website, Product $product)
+public function update(Request $request, Website $website, Product $product)
     {
         $this->authorize('update', $website);
         
         \Illuminate\Support\Facades\Log::info("CCTV 1 - Request Update Produk {$product->sku}: ", $request->all());
 
-        // 1. Cek Status Varian
+        // --- 1. TENTUKAN BATAS LIMIT ---
+        $limit = 0;
+        $subscription = $website->activeSubscription;
+
+        if ($subscription) {
+            $limit = $subscription->package->max_products;
+        } else {
+            $freePackage = \App\Models\Package::where('price', 0)->first();
+            $limit = $freePackage ? $freePackage->max_products : 2; 
+        }
+
+        // --- 2. CEK JUMLAH PRODUK VS LIMIT ---
+        // PENTING: Pengecualian ID agar produk ini tidak menghitung dirinya sendiri
+        $activeCount = $website->products()
+                               ->where('is_active', true)
+                               ->where('id', '!=', $product->id)
+                               ->count();
+
+        // Tentukan Niat Awal User
+        $userWantsActive = $request->has('is_active') && $request->is_active != '0';
+        
+        // Siapkan variabel default
+        $finalIsActive = $userWantsActive; 
+        $alertType = 'success';
+        $alertMessage = 'Produk berhasil diperbarui di Toko dan sinkron dengan Accurate!';
+
+        // 🚨 LOGIKA PEMAKSAAN LIMIT 
+        if ($userWantsActive && $activeCount >= $limit) {
+            $finalIsActive = false; // PAKSA MATIKAN!
+            $alertType = 'warning';
+            $alertMessage = "Produk diperbarui, namun diset Non-Aktif karena Kuota Etalase penuh (Maksimal {$limit} produk).";
+        }
+
+        // --- 3. VALIDASI DASAR ---
         $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
 
-        // 2. Validasi Dasar
         $rules = [
             'name' => 'required|string|max:255',
             'category_id' => 'nullable|exists:categories,id',
@@ -290,7 +343,6 @@ class ProductController extends Controller
             'weight' => 'nullable|numeric|min:0',
         ];
 
-        // Jika TIDAK pakai varian, Harga & Stok Utama WAJIB diisi
         if (!$hasVariants) {
             $rules['price'] = 'required|numeric|min:0';
             $rules['stock'] = 'required|numeric|min:0';
@@ -308,9 +360,8 @@ class ProductController extends Controller
                 'name'        => $request->name,
                 'description' => $request->description,
                 'weight'      => $request->weight ?? 1000,
-                // Induk tidak boleh punya SKU jika dia punya varian (agar Accurate tidak bingung)
                 'sku'         => $hasVariants ? null : $request->sku, 
-                'is_active'   => $request->has('is_active') ? 1 : 0,
+                'is_active'   => $finalIsActive, // 🚨 PAKAI VARIABEL FINAL
             ];
 
             // Logika Update Gambar
@@ -336,9 +387,11 @@ class ProductController extends Controller
 
                     $stockInput = (int)($variantData['stock'] ?? 0);
                     $priceInput = (float)($variantData['price'] ?? 0);
-                    
-                    // 🚨 CEK APAKAH USER MENEKAN TOMBOL HAPUS GAMBAR
                     $isRemoveImage = isset($variantData['remove_image']) && $variantData['remove_image'] == '1';
+
+                    // 🚨 Varian mengikuti status induknya
+                    $variantIsActive = isset($variantData['is_active']) ? $variantData['is_active'] : 1;
+                    if (!$finalIsActive) $variantIsActive = 0; // Jika induk dipaksa mati, anak ikut mati
 
                     $variant = \App\Models\ProductVariant::updateOrCreate(
                         [
@@ -346,23 +399,21 @@ class ProductController extends Controller
                             'sku' => $variantData['sku'],
                         ],
                         [
-                            'name'          => $variantData['name'],
-                            'price'         => $priceInput,
-                            'stock'         => $stockInput,
-                            'is_active'     => isset($variantData['is_active']) ? $variantData['is_active'] : 1,
+                            'name'      => $variantData['name'],
+                            'price'     => $priceInput,
+                            'stock'     => $stockInput,
+                            'is_active' => $variantIsActive, // 🚨 PAKAI VARIABEL FINAL
                         ]
                     );
 
-                    // 🚨 LOGIKA GAMBAR FINAL
+                    // Logika Gambar Varian
                     if ($request->hasFile("variants.{$index}.image")) {
-                        // 1. Jika User Mengupload Gambar Baru
                         if ($variant->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($variant->image)) {
                             \Illuminate\Support\Facades\Storage::disk('public')->delete($variant->image);
                         }
                         $variant->update(['image' => $request->file("variants.{$index}.image")->store('variants', 'public')]);
                     
                     } elseif ($isRemoveImage) {
-                        // 2. Jika User menekan tombol silang X (Tanpa upload gambar baru)
                         if ($variant->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($variant->image)) {
                             \Illuminate\Support\Facades\Storage::disk('public')->delete($variant->image);
                         }
@@ -375,16 +426,15 @@ class ProductController extends Controller
                     $totalStock += $stockInput;
                 }
 
-                // Hapus varian yang dihapus oleh admin di form
+                // Hapus varian yang dibuang
                 \App\Models\ProductVariant::where('product_id', $product->id)
                     ->whereNotIn('id', $variantIdsToKeep)
                     ->delete();
 
-                // Update harga minimal dan stok kumulatif ke produk induk
+                // Update harga & stok induk
                 $product->update(['price' => $minPrice ?? 0, 'stock' => $totalStock]);
 
             } else {
-                // Jika produk berubah dari Varian ke Single, bersihkan sisa variannya
                 \App\Models\ProductVariant::where('product_id', $product->id)->delete();
                 $product->update([
                     'price' => $request->price,
@@ -393,7 +443,6 @@ class ProductController extends Controller
             }
 
             DB::commit();
-            \Illuminate\Support\Facades\Log::info("CCTV 3 - Sukses Commit DB Lokal! Stok Induk sekarang: " . $product->stock);
 
             // =========================================================
             // 3. SINKRONISASI UPDATE & SELISIH STOK KE ACCURATE
@@ -404,15 +453,11 @@ class ProductController extends Controller
                 $product->refresh(); 
 
                 if ($hasVariants && $product->variants->count() > 0) {
-                    // --- MODE VARIAN ---
                     foreach ($product->variants as $variant) {
                         $status = $accurateService->syncItemToAccurate($variant);
                         
-                        // Hitung Selisih Stok
                         $stokAccurate = $accurateService->getAccurateStock($variant->sku);
                         $selisihStok = $variant->stock - $stokAccurate;
-
-                        \Illuminate\Support\Facades\Log::info("Update Varian {$variant->sku}: Input ({$variant->stock}) - Accurate ({$stokAccurate}) = Selisih ({$selisihStok})");
 
                         if ($status && $selisihStok != 0) {
                             $accurateService->syncInventoryAdjustment($variant->sku, $selisihStok);
@@ -420,7 +465,6 @@ class ProductController extends Controller
                         if (!$status) $accurateSyncFailed = true;
                     }
                 } else {
-                    // --- MODE SINGLE ITEM ---
                     $singleItem = (object)[
                         'sku' => $product->sku,
                         'price' => $product->price,
@@ -430,11 +474,8 @@ class ProductController extends Controller
                     
                     $status = $accurateService->syncItemToAccurate($singleItem);
                     
-                    // Hitung Selisih Stok
                     $stokAccurate = $accurateService->getAccurateStock($product->sku);
                     $selisihStok = $product->stock - $stokAccurate;
-
-                    \Illuminate\Support\Facades\Log::info("Update Single {$product->sku}: Input ({$product->stock}) - Accurate ({$stokAccurate}) = Selisih ({$selisihStok})");
 
                     if ($status && $selisihStok != 0) {
                         $accurateService->syncInventoryAdjustment($product->sku, $selisihStok);
@@ -446,20 +487,26 @@ class ProductController extends Controller
                 $accurateSyncFailed = true;
             }
 
+            // 🚨 TIMPA PESAN JIKA ACCURATE GAGAL TAPI PRODUK TERSIMPAN
             if ($accurateSyncFailed) {
-                return redirect()->route('client.products.index', $website->id)
-                    ->with('warning', 'Produk diperbarui, namun sinkronisasi Accurate gagal (Cek SKU/Koneksi).');
+                $alertType = 'warning';
+                // Jika tadi sudah kena warning limit, kita gabung pesannya
+                if (!$finalIsActive && $userWantsActive) {
+                    $alertMessage .= ' (Catatan tambahan: Sinkronisasi ke Accurate juga mengalami kendala).';
+                } else {
+                    $alertMessage = 'Produk diperbarui, namun sinkronisasi Accurate gagal (Cek SKU/Koneksi).';
+                }
             }
 
+            // 🚨 RETURN DENGAN VARIABEL DINAMIS
             return redirect()->route('client.products.index', $website->id)
-                ->with('success', 'Produk berhasil diperbarui di Toko dan sinkron dengan Accurate!');
+                ->with($alertType, $alertMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal update: ' . $e->getMessage())->withInput();
         }
     }
-    // 3. PROSES HAPUS DATA
     // 3. PROSES HAPUS DATA (SAFE DELETE)
     public function destroy(Website $website, Product $product)
     {
