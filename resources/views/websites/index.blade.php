@@ -101,7 +101,7 @@
                             @endphp
                             <div>
                                 <h5 class="fw-bold mb-1 text-truncate" style="max-width: 200px;">{{ $website->site_name }}</h5>
-                                <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
+                                        <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
                                     {{ $website->active_domain }}.deusserver.ashop.asia <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                             </div>
@@ -111,7 +111,7 @@
                         </div>
                     
                         <div class="mt-auto pt-3 border-top d-flex gap-2">
-                            <a href="{{ route('store.home', ['subdomain' => $website->active_domain]) }}" target="_blank" class="btn btn-light flex-fill border btn-sm py-2">
+                                <a href="{{ $storeUrl }}" target="_blank" class="btn btn-light flex-fill border btn-sm py-2">
                                 <i class="bi bi-eye"></i> Lihat Toko
                             </a>
                             <a href="{{ route('client.dashboard', $website->id) }}" class="btn btn-primary flex-fill btn-sm py-2">
@@ -159,7 +159,7 @@
                                         <input type="text" id="subdomainInput" name="subdomain" 
                                                class="form-control @error('subdomain') is-invalid @enderror" 
                                                placeholder="sepatukerenbudi" value="{{ old('subdomain') }}" required>
-                                        <span class="input-group-text bg-light text-muted small">.deusserver.ashop.asia</span>
+                                        <span class="input-group-text bg-light text-muted small">.deusserver.ashop.asia </span>
                                         @error('subdomain')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror

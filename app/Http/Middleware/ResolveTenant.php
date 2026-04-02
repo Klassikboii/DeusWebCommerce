@@ -10,34 +10,34 @@ use Illuminate\Support\Facades\View;
 
 class ResolveTenant
 {
-   public function handle(Request $request, Closure $next)
-{
-    // 1. Ambil Host/Domain yang sedang diakses (misal: joseelectronics.com atau elecjos.deusserver.ashop.asia)
-    $host = $request->getHost();
-    $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+    public function handle(Request $request, Closure $next)
+    {
+        // 1. Ambil parameter 'subdomain' dari URL (prefix: s/{subdomain})
+        $subdomain = $request->route('subdomain');
 
-    // 2. Logika pencarian Website
-    if (str_ends_with($host, $mainDomain)) {
-        // Jika host berakhiran domain utama (ini adalah SUBDOMAIN)
-        // Ambil bagian depannya saja (misal: 'elecjos' dari 'elecjos.deusserver.ashop.asia')
-        $subdomainOnly = str_replace('.' . $mainDomain, '', $host);
-        $website = Website::where('subdomain', $subdomainOnly)->first();
-    } else {
-        // Jika host TIDAK berakhiran domain utama (ini adalah CUSTOM DOMAIN)
-        $website = Website::where('custom_domain', $host)->first();
+        // Jika user mengakses http://elecjos.deusserver.test, 
+    // nilai $subdomain di sini SEKARANG ADALAH "elecjos". Sempurna!
+
+        if (!$subdomain) {
+            abort(404, 'Toko tidak ditemukan (Parameter URL hilang).');
+        }
+
+        // 2. Cari Website di Database
+        $website = Website::where('subdomain', $subdomain)->first();
+
+        if (!$website) {
+            abort(404, 'Toko tidak ditemukan di database.');
+        }
+
+        // 3. MAGIC: Set Default URL Parameter
+        // Ini membuat route('store.cart') otomatis menjadi /s/elecjos/cart
+        // tanpa perlu kita pass parameter manual di view.
+        URL::defaults(['subdomain' => $subdomain]);
+
+        // 4. Inject Data ke Request & View
+        $request->merge(['website' => $website]);
+        View::share('website', $website);
+
+        return $next($request);
     }
-
-    if (!$website) {
-        abort(404, 'Toko tidak ditemukan.');
-    }
-
-    // 3. Set Default URL Parameter agar helper route() tetap bekerja
-    URL::defaults(['any_domain' => $host]);
-
-    // 4. Inject Data
-    $request->merge(['website' => $website]);
-    View::share('website', $website);
-
-    return $next($request);
-}
 }
