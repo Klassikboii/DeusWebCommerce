@@ -139,6 +139,10 @@ public function update(Request $request, Website $website, Order $order)
     $updateData = [
         'status' => $request->status,
     ];
+    // 🚨 TAMBAHAN BARU: Jika admin mengubah status jadi 'processing', otomatis anggap sudah LUNAS
+    if ($request->status === 'processing') {
+        $updateData['payment_status'] = 'paid';
+    }
 
     // 2. Hanya update Resi & Kurir JIKA Admin benar-benar mengisinya di form
     if ($request->filled('tracking_number')) {

@@ -289,7 +289,7 @@
     });
 </script>
 <div class="modal fade" id="modalPanduanMidtrans" tabindex="-1" aria-labelledby="modalMidtransLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-primary text-white">
                 <h6 class="modal-title fw-bold" id="modalMidtransLabel"><i class="bi bi-credit-card me-2"></i>Panduan Setup Midtrans</h6>
@@ -300,16 +300,65 @@
                     <li>Daftar atau Login ke akun <a href="https://dashboard.midtrans.com/" target="_blank" class="fw-bold text-primary text-decoration-none">Dashboard Midtrans</a> Anda.</li>
                     <li>Di menu sebelah kiri, masuk ke bagian <strong>Settings</strong> (Pengaturan) ➔ <strong>Access Keys</strong>.</li>
                     <li>Anda akan melihat <strong>Client Key</strong> dan <strong>Server Key</strong>. Salin (Copy) kedua kunci tersebut.</li>
-                    <li>Kembali ke Dashboard ini, klik tombol "Hubungkan" dan <em>Paste</em> kunci tersebut ke form yang tersedia.</li>
-                    <li>Uang dari pembeli akan langsung masuk ke akun Midtrans Anda secara otomatis!</li>
+                    
+                    {{-- TAMBAHAN LANGKAH WEBHOOK --}}
+                    <li>Masih di menu Settings, pindah ke bagian <strong>Configuration</strong> (Konfigurasi).</li>
+                    <li>Temukan kolom <strong>Payment Notification URL</strong>, lalu masukkan (Paste) alamat web khusus di bawah ini:
+                        <div class="d-flex align-items-center mt-2 mb-3 p-2 bg-light border rounded">
+                            <code id="webhookUrlText" class="flex-grow-1 text-dark fs-6">{{ url('/api/webhook/midtrans') }}</code>
+                            <button type="button" class="btn btn-sm btn-outline-primary ms-2 shadow-sm" onclick="copyWebhookUrl()">
+                                <i class="bi bi-clipboard"></i> Salin URL
+                            </button>
+                        </div>
+                    </li>
+                    
+                    <li>Kembali ke halaman Dashboard ini, klik tombol "Hubungkan" dan <em>Paste</em> kunci-kunci yang sudah disalin tadi ke form yang tersedia.</li>
+                    <li>Selesai! Uang dari pembeli akan langsung masuk ke akun Midtrans Anda dan status pesanan akan ter-<em>update</em> secara otomatis.</li>
                 </ol>
             </div>
             <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mengerti</button>
+                <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Saya Mengerti</button>
             </div>
         </div>
     </div>
 </div>
+<script>
+    function copyWebhookUrl() {
+        var copyText = document.getElementById("webhookUrlText").innerText;
+        
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(copyText).then(function() {
+                alert("URL Webhook berhasil disalin! Silakan paste di dashboard Midtrans Anda.");
+            });
+        } else {
+            // Cara klasik penembus HTTP
+            let textArea = document.createElement("textarea");
+            textArea.value = copyText;
+            textArea.style.position = "absolute"; 
+            textArea.style.left = "-999999px";
+            
+            // 🚨 PERBAIKAN: Tempelkan ke dalam modal, bukan ke document.body
+            var modalBody = document.querySelector('#modalPanduanMidtrans .modal-body');
+            if(modalBody) {
+                modalBody.appendChild(textArea);
+            } else {
+                document.body.appendChild(textArea);
+            }
+            
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert("URL Webhook berhasil disalin!");
+            } catch (err) {
+                alert("Gagal menyalin. Silakan block dan copy manual teksnya.");
+            }
+            
+            textArea.remove();
+        }
+    }
+</script>
 <div class="modal fade" id="modalPanduanAccurate" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -338,4 +387,6 @@
         </div>
     </div>
 </div>
+{{-- SCRIPT UNTUK TOMBOL SALIN (Letakkan di bagian bawah file atau di dalam tumpukan @push('scripts')) --}}
+
 @endsection

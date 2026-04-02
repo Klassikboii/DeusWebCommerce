@@ -25,12 +25,21 @@
                         $grandtotal = $cart + $ongkos;
                     @endphp
                     {{-- TOTAL TAGIHAN --}}
+                    {{-- TOTAL TAGIHAN --}}
                     <div class="text-center mb-4 bg-light rounded p-3">
                         <p class="text-muted mb-1 small text-uppercase fw-bold">Total Tagihan</p>
                         <h2 class="fw-bold mb-0"  style="color: var(--primary-color);">
                             Rp {{ number_format($grandtotal, 0, ',', '.') }}
                         </h2>
-                        <span class="badge bg-secondary mt-2">{{ $order->order_number }}</span>
+                        
+                        {{-- UBAH BAGIAN BADGE INI MENJADI INTERAKTIF --}}
+                        <div class="mt-3">
+                            <span class="badge bg-secondary fs-6 py-2 px-3 shadow-sm" style="cursor: pointer;" onclick="copyOrderNumber()" title="Klik untuk menyalin">
+                                <span id="orderNumberText">{{ $order->order_number }}</span>
+                                <i class="bi bi-files ms-2 text-warning"></i>
+                            </span>
+                            <div class="small text-muted mt-1" style="font-size: 0.75rem;">Simpan nomor ini untuk melacak pesanan Anda</div>
+                        </div>
                     </div>
 
                     {{-- RINCIAN KECIL --}}
@@ -63,21 +72,40 @@
                         Jika SUDAH upload bukti DAN status BUKAN pending (artinya sudah diproses/selesai)
                         -> Tampilkan Pesan Sukses
                     --}}
-                    @if($order->payment_proof && $order->status != 'pending' && $order->status != 'unpaid')
-                        <div class="alert alert-success text-center mt-4">
-                            <i class="bi bi-check-circle-fill fs-1 d-block mb-2"></i>
-                            <h6 class="fw-bold">Pembayaran Dikonfirmasi</h6>
-                            <p class="small mb-0">Status pesanan Anda saat ini: <strong>{{ ucfirst($order->status) }}</strong></p>
-                        </div>
-                        <div class="d-grid mt-3">
-                            <a href="{{ route('store.home') }}" class="btn btn-outline-primary">Kembali ke Toko</a>
-                        </div>
-
                     {{-- 
-                        === JIKA BELUM SELESAI === 
-                        Tampilkan Opsi: WhatsApp ATAU Upload Bukti
-                    --}}
-                    @else
+                            === LOGIKA TAMPILAN UTAMA (BARU) === 
+                            Sembunyikan form jika:
+                            1. Status pembayaran sudah 'paid' (Lunas via Midtrans atau Admin)
+                            2. ATAU Status order sedang menunggu konfirmasi (Manual upload)
+                            3. ATAU Status order sudah diproses/dikirim (Aman)
+                        --}}
+                        @if($order->payment_status == 'paid' || in_array($order->status, ['awaiting_confirmation', 'processing', 'shipped', 'completed']))
+                            
+                            <div class="alert alert-success text-center mt-4">
+                                <i class="bi bi-check-circle-fill fs-1 d-block mb-2"></i>
+                                
+                                {{-- Pesan disesuaikan --}}
+                                @if($order->status == 'awaiting_confirmation')
+                                    <h6 class="fw-bold">Bukti Sedang Dicek</h6>
+                                    <p class="small mb-0">Terima kasih, admin kami sedang memverifikasi transfer Anda.</p>
+                                @else
+                                    <h6 class="fw-bold">Pembayaran Berhasil!</h6>
+                                    <p class="small mb-0">Pesanan Anda sudah lunas dan sedang diproses.</p>
+                                @endif
+                                
+                                @if($order->bank_name)
+                                    <span class="badge bg-light text-dark border mt-2">
+                                        Metode: {{ $order->bank_name }}
+                                    </span>
+                                @endif
+                            </div>
+                            
+                            <div class="d-grid mt-3">
+                                <a href="{{ route('store.home') }}" class="btn btn-outline-primary">Kembali ke Toko</a>
+                            </div>
+
+                        @else
+                            {{-- Form upload manual dan tombol bayar Midtrans ada di sini... --}}
                         
                         {{-- OPSI 1: TOMBOL WHATSAPP (Prioritas Interaksi) --}}
                         @php
@@ -139,8 +167,12 @@
 
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Foto Bukti Transfer <span class="text-danger">*</span></label>
-                                <input type="file" name="payment_proof" class="form-control form-control-sm" accept="image/*" required>
+                                {{-- UBAH BAGIAN ACCEPT DAN TAMBAHKAN ID --}}
+                                <input type="file" id="payment_proof_input" name="payment_proof" class="form-control form-control-sm" accept=".jpg, .jpeg, .png" required>
                                 <div class="form-text small">Format: JPG/PNG. Max 2MB.</div>
+                                
+                                {{-- Tempat untuk memunculkan pesan error tulisan merah --}}
+                                <div id="file_error_message" class="text-danger small mt-1" style="display: none;"></div>
                             </div>
 
                             <button type="submit" class="btn w-100 fw-bold btn-primary">
@@ -193,4 +225,66 @@
         };
     </script>
 @endif
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('payment_proof_input');
+    const errorMessage = document.getElementById('file_error_message');
+
+    fileInput.addEventListener('change', function () {
+        // Hilangkan pesan error sebelumnya
+        errorMessage.style.display = 'none';
+        errorMessage.innerText = '';
+
+        const file = this.files[0];
+
+        if (file) {
+            // 1. Validasi Tipe File (Jaga-jaga jika HP pengunjung memaksa format lain)
+            const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+            if (!validTypes.includes(file.type)) {
+                errorMessage.innerText = 'Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.';
+                errorMessage.style.display = 'block';
+                this.value = ''; // Hapus file yang terlanjur dipilih
+                return;
+            }
+
+            // 2. Validasi Ukuran File (2 MB = 2 * 1024 * 1024 bytes)
+            const maxSize = 2 * 1024 * 1024;
+            if (file.size > maxSize) {
+                errorMessage.innerText = 'Ukuran file terlalu besar! Maksimal 2MB. (Ukuran file Anda: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+                errorMessage.style.display = 'block';
+                this.value = ''; // Hapus file yang terlanjur dipilih
+                return;
+            }
+        }
+    });
+});
+</script>
+<script>
+    function copyOrderNumber() {
+        var copyText = document.getElementById("orderNumberText").innerText;
+        
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(copyText).then(function() {
+                alert("Nomor Pesanan (" + copyText + ") berhasil disalin!");
+            });
+        } else {
+            let textArea = document.createElement("textarea");
+            textArea.value = copyText;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-999999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                alert("Nomor Pesanan (" + copyText + ") berhasil disalin!");
+            } catch (err) {
+                alert("Gagal menyalin. Silakan block dan copy manual teksnya.");
+            }
+            
+            textArea.remove();
+        }
+    }
+</script>
 @endsection

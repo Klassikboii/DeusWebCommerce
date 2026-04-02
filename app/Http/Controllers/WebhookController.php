@@ -49,14 +49,42 @@ class WebhookController extends Controller
         // ==========================================
         // SKENARIO 1: PEMBAYARAN SUKSES
         // ==========================================
+        // Tambahkan variabel pembaca payment_type di bagian atas fungsi (di bawah $transactionStatus)
+        $paymentType = $payload['payment_type'] ?? null;
+
+        // ==========================================
+        // SKENARIO 1: PEMBAYARAN SUKSES
+        // ==========================================
         if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
             if ($order->status !== 'processing') {
-                $order->update(['status' => 'processing']);
+                
+                // --- LOGIKA DETEKTIF METODE PEMBAYARAN ---
+                $metodePembayaran = 'Midtrans Otomatis'; // Default
+                if ($paymentType == 'bank_transfer') {
+                    $vaNumber = $payload['va_numbers'][0]['bank'] ?? '';
+                    $metodePembayaran = 'Virtual Account ' . strtoupper($vaNumber);
+                } elseif ($paymentType == 'echannel') {
+                    $metodePembayaran = 'Mandiri Bill Payment';
+                } elseif ($paymentType == 'qris') {
+                    $metodePembayaran = 'QRIS (Gopay/OVO/Dana/LinkAja)';
+                } elseif ($paymentType == 'gopay') {
+                    $metodePembayaran = 'GoPay';
+                } elseif ($paymentType == 'shopeepay') {
+                    $metodePembayaran = 'ShopeePay';
+                }
+
+                // 🚨 UPDATE SUPER LENGKAP KE DATABASE 🚨
+                $order->update([
+                    'status'         => 'processing',
+                    'payment_status' => 'paid',            // Ubah jadi lunas!
+                    'bank_name'      => $metodePembayaran, // Masukkan metode (QRIS/VA)
+                    'payment_proof'  => 'otomatis_midtrans_verified', // Gembok penanda
+                ]);
                 
                 OrderHistory::create([
                     'order_id' => $order->id,
                     'status' => 'processing',
-                    'note' => 'Pembayaran lunas diverifikasi otomatis oleh Midtrans.'
+                    'note' => "Pembayaran lunas ({$metodePembayaran}) diverifikasi otomatis oleh Midtrans."
                 ]);
 
                 try {
@@ -72,6 +100,8 @@ class WebhookController extends Controller
                     Log::error("Accurate Webhook Trigger Error untuk {$orderId}: " . $e->getMessage());
                 }
             }
+
+        // ==========================================
 
         // ==========================================
         // 🚨 SKENARIO 2: PEMBAYARAN GAGAL / EXPIRED

@@ -178,7 +178,6 @@ class CheckoutController extends Controller
 
             // Redirect ke Halaman Pembayaran
             return redirect()->route('store.payment', [
-                'subdomain' => $website->subdomain,
                 'order_number' => $order->order_number
             ])->with('success', "Pesanan berhasil! Mohon segera lakukan pembayaran.");
 
@@ -256,7 +255,13 @@ class CheckoutController extends Controller
                         'first_name' => $order->customer_name,
                         'phone' => $order->customer_whatsapp,
                         // Email dikosongkan jika Anda tidak meminta email saat checkout
-                    ]
+                    ],
+                    // 🚨 TAMBAHKAN BLOK CALLBACKS INI:
+                        'callbacks' => [
+                            'finish' => url()->current(), // Otomatis kembali ke halaman ini
+                            'error' => url()->current(),
+                            'close' => url()->current()
+                        ]
                 ];
 
                 try {
@@ -274,7 +279,7 @@ class CheckoutController extends Controller
                 $snapToken = $order->snap_token;
             }
         }
-
+        
         // Kirim $snapToken ke halaman view
         return view('storefront.payment', compact('website', 'order', 'snapToken'));
     }
