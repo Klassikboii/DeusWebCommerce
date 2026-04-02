@@ -24,14 +24,11 @@ public function index(Request $request)
 }
     
    // Tambahkan parameter $subdomain di sini
-    public function blogIndex(Request $request, $subdomain)
+    public function blogIndex(Request $request)
+    
     {
-        // 1. Ambil data website
-        // Kita cari manual saja biar lebih aman & pasti
-        $website = Website::where(function($query) use ($subdomain) {
-    $query->where('subdomain', $subdomain)
-          ->orWhere('custom_domain', $subdomain);
-})->firstOrFail();
+        $website = $request->website;
+  
 
         // 2. Ambil Postingan (Hanya yang statusnya published, opsional)
         $posts = $website->posts()->latest()->paginate(9); 
@@ -44,12 +41,9 @@ public function index(Request $request)
     }
 
     // Tambahkan parameter $subdomain di sini juga
-    public function blogShow(Request $request, $subdomain, $slug)
+    public function blogShow(Request $request, $slug)
     {
-        $website = Website::where(function($query) use ($subdomain) {
-    $query->where('subdomain', $subdomain)
-          ->orWhere('custom_domain', $subdomain);
-})->firstOrFail();
+        $website = $request->website;
 
         // Cari post berdasarkan slug DAN id website
         $post = $website->posts() // Pakai relasi agar lebih aman
@@ -69,12 +63,9 @@ public function index(Request $request)
             'recentPosts' => $recentPosts // Kirim variabel ini ke view
         ]);
     }
-public function products(Request $request, $subdomain)
+public function products(Request $request)
     {
-        $website = Website::where(function($query) use ($subdomain) {
-    $query->where('subdomain', $subdomain)
-          ->orWhere('custom_domain', $subdomain);
-})->firstOrFail();
+        $website = $request->website;
         
         // 1. QUERY DASAR
         // Kita mulai dari relasi products() tanpa filter status dulu
@@ -141,16 +132,10 @@ public function products(Request $request, $subdomain)
             'website', 'products', 'categories', 'minProductPrice', 'maxProductPrice'
         ));
     }
-public function product(Request $request, $subdomain, $slug)
+public function product(Request $request, $slug)
 {
     // 1. Ambil Data Website
-    $website = $request->get('website');
-    if (!$website) {
-        $website = \App\Models\Website::where(function($query) use ($subdomain) {
-    $query->where('subdomain', $subdomain)
-          ->orWhere('custom_domain', $subdomain);
-})->firstOrFail();
-    }
+    $website = $request->website;
 
     // 2. Cari Produk berdasarkan Slug
     $product = $website->products()
@@ -195,21 +180,15 @@ public function product(Request $request, $subdomain, $slug)
 
 // --- FITUR CEK PESANAN (TRACK ORDER) ---
 
-    public function trackOrder(Request $request, $subdomain)
+    public function trackOrder(Request $request)
     {
-        $website = Website::where(function($query) use ($subdomain) {
-    $query->where('subdomain', $subdomain)
-          ->orWhere('custom_domain', $subdomain);
-})->firstOrFail();
+        $website = $request->website;
         return view('storefront.track_order', compact('website'));
     }
 
-    public function processTrackOrder(Request $request, $subdomain)
+    public function processTrackOrder(Request $request)
     {
-        $website = Website::where(function($query) use ($subdomain) {
-    $query->where('subdomain', $subdomain)
-          ->orWhere('custom_domain', $subdomain);
-})->firstOrFail();
+        $website = $request->website;
 
         // 1. Validasi Input
         $request->validate([
@@ -231,12 +210,12 @@ public function product(Request $request, $subdomain, $slug)
         if ($order) {
             // Jika statusnya unpaid, arahkan ke pembayaran
             if ($order->status == 'unpaid') {
-                return redirect()->route('store.payment', ['subdomain' => $subdomain, 'order_number' => $order->order_number]);
+                return redirect()->route('store.payment', ['order_number' => $order->order_number]);
             }
             
             // Jika sudah paid/shipped, mungkin nanti kita buat halaman detail status (Opsional)
             // Untuk sekarang kita arahkan ke pembayaran juga (biasanya di sana ada status 'Sudah Dibayar')
-            return redirect()->route('store.payment', ['subdomain' => $subdomain, 'order_number' => $order->order_number]);
+            return redirect()->route('store.payment', ['order_number' => $order->order_number]);
         }
 
         // 4. Jika Tidak Ketemu

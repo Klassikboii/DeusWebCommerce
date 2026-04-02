@@ -245,9 +245,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
 // 🚨 GANTI PREFIX MENJADI DOMAIN
 // Jaring penangkap untuk SEMUA domain selain $mainDomain
 // Ini akan memaksa Laravel hanya mengambil kata depan sebelum titik sebagai {subdomain}
-Route::domain('{subdomain}.' . $mainDomain)
-    ->middleware([\App\Http\Middleware\ResolveTenant::class]) // <--- Panggil Middleware di sini
-    ->group(function () {
+Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
         // Di dalam Route Group 's/{subdomain}'
     Route::get('/products', [App\Http\Controllers\StorefrontController::class, 'products'])->name('store.products');

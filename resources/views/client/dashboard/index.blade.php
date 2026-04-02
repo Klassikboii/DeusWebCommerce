@@ -94,11 +94,17 @@
         @endif
         {{-- ==================================================== --}}
 <div class="container-fluid py-4">
-    @php
+@php
     $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
-    // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
+    // Tambahkan port 8000 KHUSUS jika kita sedang di komputer lokal (Laragon)
     $port = app()->environment('local') ? ':8000' : ''; 
-    $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
+    
+    // Cek apakah klien ini punya Custom Domain? Jika ya, prioritaskan itu!
+    if (!empty($website->custom_domain)) {
+        $storeUrl = 'http://' . $website->custom_domain . $port;
+    } else {
+        $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
+    }
 @endphp
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>

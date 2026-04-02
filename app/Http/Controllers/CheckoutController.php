@@ -15,12 +15,10 @@ use Illuminate\Support\Facades\Storage;
 class CheckoutController extends Controller
 {
     // 1. ADD TO CART
-    public function addToCart(Request $request, $subdomain, $id)
+    public function addToCart(Request $request, $id)
     {
         $website = $request->get('website');
-        if (!$website) {
-            $website = Website::where('subdomain', $subdomain)->firstOrFail();
-        }
+       
 
         $product = Product::where('website_id', $website->id)->where('id', $id)->firstOrFail();
 
@@ -67,11 +65,10 @@ class CheckoutController extends Controller
     }
 
     // 2. HALAMAN CART
-    public function cart(Request $request, $subdomain)
+    public function cart(Request $request)
     {
         $website = $request->get('website');
-        if (!$website) $website = Website::where('subdomain', $subdomain)->firstOrFail();
-
+        
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey, []);
 
@@ -86,10 +83,10 @@ class CheckoutController extends Controller
     }
 
     // 3. PROCESS CHECKOUT
-    public function processCheckout(Request $request, $subdomain)
+    public function processCheckout(Request $request)
     {
         $website = $request->get('website');
-        if (!$website) $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        
 
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey);
@@ -192,10 +189,10 @@ class CheckoutController extends Controller
     }
 
     // 4. UPDATE CART
-    public function updateCart(Request $request, $subdomain)
+    public function updateCart(Request $request)
     {
         $website = $request->get('website');
-        if (!$website) $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        
 
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey);
@@ -208,10 +205,10 @@ class CheckoutController extends Controller
     }
 
     // 5. REMOVE FROM CART
-    public function removeFromCart(Request $request, $subdomain, $id)
+    public function removeFromCart(Request $request, $id)
     {
         $website = $request->get('website');
-        if (!$website) $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        
 
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey);
@@ -225,10 +222,10 @@ class CheckoutController extends Controller
     }
 
     // 6. HALAMAN KONFIRMASI PEMBAYARAN (DENGAN MIDTRANS)
-    public function payment(Request $request, $subdomain, $order_number)
+    public function payment(Request $request, $order_number)
     {
         $website = $request->get('website');
-        if (!$website) $website = Website::where('subdomain', $subdomain)->firstOrFail();
+        
 
         $order = Order::where('website_id', $website->id)
                       ->where('order_number', $order_number)
@@ -283,10 +280,10 @@ class CheckoutController extends Controller
     }
 
     // 7. PROSES UPLOAD BUKTI (DENGAN SECURITY CHECK)
-    public function confirmPayment(Request $request, $subdomain, $order_number)
+    public function confirmPayment(Request $request, $order_number)
     {
         $website = $request->get('website');
-        if (!$website) $website = Website::where('subdomain', $subdomain)->firstOrFail();
+       
 
         $order = Order::where('website_id', $website->id)
                       ->where('order_number', $order_number)
@@ -323,7 +320,7 @@ class CheckoutController extends Controller
 
     // Tambahkan method ini di CheckoutController.php
 
-public function checkShipping(Request $request, $subdomain)
+public function checkShipping(Request $request, )
     {
         $request->validate([
             'destination' => 'required|integer', 
@@ -332,9 +329,7 @@ public function checkShipping(Request $request, $subdomain)
 
         // TANGKAP DATA WEBSITE BERDASARKAN SUBDOMAIN
         $website = $request->get('website');
-        if (!$website) {
-            $website = \App\Models\Website::where('subdomain', $subdomain)->firstOrFail();
-        }
+        
 
         $apiKey = env('RAJAONGKIR_API_KEY');
         
