@@ -12,7 +12,7 @@
     </style>
     <nav class="navbar navbar-expand-lg bg-white shadow-sm mb-5">
         <div class="container">
-            <a class="navbar-brand fw-bold text-primary-custom" href="{{ route('store.home', $website->active_domain) }}">
+            <a class="navbar-brand fw-bold text-primary-custom" href="{{ route('store.home') }}">
                 <i class="bi bi-arrow-left me-2"></i> Kembali ke Toko
             </a>
         </div>
@@ -42,7 +42,7 @@
                         </small>
                         
                         <h5 class="card-title fw-bold mb-3">
-                            <a href="{{ route('storefronts.blog.show', [$website->active_domain, $post->slug]) }}" class="text-decoration-none text-dark stretched-link">
+                            <a href="{{ route('storefronts.blog.show', [$post->slug]) }}" class="text-decoration-none text-dark stretched-link">
                                 {{ $post->title }}
                             </a>
                         </h5>

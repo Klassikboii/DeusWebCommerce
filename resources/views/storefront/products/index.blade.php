@@ -92,7 +92,7 @@
             loader.classList.remove('d-none');
 
             // Bangun URL Query
-            let currentUrl = new URL(url || "{{ route('store.products', $website->active_domain) }}");
+            let currentUrl = new URL(url || "{{ route('store.products') }}");
             let params = new URLSearchParams(currentUrl.search);
 
             // Masukkan data Search

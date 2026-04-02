@@ -6,7 +6,7 @@
 
 @section('content')
     <div class="container py-5" style="max-width: 800px;">
-        <a href="{{ route('store.home', $website->active_domain) }}" class="text-decoration-none text-muted mb-4 d-block">&larr; Kembali ke Home</a>
+        <a href="{{ route('store.home') }}" class="text-decoration-none text-muted mb-4 d-block">&larr; Kembali ke Home</a>
 
         <h1 class="fw-bold mb-3 display-5">{{ $post->title }}</h1>
         <p class="text-muted">{{ $post->created_at->format('d F Y') }} oleh Admin</p>

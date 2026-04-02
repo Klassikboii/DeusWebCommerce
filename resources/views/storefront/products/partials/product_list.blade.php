@@ -6,7 +6,7 @@
             <div class="col-6 col-md-4">
                 <div class="card h-100 border-0 shadow-sm product-card hover-up">
                     <div class="position-relative overflow-hidden rounded-top"  style="background-color: white;">
-                        <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $product->slug]) }}">
+                        <a href="{{ route('store.product', ['slug' => $product->slug]) }}">
                             @if($product->image)
                                 <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
                             @else
@@ -26,7 +26,7 @@
                             <small class="text-muted d-block mb-1">{{ $product->category->name }}</small>
                         @endif
                         <h6 class="card-title text-truncate mb-2">
-                            <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $product->slug]) }}" class="text-decoration-none text-dark stretched-link">
+                            <a href="{{ route('store.product', ['slug' => $product->slug]) }}" class="text-decoration-none text-dark stretched-link">
                                 {{ $product->name }}
                             </a>
                         </h6>

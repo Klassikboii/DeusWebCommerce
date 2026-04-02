@@ -181,14 +181,14 @@
                                 if (str_starts_with($url, '#')) {
                                     if (!request()->routeIs('store.home')) {
                                         // Jika sedang tidak di home, arahkan ke home dulu + anchor
-                                        $href = route('store.home', $website->active_domain) . $url; 
+                                        $href = route('store.home') . $url; 
                                     }
                                 } 
                                 // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
                                 elseif (str_starts_with($url, '/')) {
                                     // FIX: Gunakan helper 'url' manual agar path-nya bersih
                                     // Hasil: http://domain.com/s/elecjos/blog
-                                    $href = url('/s/' . $website->active_domain . $url);
+                                    $href = url($url);
                                 }
                             @endphp
 
@@ -199,7 +199,7 @@
                         @endforeach
                         {{-- ITEM TAMBAHAN: CEK PESANAN --}}
                     <li class="nav-item">
-                        <a class="nav-link text-dark" href="{{ route('store.track', $website->active_domain) }}">
+                        <a class="nav-link text-dark" href="{{ route('store.track') }}">
                             Cek Pesanan
                         </a>
                     </li>
@@ -210,7 +210,7 @@
                         $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
                     @endphp
                     <li class="nav-item ms-lg-3 mt-3 mt-lg-0">
-                        <a href="{{ route('store.cart', $website->active_domain) }}" class="btn btn-primary rounded-pill px-4 btn-sm">
+                        <a href="{{ route('store.cart') }}" class="btn btn-primary rounded-pill px-4 btn-sm">
                             <i class="bi bi-cart"></i> Cart 
                             @if($cartCount > 0)
                             <span class="badge bg-white text-primary ms-1 rounded-pill">{{ $cartCount }}</span>

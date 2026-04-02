@@ -120,7 +120,7 @@
                 Hasil: Dropdown di bawahnya.
             --}}
             <div class="d-none d-lg-block flex-grow-1 position-relative mx-4" style="max-width: 600px;">
-                <form action="{{ route('store.products', $website->active_domain) }}" method="GET" id="desktop-search-form">
+                <form action="{{ route('store.products') }}" method="GET" id="desktop-search-form">
                     <div class="input-group">
                         <input type="text" class="form-control rounded-start-pill border-end-0 ps-4 bg-light" 
                                name="search" id="desktop-search-input" 
@@ -192,7 +192,7 @@
                                 elseif (str_starts_with($url, '/')) {
                                     // FIX: Gunakan helper 'url' manual agar path-nya bersih
                                     // Hasil: http://domain.com/s/elecjos/blog
-                                    $href = url('/s/' . $website->active_domain . $url);
+                                    $href = url($url);
                                 }
                             @endphp
 
@@ -203,7 +203,7 @@
                         @endforeach
                         {{-- ITEM TAMBAHAN: CEK PESANAN --}}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('store.track', $website->active_domain) }}">
+                        <a class="nav-link" href="{{ route('store.track') }}">
                             Cek Pesanan
                         </a>
                     </li>
@@ -214,7 +214,7 @@
                         $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
                     @endphp
                     <li class="nav-item ms-lg-2 mt-3 mt-lg-0">
-                        <a href="{{ route('store.cart', $website->active_domain) }}" class="btn rounded-pill px-4 position-relative w-100" style="background-color: var(--primary-color); color: white;">
+                        <a href="{{ route('store.cart') }}" class="btn rounded-pill px-4 position-relative w-100" style="background-color: var(--primary-color); color: white;">
                             <i class="bi bi-cart"></i> 
                             <span class="d-lg-none ms-2">Keranjang</span>
                             @if($cartCount > 0)
@@ -312,7 +312,7 @@
                         @php
                             $footerMenus = $website->navigation_menu ?? [
                                 ['label' => 'Beranda', 'url' => '/'],
-                                ['label' => 'Katalog Produk', 'url' => route('store.products', $website->active_domain ?? '')],
+                                ['label' => 'Katalog Produk', 'url' => route('store.products')],
                                 ['label' => 'Cek Pesanan', 'url' => '#']
                             ];
                         @endphp

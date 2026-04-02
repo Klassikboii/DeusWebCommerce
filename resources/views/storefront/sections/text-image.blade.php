@@ -5,7 +5,7 @@
     
     $rawLink = $data['button_link'] ?? '#products';
     if ($rawLink === '/blog') {
-        $btnLink = route('storefront.blog.index', ['subdomain' => $website->active_domain]);
+        $btnLink = route('storefront.blog.index');
     } else {
         $btnLink = $rawLink;
     }

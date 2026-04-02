@@ -53,7 +53,7 @@
     {{-- BREADCRUMB --}}
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('store.home', $website->active_domain) }}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('store.home') }}" class="text-decoration-none">Home</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ $product->name }}</li>
         </ol>
     </nav>
@@ -114,7 +114,7 @@
                 <hr>
 
                 {{-- FORM ADD TO CART --}}
-                <form action="{{ route('store.cart.add', ['subdomain' => $website->active_domain, 'id' => $product->id]) }}" method="POST">
+                <form action="{{ route('store.cart.add', [ 'id' => $product->id]) }}" method="POST">
                     @csrf
 {{-- LOGIKA VARIAN --}}
                     {{-- 🚨 Gunakan query langsung untuk mengecek varian yang aktif --}}
@@ -214,7 +214,7 @@
                 <div class="col-6 col-md-3">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="position-relative overflow-hidden rounded-top" style="background-color: white;">
-                            <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $related->slug]) }}">
+                            <a href="{{ route('store.product', [ 'slug' => $related->slug]) }}">
                                 @if($related->image)
                                     <img src="{{ asset('storage/' . $related->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;">
                                 @else
@@ -224,7 +224,7 @@
                         </div>
                         <div class="card-body text-center p-3">
                             <h6 class="card-title text-truncate">
-                                <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $related->slug]) }}" class="text-decoration-none text-dark">
+                                <a href="{{ route('store.product', ['slug' => $related->slug]) }}" class="text-decoration-none text-dark">
                                     {{ $related->name }}
                                 </a>
                             </h6>
@@ -248,7 +248,7 @@
                 <div class="col-6 col-md-3">
                     <div class="card h-100 border-0 shadow-sm">
                         <div class="position-relative overflow-hidden rounded-top" style="background-color: white;">
-                            <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $related->slug]) }}">
+                            <a href="{{ route('store.product', [ 'slug' => $related->slug]) }}">
                                 @if($related->image)
                                     <img src="{{ asset('storage/' . $related->image) }}" class="card-img-top object-fit-cover" style="aspect-ratio: 1/1;">
                                 @else
@@ -258,7 +258,7 @@
                         </div>
                         <div class="card-body text-center p-3">
                             <h6 class="card-title text-truncate">
-                                <a href="{{ route('store.product', ['subdomain' => $website->active_domain, 'slug' => $related->slug]) }}" class="text-decoration-none text-dark">
+                                <a href="{{ route('store.product', ['slug' => $related->slug]) }}" class="text-decoration-none text-dark">
                                     {{ $related->name }}
                                 </a>
                             </h6>
