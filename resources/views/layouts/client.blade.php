@@ -138,7 +138,7 @@
 <body>
   <div class="d-flex" id="wrapper">
         <nav class="sidebar" id="sidebar">
-            <div class="sidebar-brand">
+            <div class="sidebar-brand" onclick="window.location='{{ route('client.websites') }}'" style="cursor: pointer;">
                 <i class="bi bi-shop me-2"></i> CMS Admin
             </div>
 

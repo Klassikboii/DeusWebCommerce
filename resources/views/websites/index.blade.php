@@ -94,23 +94,15 @@
                     <div class="card card-website h-100 p-3 bg-white rounded-3 shadow-sm">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             @php
-                                // LOGIKA PINTAR PEMBUAT URL
-                                $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : ''; // Deteksi Port otomatis
-                                $protocol = 'http://'; // Localhost biasanya http
-
-                                if ($website->custom_domain) {
-                                    // Jika punya domain sendiri (elecjos.com)
-                                    $storeUrl = $protocol . $website->custom_domain . $port;
-                                } else {
-                                    // Jika pakai subdomain bawaan (elecjos.localhost)
-                                    // Kita paksa pakai .localhost agar terbaca di sistem host
-                                    $storeUrl = $protocol . $website->active_domain . '.localhost' . $port;
-                                }
+                                $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+                                // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
+                                $port = app()->environment('local') ? ':8000' : ''; 
+                                $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
                             @endphp
                             <div>
                                 <h5 class="fw-bold mb-1 text-truncate" style="max-width: 200px;">{{ $website->site_name }}</h5>
-                                <a href="{{ route('store.home', ['subdomain' => $website->active_domain]) }}" target="_blank" class="text-decoration-none small text-muted">
-                                    {{ $website->active_domain }}.webcommerce.id <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
+                                    {{ $website->active_domain }}.deusserver.ashop.asia <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                             </div>
                             <span class="badge bg-light text-dark border">
@@ -167,7 +159,7 @@
                                         <input type="text" id="subdomainInput" name="subdomain" 
                                                class="form-control @error('subdomain') is-invalid @enderror" 
                                                placeholder="sepatukerenbudi" value="{{ old('subdomain') }}" required>
-                                        <span class="input-group-text bg-light text-muted small">.webcommerce.id</span>
+                                        <span class="input-group-text bg-light text-muted small">.deusserver.ashop.asia</span>
                                         @error('subdomain')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror

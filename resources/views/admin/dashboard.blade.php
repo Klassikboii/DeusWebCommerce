@@ -116,19 +116,11 @@
                 <div class="list-group list-group-flush">
                     @foreach($latestWebsites as $web)
 
-                    @php
-                        // LOGIKA PINTAR PEMBUAT URL
-                        $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : ''; // Deteksi Port otomatis
-                        $protocol = 'http://'; // Localhost biasanya http
-
-                        if ($web->custom_domain) {
-                            // Jika punya domain sendiri (elecjos.com)
-                            $storeUrl = $protocol . $web->custom_domain . $port;
-                        } else {
-                            // Jika pakai subdomain bawaan (elecjos.localhost)
-                            // Kita paksa pakai .localhost agar terbaca di sistem host
-                            $storeUrl = $protocol . $web->subdomain . '.localhost' . $port;
-                        }
+                   @php
+                        $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+                        // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
+                        $port = app()->environment('local') ? ':8000' : ''; 
+                        $storeUrl = 'http://' . $web->subdomain . '.' . $mainDomain . $port;
                     @endphp
                     <div class="list-group-item px-3 py-3">
                         <div class="d-flex w-100 justify-content-between">
@@ -137,7 +129,7 @@
                         </div>
                         <p class="mb-1 small text-muted">Owner: {{ $web->user->name ?? '-' }}</p>
                         <small>
-                            <a href="{{ route('store.home', ['subdomain' => $web->subdomain]) }}" target="_blank" class="text-decoration-none">
+                            <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none">
                                 <i class="bi bi-box-arrow-up-right"></i> Kunjungi
                             </a>
                         </small>

@@ -29,18 +29,10 @@
             <tbody>
                 @foreach($websites as $web)
                 @php
-                    // LOGIKA PINTAR PEMBUAT URL
-                    $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : ''; // Deteksi Port otomatis
-                    $protocol = 'http://'; // Localhost biasanya http
-
-                    if ($web->custom_domain) {
-                        // Jika punya domain sendiri (elecjos.com)
-                        $storeUrl = $protocol . $web->custom_domain . $port;
-                    } else {
-                        // Jika pakai subdomain bawaan (elecjos.localhost)
-                        // Kita paksa pakai .localhost agar terbaca di sistem host
-                        $storeUrl = $protocol . $web->subdomain . '.localhost' . $port;
-                    }
+                    $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+                    // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
+                    $port = app()->environment('local') ? ':8000' : ''; 
+                    $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
                 @endphp
                 <tr>
                     <td class="px-4">
@@ -54,7 +46,7 @@
                             @endif
                             <div>
                                 <div class="fw-bold">{{ $web->site_name }}</div>
-                                <a href="{{ route('store.home', ['subdomain' => $web->subdomain]) }}" target="_blank" class="small text-decoration-none text-primary">
+                                <a href="{{ $storeUrl }}" target="_blank" class="small text-decoration-none text-primary">
                                     <i class="bi bi-box-arrow-up-right me-1"></i> Kunjungi
                                 </a>
                             </div>

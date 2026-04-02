@@ -94,27 +94,35 @@
         @endif
         {{-- ==================================================== --}}
 <div class="container-fluid py-4">
-    @php
-    // LOGIKA PINTAR PEMBUAT URL
-    $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : ''; // Deteksi Port otomatis
-    $protocol = 'http://'; // Localhost biasanya http
+    {{-- @php
+        // LOGIKA PINTAR PEMBUAT URL
+        $port = request()->server('SERVER_PORT') == 8000 ? ':8000' : ''; // Deteksi Port otomatis
+        $protocol = 'http://'; // Localhost biasanya http
 
-    if ($website->custom_domain) {
-        // Jika punya domain sendiri (elecjos.com)
-        $storeUrl = $protocol . $website->custom_domain . $port;
-    } else {
-        // Jika pakai subdomain bawaan (elecjos.localhost)
-        // Kita paksa pakai .localhost agar terbaca di sistem host
-        $storeUrl = $protocol . $website->active_domain . '.localhost' . $port;
-    }
-@endphp
+        if ($website->custom_domain) {
+            // Jika punya domain sendiri (elecjos.com)
+            $storeUrl = $protocol . $website->custom_domain . $port;
+        } else {
+            // Jika pakai subdomain bawaan (elecjos.localhost)
+            // Kita paksa pakai .localhost agar terbaca di sistem host
+            $storeUrl = $protocol . $website->active_domain . '.localhost' . $port;
+        }
+    @endphp --}}
+
+    @php
+                    $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+                    // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
+                    $port = app()->environment('local') ? ':8000' : ''; 
+                    $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
+                @endphp
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-0">Dashboard Toko</h4>
             <p class="text-muted small">Overview performa toko <b>{{ $website->site_name }}</b>.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('store.home', ['subdomain' => $website->active_domain]) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <a href="{{ $storeUrl }}" target="_blank" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-box-arrow-up-right"></i> Lihat Toko
             </a>
         </div>
