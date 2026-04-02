@@ -29,33 +29,45 @@ class DomainController extends Controller
         return view('client.domains.index', compact('website'));
     }
     //old system
-    public function update(Request $request, $id)
-    {
-        $website = Website::where('user_id', auth()->id())->findOrFail($id);
+    public function updateDomain(Request $request, Website $website)
+{
+    // 1. Validasi Input
+    // Perhatikan aturan unique:websites,subdomain. Ini MENCEGAH klien 
+    // memakai subdomain yang sudah dipakai klien lain (misal: 'apple').
+    $request->validate([
+        'subdomain' => 'required|string|alpha_dash|max:50|unique:websites,subdomain,' . $website->id,
+        'custom_domain' => 'nullable|string|max:255'
+    ]);
 
-        // 1. Validasi Input
-        $request->validate([
-            'custom_domain' => [
-                'required', 
-                'string', 
-                'unique:websites,custom_domain,' . $id, // Ignore diri sendiri
-                'regex:/^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i' // Validasi format domain (harus ada titiknya)
-            ]
-        ], [
-            'custom_domain.regex' => 'Format domain salah. Gunakan format: contoh.com (tanpa http://)'
-        ]);
+    // 2. Cek Hak Akses Fitur (Logika Keren Milikmu)
+    // Pastikan relasinya sesuai dengan yang ada di database-mu (bisa subscription atau activeSubscription)
+    $website->loadMissing('subscription.package'); 
+    $canUseCustomDomain = $website->subscription?->package?->can_custom_domain === true;
 
-        // 2. Bersihkan Input (Jaga-jaga user copas pakai http)
-        $domain = strtolower($request->custom_domain);
-        $domain = str_replace(['http://', 'https://', '/'], '', $domain);
-
-        // 3. Simpan ke Database
-        $website->update([
-            'custom_domain' => $domain
-        ]);
-
-        return back()->with('success', 'Domain berhasil dihubungkan! Silakan tunggu propagasi DNS.');
+    // 3. Pencegatan Keamanan (Jika klien iseng menembus form html)
+    if (!$canUseCustomDomain && $request->filled('custom_domain')) {
+        return back()->with('error', 'Paket Anda belum mendukung Custom Domain. Silakan upgrade paket.');
     }
+
+    // 4. Simpan Subdomain (Semua paket berhak mengubah ini)
+    $website->subdomain = strtolower($request->subdomain);
+
+    // 5. Simpan Custom Domain (Hanya jika berhak)
+    if ($canUseCustomDomain && $request->filled('custom_domain')) {
+        // Bersihkan inputan klien (hapus https:// dan www. agar rapi)
+        $customDomain = strtolower($request->custom_domain);
+        $customDomain = preg_replace('#^https?://#', '', $customDomain);
+        $customDomain = preg_replace('#^www\.#', '', $customDomain);
+        $website->custom_domain = rtrim($customDomain, '/');
+    } elseif (!$request->filled('custom_domain')) {
+        // Jika form custom domain dikosongkan, hapus dari database
+        $website->custom_domain = null; 
+    }
+
+    $website->save();
+
+    return back()->with('success', 'Identitas domain toko berhasil diperbarui!');
+}
     
     // Fitur batal/hapus domain
     public function destroy(Website $website)
@@ -68,5 +80,42 @@ class DomainController extends Controller
         ]);
         
         return redirect()->back()->with('success', 'Custom domain dihapus. Website kembali ke subdomain.');
+    }
+    /**
+     * Mengecek apakah DNS (A Record) Custom Domain klien sudah mengarah ke VPS kita.
+     */
+    public function checkDomain(Request $request, Website $website)
+    {
+        $request->validate([
+            'domain_to_check' => 'required|string'
+        ]);
+
+        // Bersihkan inputan klien (jaga-jaga jika mereka mengetik http:// atau spasi)
+        $domain = strtolower(trim($request->domain_to_check));
+        $domain = str_replace(['http://', 'https://', '/'], '', $domain);
+
+        // 🚨 GANTI DENGAN IP VPS JAGOAN HOSTING MILIKMU
+        $vpsIp = '157.66.34.137'; 
+
+        try {
+            // Cek A Record dari domain klien di internet secara real-time
+            $records = dns_get_record($domain, DNS_A);
+            $isPointed = false;
+
+            foreach ($records as $record) {
+                if (isset($record['ip']) && $record['ip'] === $vpsIp) {
+                    $isPointed = true;
+                    break;
+                }
+            }
+
+            if ($isPointed) {
+                return redirect()->back()->with('success', "Hebat! Domain {$domain} sudah terhubung dengan sempurna ke server kami.");
+            } else {
+                return redirect()->back()->with('error', "Domain {$domain} belum mengarah ke server. Pastikan A Record di penyedia domain Anda sudah diatur ke IP: {$vpsIp}");
+            }
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', "Gagal mengecek domain. Pastikan penulisan domain benar (contoh: tokosaya.com).");
+        }
     }
 }

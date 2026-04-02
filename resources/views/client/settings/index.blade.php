@@ -44,7 +44,7 @@
                 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Subdomain</label>
+                        <label class="form-label fw-bold">Subdomain/Domain</label>
                         <input type="text" class="form-control bg-light" value="{{ $website->active_domain }}.webcommerce.id" readonly>
                         <small class="text-muted">Subdomain tidak dapat diubah.</small>
                     </div>

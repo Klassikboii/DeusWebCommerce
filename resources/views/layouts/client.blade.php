@@ -315,7 +315,7 @@
             <div class="d-flex flex-column justify-content-center" style="line-height: 1.2;">
                 <h6 class="m-0 fw-bold text-dark">{{ $website->site_name }}</h6>
                 <small class="text-muted text-uppercase" style="font-size: 10px; letter-spacing: 0.5px;">
-                    {{ $website->custom_domain ?? $website->active_domain . ".webcommerce.id"}}
+                    {{ $website->custom_domain ?? $website->active_domain . ".deusserver.ashop.asia"}}
                 </small>
             </div>
         </div>
@@ -331,19 +331,19 @@
 
             <div class="vr d-none d-md-block mx-1" style="height: 20px;"></div>
             @php
-    // Deteksi URL admin (localhost:8000) secara manual
-    $adminUrl = env('APP_URL'); 
-    
-    // Tambah port 8000 jika di local (karena env biasanya cuma localhost tanpa port)
-    if (request()->server('SERVER_PORT') == '8000' && !str_contains($adminUrl, ':8000')) {
-        $adminUrl .= ':8000';
-    }
-    
-    // Pastikan ada http
-    if (!str_starts_with($adminUrl, 'http')) {
-        $adminUrl = 'http://' . $adminUrl;
-    }
-@endphp
+                    // Deteksi URL admin (localhost:8000) secara manual
+                    $adminUrl = env('APP_URL'); 
+                    
+                    // Tambah port 8000 jika di local (karena env biasanya cuma localhost tanpa port)
+                    if (request()->server('SERVER_PORT') == '8000' && !str_contains($adminUrl, ':8000')) {
+                        $adminUrl .= ':8000';
+                    }
+                    
+                    // Pastikan ada http
+                    if (!str_starts_with($adminUrl, 'http')) {
+                        $adminUrl = 'http://' . $adminUrl;
+                    }
+                @endphp
             
             <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 d-flex align-items-center">
                 @csrf

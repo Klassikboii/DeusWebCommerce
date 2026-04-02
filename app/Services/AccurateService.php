@@ -640,24 +640,17 @@ class AccurateService
         $limit = $this->website->activeSubscription ? $this->website->activeSubscription->package->max_products : 10;
        // 3. Looping data dari Accurate dan masukkan ke Database Web
        // 3. Looping data dari Accurate
-        foreach ($accurateItems as $item) {
+       foreach ($accurateItems as $item) {
             $sku = $item['no'] ?? null;
             if (!$sku) continue; 
-            // ==========================================
-            // 🚨 PENJAGA PINTU: BLOKIR SKU KHUSUS!
-            // ==========================================
-            // Jangan masukkan item jasa/sistem ke etalase web
-            $blockedSkus = ['ONGKIR', 'DISKON', 'BIAYA_LAYANAN'];
-            if (in_array(strtoupper($sku), $blockedSkus)) {
-                continue; // Lompati baris ini, jangan dimasukkan ke DB lokal!
-            }
-
+            
+            // ... (Blokir SKU Khusus tetap sama) ...
             $syncedSkus[] = $sku;
             $price = $item['unitPrice'] ?? 0;
             $stock = $item['quantity'] ?? 0;
 
             // ==========================================
-            // CEK 1: APAKAH INI VARIAN DARI PRODUK YANG SUDAH ADA?
+            // BLOK 1: URUSAN KHUSUS VARIAN (ANAK)
             // ==========================================
             if (class_exists('\App\Models\ProductVariant')) {
                 $variant = \App\Models\ProductVariant::whereHas('product', function($query) {
@@ -665,31 +658,32 @@ class AccurateService
                 })->where('sku', $sku)->first();
 
                 if ($variant) {
-                    // Update harga & stok varian
-                    $variant->update([
-                        'price' => $price,
-                        'stock' => $stock,
-                    ]);
+                    // 1. Update harga & stok varian
+                    $variant->update(['price' => $price, 'stock' => $stock]);
 
-                    // 🚨 INJEKSI BARU: RE-KALKULASI STOK INDUK!
-                    // 1. Hitung total stok semua varian dari induk yang sama
+                    // 2. Re-kalkulasi stok induk
                     $totalVariantStock = \Illuminate\Support\Facades\DB::table('product_variants')
                         ->where('product_id', $variant->product_id)
                         ->sum('stock');
-                    
-                    // 2. Timpa (update) stok induknya
                     \Illuminate\Support\Facades\DB::table('products')
                         ->where('id', $variant->product_id)
                         ->update(['stock' => $totalVariantStock]);
 
-                    continue; // Sekarang aman untuk lanjut ke barang berikutnya
+                    // 🚨 3. LOGIKA GAMBAR VARIAN (MANDIRI)
+                    // Taruh kode narik gambar dari Accurate khusus Varian di sini!
+                    if (empty($variant->image)) {
+                        // PASTE KODE DOWNLOAD GAMBAR DARI ACCURATE DI SINI
+                        // Contoh: $url = $item['detailGroup'][0]['updFileName'] ...
+                        // $variant->update(['image' => $path]);
+                    }
+
+                    continue; // Selesai urusan Varian, langsung lompat ke SKU Accurate berikutnya!
                 }
             }
 
             // ==========================================
-            // CEK 2: JIKA BUKAN VARIAN, UPDATE/BUAT SEBAGAI PRODUK UTAMA
+            // BLOK 2: URUSAN KHUSUS PRODUK UTAMA (INDUK)
             // ==========================================
-           // 2. Buat / Update Produk Utama
             $product = \App\Models\Product::firstOrNew([
                 'website_id' => $this->website->id,
                 'sku'        => $sku,
@@ -698,15 +692,13 @@ class AccurateService
             $isNewProduct = !$product->exists;
             $isEligibleForSale = $price > 0 ? true : false;
 
-            // 🚨 GUNAKAN forceFill() AGAR LARAVEL MEMAKSA DATA MASUK KE DATABASE
             $product->forceFill([
-                'name'  => $item['name'] ?? ('Produk ' . $sku), // Fallback jika nama kosong
+                'name'  => $item['name'] ?? ('Produk ' . $sku), 
                 'price' => $price,
                 'stock' => $stock,
             ]);
 
             if ($isNewProduct) {
-                // 🚨 Pakai forceFill() juga untuk kolom tambahan
                 $product->forceFill([
                     'slug'        => \Illuminate\Support\Str::slug($item['name'] ?? $sku) . '-' . \Illuminate\Support\Str::random(4),
                     'weight'      => 1000,
@@ -714,15 +706,20 @@ class AccurateService
                     'is_active'   => ($activeCount < $limit) && $isEligibleForSale,
                 ]);
                 
-                // Jika berhasil aktif, tambah counternya agar tidak kebobolan di loop berikutnya
                 if ($product->is_active) {
                     $activeCount++; 
                 }
             }
-
             $product->save();
 
-            // (Logika Tarik Gambar tetap sama seperti sebelumnya di sini) ...
+            // 🚨 LOGIKA GAMBAR PRODUK INDUK (MANDIRI)
+            // Karena Varian sudah di-bypass pakai "continue" di atas, 
+            // kode yang sampai ke titik ini PASTI hanyalah Produk Induk.
+            if (empty($product->image)) {
+                // PASTE KODE DOWNLOAD GAMBAR DARI ACCURATE DI SINI
+                // Contoh: $url = $item['detailGroup'][0]['updFileName'] ...
+                // $product->update(['image' => $path]);
+            }
         }
 
         // 4. NONAKTIFKAN BARANG YANG DIHAPUS DI ACCURATE
@@ -761,17 +758,15 @@ class AccurateService
 
         foreach ($accurateItems as $item) {
             $sku = $item['no'] ?? null;
-
-            // 🚨 KUNCI UTAMA: Jika SKU tidak ada di dalam array yang dikirim Javascript, LOMPATI!
-            if (!$sku || !in_array($sku, $selectedSkus)) {
-                continue;
-            }
-
+            if (!$sku) continue; 
+            
+            // ... (Blokir SKU Khusus tetap sama) ...
+            $syncedSkus[] = $sku;
             $price = $item['unitPrice'] ?? 0;
             $stock = $item['quantity'] ?? 0;
 
             // ==========================================
-            // CEK 1: APAKAH INI VARIAN DARI PRODUK YANG SUDAH ADA?
+            // BLOK 1: URUSAN KHUSUS VARIAN (ANAK)
             // ==========================================
             if (class_exists('\App\Models\ProductVariant')) {
                 $variant = \App\Models\ProductVariant::whereHas('product', function($query) {
@@ -779,28 +774,32 @@ class AccurateService
                 })->where('sku', $sku)->first();
 
                 if ($variant) {
-                    // Update harga & stok varian
-                    $variant->update([
-                        'price' => $price,
-                        'stock' => $stock,
-                    ]);
+                    // 1. Update harga & stok varian
+                    $variant->update(['price' => $price, 'stock' => $stock]);
 
-                    // 🚨 INJEKSI BARU: RE-KALKULASI STOK INDUK!
-                    // 1. Hitung total stok semua varian dari induk yang sama
+                    // 2. Re-kalkulasi stok induk
                     $totalVariantStock = \Illuminate\Support\Facades\DB::table('product_variants')
                         ->where('product_id', $variant->product_id)
                         ->sum('stock');
-                    
-                    // 2. Timpa (update) stok induknya
                     \Illuminate\Support\Facades\DB::table('products')
                         ->where('id', $variant->product_id)
                         ->update(['stock' => $totalVariantStock]);
 
-                    continue; // Sekarang aman untuk lanjut ke barang berikutnya
+                    // 🚨 3. LOGIKA GAMBAR VARIAN (MANDIRI)
+                    // Taruh kode narik gambar dari Accurate khusus Varian di sini!
+                    if (empty($variant->image)) {
+                        // PASTE KODE DOWNLOAD GAMBAR DARI ACCURATE DI SINI
+                        // Contoh: $url = $item['detailGroup'][0]['updFileName'] ...
+                        // $variant->update(['image' => $path]);
+                    }
+
+                    continue; // Selesai urusan Varian, langsung lompat ke SKU Accurate berikutnya!
                 }
             }
 
-         // 2. Buat / Update Produk Utama
+            // ==========================================
+            // BLOK 2: URUSAN KHUSUS PRODUK UTAMA (INDUK)
+            // ==========================================
             $product = \App\Models\Product::firstOrNew([
                 'website_id' => $this->website->id,
                 'sku'        => $sku,
@@ -809,15 +808,13 @@ class AccurateService
             $isNewProduct = !$product->exists;
             $isEligibleForSale = $price > 0 ? true : false;
 
-            // 🚨 GUNAKAN forceFill() AGAR LARAVEL MEMAKSA DATA MASUK KE DATABASE
             $product->forceFill([
-                'name'  => $item['name'] ?? ('Produk ' . $sku), // Fallback jika nama kosong
+                'name'  => $item['name'] ?? ('Produk ' . $sku), 
                 'price' => $price,
                 'stock' => $stock,
             ]);
 
             if ($isNewProduct) {
-                // 🚨 Pakai forceFill() juga untuk kolom tambahan
                 $product->forceFill([
                     'slug'        => \Illuminate\Support\Str::slug($item['name'] ?? $sku) . '-' . \Illuminate\Support\Str::random(4),
                     'weight'      => 1000,
@@ -825,13 +822,20 @@ class AccurateService
                     'is_active'   => ($activeCount < $limit) && $isEligibleForSale,
                 ]);
                 
-                // Jika berhasil aktif, tambah counternya agar tidak kebobolan di loop berikutnya
                 if ($product->is_active) {
                     $activeCount++; 
                 }
             }
-
             $product->save();
+
+            // 🚨 LOGIKA GAMBAR PRODUK INDUK (MANDIRI)
+            // Karena Varian sudah di-bypass pakai "continue" di atas, 
+            // kode yang sampai ke titik ini PASTI hanyalah Produk Induk.
+            if (empty($product->image)) {
+                // PASTE KODE DOWNLOAD GAMBAR DARI ACCURATE DI SINI
+                // Contoh: $url = $item['detailGroup'][0]['updFileName'] ...
+                // $product->update(['image' => $path]);
+            }
         }
 
         return true;

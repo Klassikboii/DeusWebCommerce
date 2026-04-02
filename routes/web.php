@@ -158,6 +158,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/domain', [App\Http\Controllers\Client\DomainController::class, 'index'])->name('client.domains.index');
         Route::post('/domain', [App\Http\Controllers\Client\DomainController::class, 'update'])->name('client.domains.update');
         Route::delete('/domain', [App\Http\Controllers\Client\DomainController::class, 'destroy'])->name('client.domains.destroy');
+        // Rute untuk mengecek status DNS Custom Domain
+        Route::post('/domain/check', [\App\Http\Controllers\Client\DomainController::class, 'checkDomain'])->name('client.domains.check');
+        Route::put('/domain', [\App\Http\Controllers\Client\DomainController::class, 'updateDomain'])->name('client.domains.update');
             // --- FITUR SEO ---
         Route::get('/seo', [App\Http\Controllers\Client\SeoController::class, 'index'])->name('client.seo.index');
         Route::put('/seo', [App\Http\Controllers\Client\SeoController::class, 'update'])->name('client.seo.update');
