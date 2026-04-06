@@ -95,15 +95,27 @@
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             @php
                                 $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
-                                // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
+                                // Tambahkan port 8000 KHUSUS jika kita sedang di komputer lokal (Laragon)
                                 $port = app()->environment('local') ? ':8000' : ''; 
-                                $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
+                                
+                                // Cek apakah klien ini punya Custom Domain? Jika ya, prioritaskan itu!
+                                if (!empty($website->custom_domain)) {
+                                    $storeUrl = 'http://' . $website->custom_domain . $port;
+                                } else {
+                                    $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
+                                }
                             @endphp
                             <div>
                                 <h5 class="fw-bold mb-1 text-truncate" style="max-width: 200px;">{{ $website->site_name }}</h5>
-                                        <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
-                                    {{ $website->active_domain }}.deusserver.ashop.asia <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                @if ($website->custom_domain)
+                                    <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
+                                    {{ $website->custom_domain }}<i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
+                                @else
+                                    <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
+                                    {{ $website->subdomain }}.deusserver.ashop.asia <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                </a>
+                                @endif
                             </div>
                             <span class="badge bg-light text-dark border">
                                 {{ ucfirst($website->active_template) }}

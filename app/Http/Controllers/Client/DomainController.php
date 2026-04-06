@@ -36,7 +36,16 @@ class DomainController extends Controller
     // memakai subdomain yang sudah dipakai klien lain (misal: 'apple').
     $request->validate([
         'subdomain' => 'required|string|alpha_dash|max:50|unique:websites,subdomain,' . $website->id,
-        'custom_domain' => 'nullable|string|max:255'
+        // Tambahkan regex ini untuk memastikan format domain benar (contoh: namatoko.com, toko.co.id)
+        'custom_domain' => [
+            'nullable',
+            'string',
+            'max:255',
+            'regex:/^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/'
+        ]
+    ], [
+        // Tambahkan pesan error custom dalam bahasa Indonesia agar klien paham
+        'custom_domain.regex' => 'Format domain tidak valid. Pastikan domain mengandung ekstensi seperti .com, .id, atau .asia (tanpa http/www).'
     ]);
 
     // 2. Cek Hak Akses Fitur (Logika Keren Milikmu)
