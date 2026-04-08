@@ -20,35 +20,43 @@ class AccurateService
     /**
      * 1. Mendapatkan Access Token (Auto-Refresh jika basi)
      */
-    private function getValidAccessToken()
+    public function getValidAccessToken($forceRefresh = false)
     {
-        if (!$this->integration || !$this->integration->access_token) return null;
+        if (!$this->integration || !$this->integration->refresh_token) return null;
 
-        if ($this->integration->token_expires_at && $this->integration->token_expires_at->subMinutes(5)->isFuture()) {
-            return $this->integration->access_token;
+        // Jika tidak dipaksa refresh, cek waktu (Gunakan Carbon::parse agar lebih aman)
+        if (!$forceRefresh && $this->integration->token_expires_at) {
+            $expiresAt = \Carbon\Carbon::parse($this->integration->token_expires_at);
+            if ($expiresAt->subMinutes(5)->isFuture()) {
+                return $this->integration->access_token;
+            }
         }
 
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
-    ->asForm()->withBasicAuth(
-            config('services.accurate.client_id'),
-            config('services.accurate.client_secret')
-        )->post('https://account.accurate.id/oauth/token', [
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $this->integration->refresh_token,
-        ]);
-
-        if ($response->successful()) {
-            $data = $response->json();
-            $this->integration->update([
-                'access_token' => $data['access_token'],
-                'refresh_token' => $data['refresh_token'],
-                'token_expires_at' => now()->addSeconds($data['expires_in']),
+        // PROSES REFRESH TOKEN
+        try {
+            // Hapus ->retry() di sini agar error bisa ditangani dengan elegan
+            $response = \Illuminate\Support\Facades\Http::timeout(30)->asForm()->withBasicAuth(
+                config('services.accurate.client_id'),
+                config('services.accurate.client_secret')
+            )->post('https://account.accurate.id/oauth/token', [
+                'grant_type' => 'refresh_token',
+                'refresh_token' => $this->integration->refresh_token,
             ]);
-            return $data['access_token'];
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $this->integration->update([
+                    'access_token' => $data['access_token'],
+                    'refresh_token' => $data['refresh_token'],
+                    'token_expires_at' => now()->addSeconds($data['expires_in']),
+                ]);
+                return $data['access_token'];
+            }
+            \Illuminate\Support\Facades\Log::error("Accurate Refresh Token Ditolak Server: ", $response->json());
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Accurate Refresh Token Error Koneksi: " . $e->getMessage());
         }
 
-        Log::error("Accurate Refresh Token Gagal untuk Website ID {$this->website->id}: ", $response->json());
         return null;
     }
 
@@ -71,33 +79,49 @@ class AccurateService
     /**
      * 3. Membuka Database dan Mendapatkan Session ID & Host (BARU)
      */
-    private function openDatabaseSession()
+    public function openDatabaseSession($forceRefresh = false)
     {
-        $token = $this->getValidAccessToken();
-        
-        // Pastikan token ada dan user sudah memilih database
-        if (!$token || !$this->integration->accurate_database_id) return null;
+        try {
+            $token = $this->getValidAccessToken($forceRefresh);
+            if (!$token || !$this->integration->accurate_database_id) return null;
 
-        // Tembak API open-db
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
-    ->withHeaders([
-            'Authorization' => 'Bearer ' . $token
-        ])->get('https://account.accurate.id/api/open-db.do', [
-            'id' => $this->integration->accurate_database_id
-        ]);
+            // Tembak API open-db (Hapus ->retry() agar tidak melempar Exception mematikan)
+            $response = \Illuminate\Support\Facades\Http::timeout(30)->withHeaders([
+                'Authorization' => 'Bearer ' . $token
+            ])->get('https://account.accurate.id/api/open-db.do', [
+                'id' => $this->integration->accurate_database_id
+            ]);
 
-        if ($response->successful()) {
-            $data = $response->json();
-            return [
-                'token' => $token,
-                'session_id' => $data['session'], // Kunci Sesi
-                'host' => $data['host'] // URL Server Spesifik (Misal: zeus.accurate.id)
-            ];
+            // ========================================================
+            // 🚨 SCRIPT AUTO-HEALING (Penyembuhan Otomatis Jika 401)
+            // ========================================================
+            if ($response->status() === 401 && !$forceRefresh) {
+                \Illuminate\Support\Facades\Log::warning("Token ditolak Accurate (401). Memulai Auto-Heal...");
+                // Panggil ulang dirinya sendiri, tapi kali ini dengan mode PAKSA REFRESH
+                return $this->openDatabaseSession(true); 
+            }
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'token' => $token,
+                    'session_id' => $data['session'],
+                    'host' => $data['host']
+                ];
+            }
+
+            \Illuminate\Support\Facades\Log::error("Gagal Buka Database Accurate: ", $response->json());
+            return null;
+
+        } catch (\Exception $e) {
+            // Jaring pengaman terakhir jika Http client tetap throw error 401
+            if (str_contains($e->getMessage(), '401') && !$forceRefresh) {
+                \Illuminate\Support\Facades\Log::warning("Exception 401 terdeteksi. Memulai Auto-Heal...");
+                return $this->openDatabaseSession(true);
+            }
+            \Illuminate\Support\Facades\Log::error("Fatal Error Buka DB Accurate: " . $e->getMessage());
+            return null;
         }
-
-        Log::error("Gagal Buka Database Accurate ID {$this->integration->accurate_database_id}: ", $response->json());
-        return null;
     }
    /**
      * 4.5. Mencari atau Membuat Pelanggan Baru di Accurate
@@ -643,6 +667,11 @@ class AccurateService
        foreach ($accurateItems as $item) {
             $sku = $item['no'] ?? null;
             if (!$sku) continue; 
+
+            // 🚨 TAMBAHKAN BLOKIRAN INI
+            if ($sku === 'ONGKIR-Deus' || $sku === 'ONGKIR') {
+                continue; 
+            }
             
             // ... (Blokir SKU Khusus tetap sama) ...
             $syncedSkus[] = $sku;
@@ -839,5 +868,54 @@ class AccurateService
         }
 
         return true;
+    }
+    public function getSingleItemDetail($sku)
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return null;
+
+        $response = Http::timeout(10)->withHeaders([
+            'Authorization' => 'Bearer ' . $sessionData['token'],
+            'X-Session-ID'  => $sessionData['session_id'],
+        ])->get($sessionData['host'] . '/accurate/api/item/detail.do', [
+            'no' => $sku // Cari barang spesifik berdasarkan SKU
+        ]);
+
+        if ($response->successful() && isset($response->json()['d'])) {
+            return $response->json()['d'];
+        }
+
+        return null;
+    }
+    /**
+     * 11. Memperpanjang Masa Aktif Webhook (Auto-Renew)
+     */
+    /**
+     * 11. Memperpanjang Masa Aktif Webhook (Auto-Renew)
+     */
+    public function renewWebhook()
+    {
+        $sessionData = $this->openDatabaseSession();
+        
+        // Auto-heal akan bekerja di openDatabaseSession jika token basi.
+        // Jika masih gagal mendapatkan sesi, batalkan perpanjangan.
+        if (!$sessionData) return false;
+
+        // 🚨 PERBAIKAN: Gunakan GET (bukan POST) dan buang kata '/accurate' di URL-nya
+        $response = \Illuminate\Support\Facades\Http::timeout(30)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $sessionData['token'],
+                'X-Session-ID'  => $sessionData['session_id']
+            ])->get($sessionData['host'] . '/api/webhook-renew.do');
+
+        $responseData = $response->json();
+
+        if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
+            \Illuminate\Support\Facades\Log::info("🔄 [WEBHOOK RENEW] Sukses memperpanjang Webhook untuk Web ID: {$this->website->id}");
+            return true;
+        }
+
+        \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Gagal untuk Web ID: {$this->website->id}. Response: " . $response->body());
+        return false;
     }
 }

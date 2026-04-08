@@ -84,7 +84,90 @@ class AccurateController extends Controller
             $website->accurateIntegration->update([
                 'accurate_database_id' => $request->accurate_database_id
             ]);
+
+            // =========================================================================
+            // 🚨 OPERASI SILUMAN: CEK & BUAT "JASA-ONGKIR" OTOMATIS DI ACCURATE
+            // =========================================================================
+            // =========================================================================
+            // 🚨 OPERASI SILUMAN DENGAN LOGGING
+            // =========================================================================
+            try {
+                $integration = $website->accurateIntegration;
+                Log::info('1. Memulai operasi auto-create ONGKIR untuk web ID: ' . $website->id);
+                
+                $sessionResponse = Http::withoutRedirecting()
+                    ->withToken($integration->access_token)
+                    ->get('https://account.accurate.id/api/open-db.do', [
+                        'id' => $integration->accurate_database_id
+                    ]);
+
+                if ($sessionResponse->successful()) {
+                    $sessionData = $sessionResponse->json();
+                    $host = $sessionData['host'] ?? null;
+                    $sessionToken = $sessionData['session'] ?? null;
+                    
+                    Log::info('2. Buka DB Accurate sukses. Host: ' . $host);
+
+                    if ($host && $sessionToken) {
+                        $apiUrl = rtrim($host, '/');
+
+                        // B. Cek apakah ONGKIR sudah ada
+                        $checkItemResponse = Http::withHeaders([
+                            'Authorization' => 'Bearer ' . $integration->access_token,
+                            'X-Session-ID' => $sessionToken
+                        ])->get($apiUrl . '/accurate/api/item/list.do', [
+                            'fields' => 'id,no', // Ubah itemNo jadi no
+                            'filter.no.op' => 'EQUAL', // Ubah itemNo jadi no
+                            'filter.no.val' => 'ONGKIR' 
+                        ]);
+
+                        $itemExists = false;
+                        if ($checkItemResponse->successful() && !empty($checkItemResponse->json('d'))) {
+                            $itemExists = count($checkItemResponse->json('d')) > 0;
+                        }
+                        
+                        Log::info('3. Hasil cek ONGKIR. Apakah sudah ada? ' . ($itemExists ? 'YA' : 'BELUM'));
+
+                        // C. Jika belum ada, buat otomatis
+                        // C. Jika belum ada, buat otomatis
+                            if (!$itemExists) {
+                                $createItemResponse = Http::asForm()->withHeaders([
+                                    'Authorization' => 'Bearer ' . $integration->access_token,
+                                    'X-Session-ID' => $sessionToken
+                                ])->post($apiUrl . '/accurate/api/item/save.do', [
+                                    'itemType' => 'SERVICE',
+                                    'name'     => 'Ongkos Kirim', // Ubah namanya sedikit agar terhindar dari konflik nama lama
+                                    'no'       => 'ONGKIR', 
+                                ]);
+
+                                $responseData = $createItemResponse->json();
+
+                                if (!$createItemResponse->successful() || $responseData['s'] === false) {
+                                    // Cek apakah errornya karena DUPLIKAT (artinya barang sebenarnya sudah ada)
+                                    $errorMessage = $responseData['d'][0] ?? '';
+                                    if (stripos($errorMessage, 'Sudah ada data lain') !== false) {
+                                        Log::info('4. Bypass: Item ONGKIR-Deus sebenarnya sudah ada di database Accurate (Mungkin beda nama atau Non-Aktif). Melanjutkan...');
+                                    } else {
+                                        Log::error('4. ACCURATE MENOLAK PEMBUATAN ONGKIR. Detail: ', $responseData);
+                                    }
+                                } else {
+                                    Log::info('4. SUKSES! Item ONGKIR berhasil dibuat di Accurate.');
+                                }
+                            }
+                    } else {
+                        Log::warning('2. Buka DB Sukses, tapi Host/Token tidak ditemukan.', $sessionData);
+                    }
+                } else {
+                    Log::error('1. GAGAL Buka DB Accurate.', $sessionResponse->json());
+                }
+            } catch (\Exception $e) {
+                Log::error('0. ERROR FATAL SISTEM SAAT AUTO-CREATE: ' . $e->getMessage());
+            }
+            // =========================================================================
+            // =========================================================================
+        
         }
+        
 
         return redirect()->back()->with('success', 'Database Accurate berhasil dihubungkan ke toko ini!');
     }

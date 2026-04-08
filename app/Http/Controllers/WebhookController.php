@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use Illuminate\Support\Facades\Log;
+use App\Models\Product;
+use App\Services\AccurateService;
+use App\Models\ProductVariant;
+use App\Models\AccurateIntegration;
 
 class WebhookController extends Controller
 {
@@ -138,5 +142,88 @@ class WebhookController extends Controller
         }
 
         return response()->json(['message' => 'OK'], 200);
+    }
+    // App\Http\Controllers\WebhookController.php
+
+
+public function handleAccurateWebhook(Request $request)
+    {
+        // 1. Tangkap semua data (Accurate mengirimnya dalam bentuk Array of Objects)
+        $payloads = $request->all();
+        Log::info('🤖 WEBHOOK ACCURATE DIPROSES:', $payloads);
+
+        foreach ($payloads as $payload) {
+            
+            // 2. Cari Website/Toko siapa yang terhubung dengan Database ID ini
+            $databaseId = $payload['databaseId'] ?? null;
+            if (!$databaseId) continue;
+
+            $integration = AccurateIntegration::where('accurate_database_id', $databaseId)->first();
+            
+            // Jika database ID tidak dikenali di sistem kita, abaikan.
+            if (!$integration) {
+                Log::warning("Webhook ditolak: Database ID {$databaseId} tidak ditemukan di sistem.");
+                continue; 
+            }
+
+            $website = $integration->website;
+            $accurateService = new AccurateService($website);
+
+            // 3. Proses jika tipe event-nya adalah Perubahan Barang (ITEM)
+            if (($payload['type'] ?? '') === 'ITEM' && isset($payload['data'])) {
+                
+                foreach ($payload['data'] as $itemData) {
+                    $sku = $itemData['itemNo'] ?? null;
+                    $action = $itemData['action'] ?? ''; // Biasanya "WRITE" (Tambah/Update) atau "DELETE"
+
+                    // 🚨 TAMBAHKAN BLOKIRAN INI
+                    // Jika SKU-nya adalah ongkir, langsung lewati (jangan simpan ke DB)
+                    if ($sku === 'ONGKIR-Deus' || $sku === 'ONGKIR') {
+                        continue; 
+                    }
+
+                    if ($sku && $action === 'WRITE') {
+                        // 4. JALANKAN OPERASI UPDATE (Tarik detail tunggal dari Accurate)
+                        $this->updateSingleItemFromAccurate($sku, $accurateService, $website->id);
+                    }
+                }
+            }
+        }
+
+        // Wajib balas 200 OK dengan cepat
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Fungsi Bantuan: Menarik Harga & Stok 1 Barang Saja
+     */
+    private function updateSingleItemFromAccurate($sku, AccurateService $accurateService, $websiteId)
+    {
+        try {
+            // Buka sesi Accurate (Meminjam fungsi dari AccurateService Anda)
+            // Catatan: Pastikan openDatabaseSession() di AccurateService diubah menjadi 'public' 
+            // agar bisa dipanggil dari sini, atau pindahkan logika API panggil detail ke dalam AccurateService.
+            
+            // Asumsi kita buat fungsi getSingleItemDetail() di AccurateService
+            $itemDetail = $accurateService->getSingleItemDetail($sku);
+
+            if ($itemDetail) {
+                $price = $itemDetail['unitPrice'] ?? 0;
+                $stock = $itemDetail['availableToSell'] ?? $itemDetail['balance'] ?? $itemDetail['quantity'] ?? 0;
+                // Update ke Tabel Products (Induk)
+                Product::where('website_id', $websiteId)
+                       ->where('sku', $sku)
+                       ->update(['price' => $price, 'stock' => $stock]);
+
+                // Update ke Tabel Varian (Jika dia anak varian)
+                ProductVariant::whereHas('product', function($q) use ($websiteId) {
+                    $q->where('website_id', $websiteId);
+                })->where('sku', $sku)->update(['price' => $price, 'stock' => $stock]);
+
+                Log::info("✅ SINKRONISASI OTOMATIS SUKSES: SKU {$sku} di-update menjadi Rp {$price} | Stok: {$stock}");
+            }
+        } catch (\Exception $e) {
+            Log::error("❌ GAGAL SINKRONISASI SKU {$sku}: " . $e->getMessage());
+        }
     }
 }

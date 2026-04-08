@@ -81,33 +81,86 @@ class CheckoutController extends Controller
 
         return view('storefront.cart', compact('website', 'cart', 'total', 'cities'));
     }
-
-    // 3. PROCESS CHECKOUT
+// 3. PROCESS CHECKOUT
     public function processCheckout(Request $request)
     {
         $website = $request->get('website');
         
-
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey);
 
         if (!$cart) return redirect()->back()->with('error', 'Keranjang kosong!');
 
-        // 1. VALIDASI
+        // 1. VALIDASI INPUT FORM
         $request->validate([
             'customer_name'     => 'required|string|max:100',
             'customer_whatsapp' => 'required|numeric',
             'customer_address'  => 'required|string',
-            'destination_city'  => 'required|integer', // 🚨 UBAH KE INTEGER (Karena sekarang isinya ID Kota)
+            'destination_city'  => 'required|integer', 
             'shipping_cost'     => 'required|numeric|min:0', 
             'shipping_courier'  => 'required|string', 
         ]);
+
+        // =========================================================================
+        // 🚨 SCRIPT DETEKTIF: VALIDASI HARGA & STOK TERBARU (ANTI RACE-CONDITION)
+        // =========================================================================
+        $isCartChanged = false;
+
+        foreach ($cart as $key => $item) {
+            $freshPrice = 0;
+            $freshStock = 0;
+
+            // Cek apakah ini Varian atau Produk Induk
+            if (!empty($item['variant_id'])) {
+                $variant = \App\Models\ProductVariant::find($item['variant_id']);
+                if (!$variant) {
+                    unset($cart[$key]); // Produk varian sudah dihapus dari database
+                    $isCartChanged = true;
+                    continue;
+                }
+                $freshPrice = $variant->price;
+                $freshStock = $variant->stock;
+            } else {
+                $product = \App\Models\Product::find($item['product_id']);
+                if (!$product) {
+                    unset($cart[$key]); // Produk induk sudah dihapus dari database
+                    $isCartChanged = true;
+                    continue;
+                }
+                $freshPrice = $product->price;
+                $freshStock = $product->stock;
+            }
+
+            // CEK 1: Apakah stoknya tiba-tiba kurang dari yang mau dibeli?
+            if ($freshStock < $item['quantity']) {
+                if ($freshStock <= 0) {
+                    unset($cart[$key]); // Hapus dari keranjang jika stok habis total
+                } else {
+                    $cart[$key]['quantity'] = $freshStock; // Turunkan qty sesuai sisa stok asli
+                }
+                $isCartChanged = true;
+            }
+
+            // CEK 2: Apakah harganya tiba-tiba berubah oleh Webhook Accurate?
+            if ($freshPrice != $item['price']) {
+                $cart[$key]['price'] = $freshPrice; // Update ke harga terbaru
+                $isCartChanged = true;
+            }
+        }
+
+        // JIKA ADA YANG BERUBAH: Simpan keranjang yang sudah di-update dan batalkan checkout!
+        if ($isCartChanged) {
+            session()->put($cartKey, $cart);
+            return redirect()->back()->with('error', 'Mohon maaf, terjadi perubahan harga atau stok dari pusat secara tiba-tiba. Kami telah memperbarui isi keranjang Anda. Silakan periksa kembali sebelum melanjutkan.');
+        }
+        // =========================================================================
+        // =========================================================================
 
         // 2. TERJEMAHKAN ID KOTA MENJADI NAMA LENGKAP
         $city = \App\Models\City::with('province')->find($request->destination_city);
         $cityName = $city ? $city->type . ' ' . $city->name . ' - Prov. ' . $city->province->name : 'Kota Tidak Diketahui';
 
-        // 3. HITUNG TOTAL PRODUK
+        // 3. HITUNG TOTAL PRODUK (Menggunakan harga yang sudah tervalidasi di atas)
         $productTotal = 0;
         foreach ($cart as $item) {
             $productTotal += $item['price'] * $item['quantity'];
@@ -118,9 +171,9 @@ class CheckoutController extends Controller
         DB::beginTransaction();
 
         // Membelah "JNE REG" menjadi dua bagian
-            $courierParts = explode(' ', $request->shipping_courier, 2);
-            $courierName = $courierParts[0] ?? null; // Bagian depan: JNE
-            $courierService = $courierParts[1] ?? null; // Bagian belakang: REG
+        $courierParts = explode(' ', $request->shipping_courier, 2);
+        $courierName = $courierParts[0] ?? null; 
+        $courierService = $courierParts[1] ?? null; 
 
         try {
            // 4. SIMPAN ORDER (DATA INDUK)
@@ -131,16 +184,13 @@ class CheckoutController extends Controller
                 'customer_whatsapp' => $request->customer_whatsapp,
                 'customer_address'  => $request->customer_address . ", " . $cityName,
                 'shipping_cost'     => $shippingCost,
-                
-                // 🚨 MASUKKAN DATA YANG SUDAH DIBELAH
                 'courier_name'      => $courierName,
                 'courier_service'   => $courierService,
-                
                 'total_amount'      => $productTotal, 
                 'status'            => 'pending',
             ]);
 
-            // 5. SIMPAN DETAIL ITEM & POTONG STOK (Aturan Anti-Pesanan Hantu)
+            // 5. SIMPAN DETAIL ITEM & POTONG STOK
             foreach ($cart as $key => $item) {
                 
                 // Potong Stok
@@ -148,7 +198,6 @@ class CheckoutController extends Controller
                     $variant = \App\Models\ProductVariant::find($item['variant_id']);
                     if($variant) {
                         $variant->decrement('stock', $item['quantity']);
-                        // Jika varian punya relasi ke produk induk, potong juga stok induknya
                         if($variant->product) $variant->product->decrement('stock', $item['quantity']);
                     }
                 } else {
@@ -186,7 +235,6 @@ class CheckoutController extends Controller
             return redirect()->back()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
         }
     }
-
     // 4. UPDATE CART
     public function updateCart(Request $request)
     {

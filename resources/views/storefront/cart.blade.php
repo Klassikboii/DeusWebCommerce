@@ -13,6 +13,24 @@
             </a>
             <h2 class="fw-bold mt-2">Keranjang & Checkout</h2>
         </div>
+        @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+     @if (session('error'))
+         <div class="alert alert-danger alert-dismissible fade show" role="alert">
+             {{ session('error') }}
+             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+         </div>
+     @endif
+    @if (session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show shadow-sm" role="alert">
+            <strong><i class="bi bi-exclamation-triangle-fill me-2"></i> Perhatian:</strong> {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
         @if(count($cart) > 0)
         <div class="row">
