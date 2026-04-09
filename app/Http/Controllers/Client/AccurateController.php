@@ -53,16 +53,35 @@ class AccurateController extends Controller
         if ($response->successful()) {
             $data = $response->json();
 
-            // Simpan atau update token di database
-            AccurateIntegration::updateOrCreate(
+            // 🚨 PENYELAMATAN SAAT PERTAMA KALI LOGIN
+            
+            // 1. Simpan atau update token untuk website yang SEDANG DI-SETTING ini
+            \App\Models\AccurateIntegration::updateOrCreate(
                 ['website_id' => $website->id],
                 [
                     'access_token' => $data['access_token'],
                     'refresh_token' => $data['refresh_token'],
-                    // Token accurate biasanya valid untuk waktu tertentu (misal 30 hari)
                     'token_expires_at' => now()->addSeconds($data['expires_in']),
                 ]
             );
+
+            // 2. SINKRONISASI MASSAL KE WEBSITE LAIN MILIK USER YANG SAMA
+            // Jika user ini punya toko cabang (website lain) yang juga terkoneksi Accurate, 
+            // kita paksakan token baru ini ke sana agar toko cabangnya tidak mati.
+            if (isset($website->user_id)) {
+                $otherWebsiteIds = Website::where('user_id', $website->user_id)
+                                          ->where('id', '!=', $website->id)
+                                          ->pluck('id');
+                
+                if ($otherWebsiteIds->isNotEmpty()) {
+                    \App\Models\AccurateIntegration::whereIn('website_id', $otherWebsiteIds)
+                        ->update([
+                            'access_token' => $data['access_token'],
+                            'refresh_token' => $data['refresh_token'],
+                            'token_expires_at' => now()->addSeconds($data['expires_in']),
+                        ]);
+                }
+            }
 
             return redirect()->route('client.settings.index', $website)->with('success', 'Berhasil terhubung dengan Accurate Online!');
         }
