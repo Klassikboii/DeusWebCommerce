@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // --- DAFTARKAN ALIAS DI SINI ---
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
+            'feature' => \App\Http\Middleware\CheckPackageFeature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

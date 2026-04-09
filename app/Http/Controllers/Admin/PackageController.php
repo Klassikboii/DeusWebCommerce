@@ -46,7 +46,11 @@ class PackageController extends Controller
             'description' => $request->description,
             'can_custom_domain' => $request->has('custom_domain') ? 1 : 0,
             'remove_branding' => $request->has('remove_branding') ? 1 : 0,
-            'features' => $featuresArray // 🚨 TAMBAHKAN BARIS INI
+            'features' => $featuresArray, // 🚨 TAMBAHKAN BARIS INI
+            // 🚨 TAMBAHAN BARU: Tangkap dari checkbox form
+            'has_ai_insights' => $request->has('has_ai_insights') ? 1 : 0,
+            'has_custom_dashboard' => $request->has('has_custom_dashboard') ? 1 : 0,
+            'has_shipping_markup' => $request->has('has_shipping_markup') ? 1 : 0,
         ]);
 
         return redirect()->route('admin.packages.index')->with('success', 'Paket baru berhasil dibuat!');
@@ -81,7 +85,11 @@ class PackageController extends Controller
             'description' => $request->description,
             'can_custom_domain' => $request->has('custom_domain') ? 1 : 0,
             'remove_branding' => $request->has('remove_branding') ? 1 : 0,
-            'features' => $featuresArray // 🚨 TAMBAHKAN BARIS INI
+            'features' => $featuresArray, // 🚨 TAMBAHKAN BARIS INI
+            // 🚨 TAMBAHAN BARU: Tangkap dari checkbox form
+            'has_ai_insights' => $request->has('has_ai_insights') ? 1 : 0,
+            'has_custom_dashboard' => $request->has('has_custom_dashboard') ? 1 : 0,
+            'has_shipping_markup' => $request->has('has_shipping_markup') ? 1 : 0,
         ]);
 
         return redirect()->route('admin.packages.index')->with('success', 'Paket berhasil diperbarui!');

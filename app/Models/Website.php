@@ -170,4 +170,22 @@ class Website extends Model
         // Jika kosong, kembalikan subdomain.
         return !empty($this->custom_domain) ? $this->custom_domain : $this->subdomain;
     }
+
+    /**
+     * Mengecek apakah Website ini punya akses ke fitur tertentu
+     * @param string $featureColumn (Contoh: 'has_ai_insights')
+     */
+    public function hasFeature($featureColumn)
+    {
+        // 1. Ambil paket dari langganan yang sedang aktif
+        $package = $this->activeSubscription->package ?? null;
+        
+        // 2. Jika tidak ada paket aktif, langsung tolak
+        if (!$package) {
+            return false;
+        }
+
+        // 3. Cek apakah properti/kolom tersebut ada di tabel dan nilainya true
+        return isset($package->{$featureColumn}) && $package->{$featureColumn} == true;
+    }
 }
