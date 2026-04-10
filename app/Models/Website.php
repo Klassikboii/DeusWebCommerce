@@ -66,6 +66,7 @@ class Website extends Model
         'midtrans_server_key',
         'midtrans_is_production',
         'active_couriers', // 🚨 TAMBAHKAN BARIS INI
+        'dashboard_preferences', // 🚨 TAMBAHKAN INI
         
     ];
 
@@ -75,6 +76,7 @@ class Website extends Model
         'is_open' => 'boolean',
         'theme_config' => 'array',
         'active_couriers' => 'array', // 🚨 WAJIB ADA AGAR BISA DIBACA SEBAGAI ARRAY
+        'dashboard_preferences' => 'array', // 🚨 TAMBAHKAN INI AGAR OTOMATIS JADI ARRAY
     ];
 
     // Relasi: Website milik satu User
@@ -188,4 +190,38 @@ class Website extends Model
         // 3. Cek apakah properti/kolom tersebut ada di tabel dan nilainya true
         return isset($package->{$featureColumn}) && $package->{$featureColumn} == true;
     }
+
+    /**
+     * Mengambil preferensi dashboard dengan nilai bawaan (Default)
+     */
+    public function getParsedDashboardPreferencesAttribute()
+    {
+        // Nilai bawaan: Semua widget menyala (true)
+        $defaults = [
+            // Kelompok 1: Ringkasan Atas
+            'show_stat_revenue'      => true,
+            'show_stat_transactions' => true,
+            'show_stat_pending'      => true,
+            'show_stat_products'     => true,
+            
+            // Kelompok 2: Analitik Standar
+            'show_sales_chart'       => true,
+            'show_top_products'      => true,
+            'show_low_stock'         => true,
+            'show_recent_orders'     => true,
+
+            // Kelompok 3: AI Insights
+            'show_rfm'               => true,
+            'show_ai_radar'          => true,
+            'show_bundles'           => true,
+        ];
+
+        // Ambil data yang tersimpan di database (jika ada)
+        $savedPreferences = $this->dashboard_preferences ?? [];
+
+        // Gabungkan: Timpa nilai default dengan nilai yang disimpan user
+        return array_merge($defaults, $savedPreferences);
+    }
+
+    
 }

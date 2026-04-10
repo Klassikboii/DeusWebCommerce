@@ -50,6 +50,27 @@
                             <i class="bi bi-x-circle text-muted me-2"></i> Ada Branding Toko
                         @endif
                     </li>
+                    <li class="mb-2">
+                        @if($package->has_ai_insights)
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Insight Penjualan AI
+                        @else
+                            <i class="bi bi-x-circle text-muted me-2"></i> Tanpa AI Insights
+                        @endif
+                    </li>
+                    <li class="mb-2">
+                        @if($package->has_custom_dashboard)
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Dashboard Kustom
+                        @else
+                            <i class="bi bi-x-circle text-muted me-2"></i> Dashboard Standar
+                        @endif
+                    </li>
+                    <li class="mb-2">
+                        @if($package->has_shipping_markup)
+                            <i class="bi bi-check-circle-fill text-success me-2"></i> Kontrol Margin Ongkir
+                        @else
+                            <i class="bi bi-x-circle text-muted me-2"></i> Tanpa Markup Ongkir
+                        @endif
+                    </li>
                 </ul>
 
                 <a href="{{ route('admin.packages.edit', $package->id) }}" class="btn btn-outline-primary w-100">

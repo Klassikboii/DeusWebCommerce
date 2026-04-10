@@ -146,13 +146,46 @@ class DashboardController extends Controller
         $currentMonth = now()->format('Y-m');
         $totalRevenue = $website->orders()->where('status', 'paid')->where('created_at', 'like', $currentMonth . '%')->sum('total_amount');
 
+        $preferences = $website->parsed_dashboard_preferences;
+
         return view('client.dashboard.index', compact(
             'website', 
             'revenueThisMonth', 'revenueLastMonth', 'revenueGrowth',
             'totalOrder', 'pendingOrders', 'totalProduk', 'totalCritical',   // 🚨 TAMBAHKAN INI
         'totalOverstock',
-            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts', 'setupStatus', 'setupProgress', 'rfmSummary', 'championsCount', 'atRiskCount', 'attentionStocks', 'totalRevenue', 'topBundles'
+            'chartLabels', 'chartValues', 'topProducts', 'recentOrders', 'lowStockProducts', 'setupStatus', 'setupProgress', 'rfmSummary', 'championsCount', 'atRiskCount', 'attentionStocks', 'totalRevenue', 'topBundles', 'preferences'
         ));
         
+    }
+    // TAMBAHKAN FUNGSI BARU UNTUK SIMPAN PREFERENSI
+public function savePreferences(Request $request, $website_id)
+    {
+        $website = \App\Models\Website::findOrFail($website_id);
+        // Jika Anda memakai Policy, aktifkan ini:
+        // $this->authorize('update', $website);
+
+        // 🚨 KUNCI PERBAIKAN: Tangkap checkbox secara eksplisit
+        // Jika dicentang bernilai true, jika tidak bernilai false
+        $preferences = [
+            'show_stat_revenue'      => $request->has('show_stat_revenue'),
+            'show_stat_transactions' => $request->has('show_stat_transactions'),
+            'show_stat_pending'      => $request->has('show_stat_pending'),
+            'show_stat_products'     => $request->has('show_stat_products'),
+            
+            'show_sales_chart'       => $request->has('show_sales_chart'),
+            'show_top_products'      => $request->has('show_top_products'),
+            'show_low_stock'         => $request->has('show_low_stock'),
+            'show_recent_orders'     => $request->has('show_recent_orders'),
+            
+            'show_rfm'               => $request->has('show_rfm'),
+            'show_ai_radar'          => $request->has('show_ai_radar'),
+            'show_bundles'           => $request->has('show_bundles'),
+        ];
+
+        $website->update([
+            'dashboard_preferences' => $preferences
+        ]);
+
+        return redirect()->back()->with('success', 'Tampilan dashboard berhasil disesuaikan!');
     }
 }

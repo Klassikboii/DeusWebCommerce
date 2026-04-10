@@ -87,7 +87,11 @@
                                                 data-desc="{{ $package->description }}"
                                                 data-max-products="{{ $package->max_products }}"
                                                 data-domain="{{ $package->can_custom_domain }}"
-                                                data-branding="{{ $package->remove_branding }}">
+                                                data-branding="{{ $package->remove_branding }}"
+                                                  data-insight="{{ $package->has_ai_insights }}"
+                                                    data-dashboard="{{ $package->has_custom_dashboard }}"
+                                                      data-markup="{{ $package->has_shipping_markup }}">
+                                                
                                             {{ $package->name }} - Rp {{ number_format($package->price, 0, ',', '.') }} / {{ $package->duration_days }} Hari
                                         </option>
                                     @endforeach
@@ -176,6 +180,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const maxProducts = option.getAttribute('data-max-products');
             const canDomain = option.getAttribute('data-domain') === '1';
             const removeBranding = option.getAttribute('data-branding') === '1';
+            const aiInsight = option.getAttribute('data-insight') === '1';
+            const customDashboard = option.getAttribute('data-dashboard') === '1';
+            const shippingMarkup = option.getAttribute('data-markup') === '1';
 
             // 2. Isi Judul & Deskripsi
             previewTitle.innerText = packageName;
@@ -219,6 +226,45 @@ document.addEventListener('DOMContentLoaded', function() {
                     <li class="mb-2 text-muted">
                         <i class="bi bi-x-circle text-danger opacity-75 me-2"></i> 
                         <del>Bebas Watermark</del> 
+                    </li>`;
+            }
+            if (aiInsight) {
+                featuresList.innerHTML += `
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> 
+                        <b>AI Insights</b> (Analisis Penjualan Otomatis)
+                    </li>`;
+            } else {
+                featuresList.innerHTML += `
+                    <li class="mb-2 text-muted">
+                        <i class="bi bi-x-circle text-danger opacity-75 me-2"></i> 
+                        <del>AI Insights</del> 
+                    </li>`;
+            }
+            if (customDashboard) {
+                featuresList.innerHTML += `
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> 
+                        <b>Dashboard Kustom</b> (Atur Tampilan Sesuai Kebutuhan)
+                    </li>`;
+            } else {
+                featuresList.innerHTML += `
+                    <li class="mb-2 text-muted">
+                        <i class="bi bi-x-circle text-danger opacity-75 me-2"></i> 
+                        <del>Dashboard Kustom</del>
+                    </li>`;
+            }
+            if (shippingMarkup) {
+                featuresList.innerHTML += `
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> 
+                        <b>Markup Ongkir</b> (Tambahkan Margin Pengiriman)
+                    </li>`;
+            } else {
+                featuresList.innerHTML += `
+                    <li class="mb-2 text-muted">
+                        <i class="bi bi-x-circle text-danger opacity-75 me-2"></i> 
+                        <del>Markup Ongkir</del> 
                     </li>`;
             }
 

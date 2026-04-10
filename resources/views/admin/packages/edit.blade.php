@@ -61,6 +61,21 @@
                             <input class="form-check-input" type="checkbox" name="remove_branding" id="remove_branding" value="1" {{ old('remove_branding', $package->remove_branding ?? 0) ? 'checked' : '' }}>
                             <label class="form-check-label fw-bold" for="remove_branding">Izinkan Hapus Branding (White-label)</label>
                         </div>
+                        <hr class="my-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="has_ai_insights" id="has_ai_insights" value="1" {{ old('has_ai_insights', $package->has_ai_insights ?? 0) ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold text-success" for="has_ai_insights">Buka Akses AI Insights & Prediksi</label>
+                        </div>
+
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="has_custom_dashboard" id="has_custom_dashboard" value="1" {{ old('has_custom_dashboard', $package->has_custom_dashboard ?? 0) ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold text-success" for="has_custom_dashboard">Buka Akses Custom Dashboard Analytics</label>
+                        </div>
+
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="has_shipping_markup" id="has_shipping_markup" value="1" {{ old('has_shipping_markup', $package->has_shipping_markup ?? 0) ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold text-success" for="has_shipping_markup">Buka Akses Markup Ongkos Kirim</label>
+                        </div>
                     </div>
 
                 <div class="d-flex justify-content-between">

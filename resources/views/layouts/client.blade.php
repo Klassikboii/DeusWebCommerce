@@ -211,11 +211,19 @@
                 class="nav-link {{ request()->routeIs('client.categories.*') ? 'active' : '' }}">
                     <i class="bi bi-tags"></i> Kategori
                 </a>
-                <a href="{{ route('client.shipping_markups.index', $website->id) }}" 
-                    class="nav-link {{ request()->routeIs('client.shipping_markups.*') ? 'active' : '' }}">
-                        <i class="bi bi-graph-up-arrow nav-icon"></i>
-                        <span class="nav-link-text">Markup Ongkir</span>
-                    </a>
+                @if($website->hasFeature('has_shipping_markup'))
+                        
+                            <a class="nav-link" href="{{ route('client.insights.index', $website) }}">
+                                <i class="bi bi-robot"></i> Markup Ongkir
+                            </a>
+                        
+                    @else
+                       
+                            <a class="nav-link bg-light" href="{{ route('client.billing.index', $website) }}">
+                                <i class="bi bi-lock-fill"></i> Markup Ongkir (Pro)
+                            </a>
+                        
+                    @endif
                 <a href="{{ route('client.shipping.index', $website->id) }}" 
                     class="nav-link {{ request()->routeIs('client.shipping.*') ? 'active' : '' }}">
                         <i class="bi bi-truck nav-icon"></i>
@@ -239,10 +247,19 @@
                 class="nav-link {{ request()->routeIs('client.reports.*') ? 'active' : '' }}">
                     <i class="bi bi-clipboard-data"></i> Laporan
                 </a>
-                <a href="{{ route('client.insights.index', $website->id) }}" 
-                class="nav-link {{ request()->routeIs('client.insights.*') ? 'active' : '' }}">
-                    <i class="bi bi-lightbulb"></i> Insight
-                </a>
+                @if($website->hasFeature('has_ai_insights'))
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('client.insights.index', $website) }}">
+                                <i class="bi bi-robot"></i> AI Insights
+                            </a>
+                        </li>
+                    @else
+                        
+                            <a class="nav-link bg-light" href="{{ route('client.billing.index', $website) }}">
+                                <i class="bi bi-lock-fill"></i> AI Insights (Pro)
+                            </a>
+                        
+                    @endif
 
                 <div class="nav-group-label">Pengaturan</div>
                 <a href="{{ route('client.settings.index', $website->id) }}" 

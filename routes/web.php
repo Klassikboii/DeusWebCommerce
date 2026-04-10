@@ -81,6 +81,9 @@ Route::middleware(['auth'])->group(function () {
         // ... di dalam group manage/{website} ...
         // Dashboard Utama
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('client.dashboard');
+        
+        Route::post('/dashboard/preferences', [DashboardController::class, 'savePreferences'])
+    ->name('client.dashboard.save_preferences');
         // --- FITUR PRODUK ---
         Route::get('/products', [ProductController::class, 'index'])->name('client.products.index');
         Route::get('/products/create', [ProductController::class, 'create'])->name('client.products.create');
@@ -141,7 +144,7 @@ Route::middleware(['auth'])->group(function () {
         // ... route customers ...
         // --- FITUR LAPORAN ---
         Route::get('/reports', [App\Http\Controllers\Client\ReportController::class, 'index'])->name('client.reports.index');
-        Route::get('/insights', [\App\Http\Controllers\Client\CustomerInsightController::class, 'index'])->name('client.insights.index');
+        Route::get('/insights', [\App\Http\Controllers\Client\CustomerInsightController::class, 'index'])->name('client.insights.index')->middleware('feature:has_ai_insights');;
         // ... route produk/kategori ...
         // --- FITUR BLOG ---
         Route::get('/posts', [App\Http\Controllers\Client\PostController::class, 'index'])->name('client.posts.index');
@@ -190,7 +193,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/shipping/import', [App\Http\Controllers\Client\ShippingController::class, 'import'])->name('client.shipping.import');
                 // Route untuk Hapus Semua Data Ongkir
                 // PENGATURAN MARKUP ONGKIR
-        Route::get('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'index'])->name('client.shipping_markups.index');
+        Route::get('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'index'])->name('client.shipping_markups.index')->middleware('feature:has_shipping_markup');;
         Route::post('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'store'])->name('client.shipping_markups.store');
         Route::delete('shipping-markups/{id}', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'destroy'])->name('client.shipping_markups.destroy');
         // ... (Rute Shipping Markups) ...

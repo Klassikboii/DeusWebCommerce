@@ -118,11 +118,11 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
-                            
+                            @if($website->hasFeature('has_ai_insights'))
                             <a href="{{ route('client.products.insight', ['website' => $website->id, 'product' => $product->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Lihat Analisis AI">
                                 <i class="bi bi-graph-up-arrow text-info"></i>
                             </a>
-                            
+                            @endif
                         </div>
                     </td>
             </tr>
