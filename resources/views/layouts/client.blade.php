@@ -213,13 +213,13 @@
                 </a>
                 @if($website->hasFeature('has_shipping_markup'))
                         
-                            <a class="nav-link" href="{{ route('client.insights.index', $website) }}">
-                                <i class="bi bi-robot"></i> Markup Ongkir
+                            <a class="nav-link" href="{{ route('client.shipping_markups.index', $website) }}">
+                                <i class="bi bi-graph-up"></i> Markup Ongkir
                             </a>
                         
                     @else
                        
-                            <a class="nav-link bg-light" href="{{ route('client.billing.index', $website) }}">
+                            <a class="nav-link bg-light" href="{{ route('client.shipping_markups.index', $website) }}">
                                 <i class="bi bi-lock-fill"></i> Markup Ongkir (Pro)
                             </a>
                         
@@ -248,11 +248,11 @@
                     <i class="bi bi-clipboard-data"></i> Laporan
                 </a>
                 @if($website->hasFeature('has_ai_insights'))
-                        <li class="nav-item">
+                       
                             <a class="nav-link" href="{{ route('client.insights.index', $website) }}">
                                 <i class="bi bi-robot"></i> AI Insights
                             </a>
-                        </li>
+                        
                     @else
                         
                             <a class="nav-link bg-light" href="{{ route('client.billing.index', $website) }}">

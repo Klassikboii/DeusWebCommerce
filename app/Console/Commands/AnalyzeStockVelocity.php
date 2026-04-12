@@ -41,21 +41,20 @@ class AnalyzeStockVelocity extends Command
                 $currentStock = $product->stock; 
               // 🚨 STANDAR BARU: Minimal laku 3 barang per 30 hari (0.1 per hari)
                 // Sesuaikan angka 3 ini dengan keinginan standar Klien Anda
-                $minVelocityThreshold = 1 / 30; 
+                // Samakan dengan Controller agar tidak berbeda hasil
+                    $minVelocityThreshold = 1 / 30; 
 
-                if ($currentStock <= 0) {
-                    $runway = 0;
-                    $status = 'Empty';
-                } else {
-                    // 🚨 CEK STANDAR: Apakah kecepatannya memenuhi syarat minimal?
-                    if ($velocity >= $minVelocityThreshold) {
-                        $runway = (int) round($currentStock / $velocity);
-                        $status = ($runway <= 7) ? 'Critical' : 'Safe';
+                    if ($currentStock <= 0) {
+                        $status = 'Empty';
                     } else {
-                        // Jika kecepatan di bawah standar (walau laku 1-2 barang), tetep vonis Overstock!
-                        $status = 'Overstock'; 
+                        if ($velocity >= $minVelocityThreshold) {
+                            $runway = (int) round($currentStock / $velocity);
+                            $status = ($runway <= 14) ? 'Critical' : 'Safe';
+                        } else {
+                            // Logika yang sama: stok dikit jangan dibilang overstock
+                            $status = ($currentStock > 5) ? 'Overstock' : 'Safe';
+                        }
                     }
-                }
 
                 $product->update([
                     'velocity' => $velocity,

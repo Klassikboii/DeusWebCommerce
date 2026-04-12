@@ -32,7 +32,7 @@
                     $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
                     // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
                     $port = app()->environment('local') ? ':8000' : ''; 
-                    $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
+                    $storeUrl = 'http://' . $web->subdomain . '.' . $mainDomain . $port;
                 @endphp
                 <tr>
                     <td class="px-4">

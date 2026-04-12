@@ -16,20 +16,21 @@ class DummyOrderSeeder extends Seeder
     public function run()
     {
         // 1. Cari toko yang sudah terhubung ke Accurate
-        $website = Website::whereHas('accurateIntegration', function($q) {
-            $q->whereNotNull('access_token');
-        })->first();
+        // Ganti 1 dengan ID website yang sedang Anda buka di browser
+            $website = Website::find(1);
 
         if (!$website) {
             $this->command->error('Gagal: Tidak ada toko yang terhubung ke Accurate!');
             return;
         }
 
-        $products = $website->products;
-        if ($products->count() == 0) {
-            $this->command->error('Gagal: Toko ini belum punya produk sama sekali!');
-            return;
-        }
+        // // 1. Ambil hanya produk yang stoknya lebih dari 0
+        //     $products = $website->products()->where('stock', '>', 0)->get();
+
+        //     if ($products->count() == 0) {
+        //         $this->command->error('Gagal: Toko ini tidak memiliki produk yang memiliki stok (Semua Stok 0)!');
+        //         return;
+        //     }
 
         $this->command->info("Memulai Seeding untuk Toko: {$website->site_name}");
         $this->command->warn("Mohon tunggu, proses ini butuh waktu karena menembak API Accurate...");
@@ -38,7 +39,12 @@ class DummyOrderSeeder extends Seeder
 
         // 2. Kita buat 15 Transaksi Dummy (Jangan terlalu banyak agar API Accurate tidak limit)
         for ($i = 0; $i < 15; $i++) {
-            
+            $products = $website->products()->where('stock', '>', 0)->get();
+
+                if ($products->isEmpty()) {
+                    $this->command->warn("Stok habis, stop seeding.");
+                    break;
+                }
             // Putar waktu ke masa lalu (Random antara 1 sampai 70 hari yang lalu dari hari ini)
             $randomDate = Carbon::now()->subDays(rand(1, 70));
 
@@ -60,11 +66,18 @@ class DummyOrderSeeder extends Seeder
 
             $totalAmount = 0;
             // Pilih 1 sampai 3 produk secara acak untuk dibeli di pesanan ini
-            $selectedProducts = $products->random(rand(1, 3));
+            $countToTake = min($products->count(), rand(1, 100));
+            $selectedProducts = $products->random($countToTake);
 
             foreach ($selectedProducts as $product) {
-                $qty = rand(1, 3);
-                $price = $product->price > 0 ? $product->price : rand(50000, 150000); // Jaga-jaga kalau harga 0
+                        $product->refresh();
+
+                if ($product->stock <= 0) continue;
+
+                $qty = min(rand(1, 3), $product->stock);
+                if ($qty <= 0) continue;
+
+                $price = $product->price > 0 ? $product->price : rand(50000, 150000);
                 $subtotal = $qty * $price;
 
                 OrderItem::create([
@@ -79,6 +92,7 @@ class DummyOrderSeeder extends Seeder
                 ]);
 
                 $totalAmount += $subtotal;
+                $product->decrement('stock', $qty);
             }
 
             // Update Total Belanja

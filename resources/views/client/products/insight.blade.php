@@ -74,13 +74,23 @@
                             </p>
                         </div>
                     @elseif($product->stock_status === 'Safe')
-                        <div class="alert alert-success border-success">
-                            <h5 class="alert-heading fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Status Aman</h5>
-                            <hr>
-                            <p class="mb-0">
-                                Stok Anda masih sangat mencukupi. Dengan kecepatan penjualan saat ini, stok diperkirakan masih bisa bertahan untuk <strong>{{ $product->runway_days }} hari</strong> ke depan.
-                            </p>
-                        </div>
+                        @if($product->stock < ($product->velocity * $targetDays))
+                            {{-- KONDISI KHUSUS: Stok aman secara waktu, tapi di bawah target kuantitas --}}
+                            <div class="alert alert-info border-info">
+                                <h5 class="alert-heading fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Status: Perlu Perhatian</h5>
+                                <hr>
+                                <p class="mb-0">
+                                    Stok saat ini ({{ $product->stock }}) berada di bawah target ideal untuk {{ $targetDays }} hari ({{ ceil($product->velocity * $targetDays) }} unit). 
+                                    Meskipun belum kritis, Anda disarankan menambah sedikit stok dalam waktu dekat.
+                                </p>
+                            </div>
+                        @else
+                            <div class="alert alert-success border-success">
+                                <h5 class="alert-heading fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Status Aman</h5>
+                                <hr>
+                                <p class="mb-0">Stok sangat mencukupi untuk operasional normal.</p>
+                            </div>
+                        @endif
                     @elseif($product->stock_status === 'Overstock')
                         <div class="alert alert-warning border-warning text-dark">
                             <h5 class="alert-heading fw-bold"><i class="bi bi-box-seam me-2"></i>Overstock / Stok Mati</h5>

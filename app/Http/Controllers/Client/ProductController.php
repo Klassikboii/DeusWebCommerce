@@ -673,32 +673,37 @@ public function destroyAll(Request $request, $websiteId)
         if ($product->website_id !== $website->id) abort(404);
 
         // ==========================================
-        // 🤖 LOGIKA 1: PREDIKSI KUANTITAS RESTOCK (Update Status)
-        // ==========================================
-        $targetDays = 30; // Target aman stok untuk 1 bulan ke depan
-        
-        // 🚨 KITA MASUKKAN STANDAR BARU DI SINI UNTUK STATUS TERKINI
-        $minVelocityThreshold = 3 / 30; // Standar minimal hidup (0.1 per hari)
+            // 🤖 LOGIKA 1: PREDIKSI & STATUS (DIPERBAIKI)
+            // ==========================================
+            $targetDays = 30; 
+            $minVelocityThreshold = 1 / 30; // 🚨 Samakan dengan Command (1 barang/bulan)
 
-        $currentStock = $product->stock;
-        $velocity = $product->velocity > 0 ? $product->velocity : 0; // Pastikan positif
-        $runwayDays = null;
-        $stockStatus = 'Normal';
+            $currentStock = $product->stock;
+            $velocity = $product->velocity > 0 ? $product->velocity : 0; 
+            $runwayDays = null;
+            $stockStatus = 'Safe'; // Default
+            $criticalThreshold = 14; // Jika Anda ingin mengetes Critical di bawah 30 hari
 
-        if ($currentStock <= 0) {
-            $runwayDays = 0;
-            $stockStatus = 'Empty';
-        } else {
-            // Cek standar: Apakah kecepatannya memenuhi syarat minimal?
-            if ($velocity >= $minVelocityThreshold) {
-                $runwayDays = (int) round($currentStock / $velocity);
-                $stockStatus = ($runwayDays <= 7) ? 'Critical' : 'Safe';
+            if ($currentStock <= 0) {
+                $runwayDays = 0;
+                $stockStatus = 'Empty';
             } else {
-                // Di bawah standar = Overstock
-                $runwayDays = (int) round($currentStock / $minVelocityThreshold); // Runway teoritis
-                $stockStatus = 'Overstock'; 
+                if ($velocity >= $minVelocityThreshold) {
+                    $runwayDays = (int) round($currentStock / $velocity);
+                    // Status Kritis jika laku keras dan mau habis
+                    $stockStatus = ($runwayDays <= $criticalThreshold) ? 'Critical' : 'Safe';
+                } else {
+                    // 🚨 PERBAIKAN: Hanya sebut Overstock jika stok FISIK banyak (misal > 5)
+                    // Jika stok cuma 1-3 tapi lambat, sebut saja "Safe" (Slow Mover)
+                    if ($currentStock > 5) {
+                        $stockStatus = 'Overstock';
+                        $runwayDays = (int) round($currentStock / $minVelocityThreshold); 
+                    } else {
+                        $stockStatus = 'Safe';
+                        $runwayDays = 99; // Indikasi stok awet karena jarang laku
+                    }
+                }
             }
-        }
 
         // Hitung Kuantitas Restock
         $neededForTarget = $velocity * $targetDays; 
