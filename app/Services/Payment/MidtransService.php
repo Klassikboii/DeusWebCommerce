@@ -6,7 +6,6 @@ use App\Contracts\PaymentGatewayInterface;
 use App\Models\Order;
 use App\Models\Website;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class MidtransService implements PaymentGatewayInterface
 {
@@ -15,10 +14,15 @@ class MidtransService implements PaymentGatewayInterface
     public function __construct(Website $website)
     {
         $this->website = $website;
-        
+
+        // 🚨 TAMBAHAN WAJIB: Konfigurasi Midtrans Dinamis per Toko
         if (!empty($this->website->midtrans_server_key)) {
             \Midtrans\Config::$serverKey = $this->website->midtrans_server_key;
-            \Midtrans\Config::$isProduction = $this->website->midtrans_is_production ? true : false;
+            
+            // Asumsi Anda punya kolom midtrans_is_production (boolean). 
+            // Jika tidak ada, bisa hardcode false dulu selama masa testing.
+            \Midtrans\Config::$isProduction = $this->website->midtrans_is_production ?? false; 
+            
             \Midtrans\Config::$isSanitized = true;
             \Midtrans\Config::$is3ds = true;
         }
@@ -26,6 +30,13 @@ class MidtransService implements PaymentGatewayInterface
 
     public function createTransaction(Order $order): array
     {
+        // 1. Cek Kredensial (Aman dari toko yang belum pasang key)
+        if (empty($this->website->midtrans_server_key)) {
+            \Illuminate\Support\Facades\Log::error("Toko {$this->website->site_name} tidak memiliki Server Key Midtrans.");
+            return ['status' => 'error', 'token' => null, 'redirect_url' => null];
+        }
+
+        // 2. Siapkan Parameter Tagihan (Persis kode lama Anda)
         $params = [
             'transaction_details' => [
                 'order_id' => $order->order_number,
@@ -42,11 +53,21 @@ class MidtransService implements PaymentGatewayInterface
             ]
         ];
 
+        // 3. Minta Token ke Server Midtrans
         try {
             $snapToken = \Midtrans\Snap::getSnapToken($params);
-            return ['status' => 'success', 'token' => $snapToken, 'redirect_url' => null];
+            
+            // 🚨 KUNCI PERBAIKAN: Kembalikan array dengan 'status' => 'success'
+            return [
+                'status' => 'success', 
+                'token' => $snapToken, 
+                'redirect_url' => null // Midtrans Snap tidak butuh redirect_url, dia pakai JS pop-up
+            ];
+            
         } catch (\Exception $e) {
-            Log::error('Gagal Generate Midtrans Snap: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Gagal Generate Midtrans Snap: ' . $e->getMessage());
+            
+            // Kembalikan status error jika gagal
             return ['status' => 'error', 'token' => null, 'redirect_url' => null];
         }
     }
@@ -54,6 +75,7 @@ class MidtransService implements PaymentGatewayInterface
     public function handleWebhook(Request $request): array
     {
         $payload = $request->all();
+        
         $orderId = $payload['order_id'] ?? null;
         $statusCode = $payload['status_code'] ?? null;
         $grossAmount = $payload['gross_amount'] ?? null;
@@ -61,15 +83,19 @@ class MidtransService implements PaymentGatewayInterface
         $transactionStatus = $payload['transaction_status'] ?? null;
         $paymentType = $payload['payment_type'] ?? null;
 
-        // Validasi Signature
         $serverKey = $this->website->midtrans_server_key;
+
+        if (!$serverKey) {
+            return ['is_valid' => false, 'message' => 'Server key missing'];
+        }
+
+        // Validasi Signature
         $calculatedSignature = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
-        
         if ($calculatedSignature !== $signatureKey) {
             return ['is_valid' => false, 'message' => 'Invalid signature'];
         }
 
-        // Tentukan Status Final
+        // Menerjemahkan Status Midtrans ke Status Universal
         $finalStatus = 'pending';
         if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
             $finalStatus = 'paid';
@@ -77,19 +103,22 @@ class MidtransService implements PaymentGatewayInterface
             $finalStatus = 'failed';
         }
 
-        // Detektif Metode Pembayaran
-        $metodePembayaran = 'Midtrans Otomatis';
+        // Menerjemahkan Metode Pembayaran (Sesuai kode asli Anda)
+        $metodePembayaran = 'Midtrans Otomatis'; 
         if ($paymentType == 'bank_transfer') {
             $vaNumber = $payload['va_numbers'][0]['bank'] ?? '';
             $metodePembayaran = 'Virtual Account ' . strtoupper($vaNumber);
         } elseif ($paymentType == 'echannel') {
             $metodePembayaran = 'Mandiri Bill Payment';
         } elseif ($paymentType == 'qris') {
-            $metodePembayaran = 'QRIS';
-        } elseif (in_array($paymentType, ['gopay', 'shopeepay'])) {
-            $metodePembayaran = ucfirst($paymentType);
+            $metodePembayaran = 'QRIS (Gopay/OVO/Dana/LinkAja)';
+        } elseif ($paymentType == 'gopay') {
+            $metodePembayaran = 'GoPay';
+        } elseif ($paymentType == 'shopeepay') {
+            $metodePembayaran = 'ShopeePay';
         }
 
+        // Kembalikan format standar yang seragam
         return [
             'is_valid' => true,
             'order_id' => $orderId,

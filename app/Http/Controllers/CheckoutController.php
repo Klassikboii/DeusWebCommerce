@@ -273,20 +273,25 @@ class CheckoutController extends Controller
     {
         $website = $request->get('website');
         
-        $order = Order::where('website_id', $website->id)
+        $order = \App\Models\Order::where('website_id', $website->id)
                       ->where('order_number', $order_number)
                       ->firstOrFail();
 
         $snapToken = $order->snap_token;
 
+        // 🚨 SULAP TERJADI DI SINI: Jika pesanan belum punya token, minta ke Gateway!
         if (empty($snapToken)) {
-            // 🚨 SULAP TERJADI DI SINI: Panggil Factory!
             $paymentGateway = \App\Services\Payment\PaymentFactory::make($website);
             $paymentData = $paymentGateway->createTransaction($order);
 
-            if ($paymentData['status'] === 'success') {
+            // Cek apakah balasan dari Service memiliki status 'success'
+            if (isset($paymentData['status']) && $paymentData['status'] === 'success') {
                 $snapToken = $paymentData['token'];
+                // Simpan token ke database agar tidak double-generate jika di-refresh
                 $order->update(['snap_token' => $snapToken]);
+            } else {
+                // Opsional: Beri pesan error ke pembeli jika Gateway sedang gangguan
+                // \Illuminate\Support\Facades\Session::flash('error', 'Sistem pembayaran sedang sibuk. Silakan muat ulang halaman ini.');
             }
         }
         
