@@ -268,67 +268,28 @@ class CheckoutController extends Controller
         return redirect()->back()->with('success', 'Produk dihapus dari keranjang!');
     }
 
-    // 6. HALAMAN KONFIRMASI PEMBAYARAN (DENGAN MIDTRANS)
+   // 6. HALAMAN KONFIRMASI PEMBAYARAN
     public function payment(Request $request, $order_number)
     {
         $website = $request->get('website');
         
-
         $order = Order::where('website_id', $website->id)
                       ->where('order_number', $order_number)
                       ->firstOrFail();
 
-        $snapToken = null;
+        $snapToken = $order->snap_token;
 
-        // 🚨 SIHIR MIDTRANS (DESENTRALISASI) 🚨
-        // Kita cek apakah pemilik toko ini sudah memasukkan Server Key Midtrans-nya
-        if (!empty($website->midtrans_server_key)) {
-            
-            // Konfigurasi Midtrans secara dinamis menggunakan kunci milik toko ini
-            \Midtrans\Config::$serverKey = $website->midtrans_server_key;
-            \Midtrans\Config::$isProduction = $website->midtrans_is_production ? true : false;
-            \Midtrans\Config::$isSanitized = true;
-            \Midtrans\Config::$is3ds = true;
+        if (empty($snapToken)) {
+            // 🚨 SULAP TERJADI DI SINI: Panggil Factory!
+            $paymentGateway = \App\Services\Payment\PaymentFactory::make($website);
+            $paymentData = $paymentGateway->createTransaction($order);
 
-            // Jika pesanan ini belum punya token, kita mintakan ke Midtrans
-            if (empty($order->snap_token)) {
-                
-                // Siapkan data tagihan pembeli
-                $params = [
-                    'transaction_details' => [
-                        'order_id' => $order->order_number, // Harus sama dengan nomor order di database
-                        'gross_amount' => (int) ($order->total_amount + $order->shipping_cost),
-                    ],
-                    'customer_details' => [
-                        'first_name' => $order->customer_name,
-                        'phone' => $order->customer_whatsapp,
-                        // Email dikosongkan jika Anda tidak meminta email saat checkout
-                    ],
-                    // 🚨 TAMBAHKAN BLOK CALLBACKS INI:
-                        'callbacks' => [
-                            'finish' => url()->current(), // Otomatis kembali ke halaman ini
-                            'error' => url()->current(),
-                            'close' => url()->current()
-                        ]
-                ];
-
-                try {
-                    // Minta Token Snap dari Midtrans
-                    $snapToken = \Midtrans\Snap::getSnapToken($params);
-                    
-                    // Simpan token ke database agar tidak double-generate jika pembeli merefresh halaman
-                    $order->update(['snap_token' => $snapToken]); 
-                    
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Gagal Generate Midtrans Snap: ' . $e->getMessage());
-                }
-            } else {
-                // Jika sudah ada token (pembeli cuma refresh halaman), pakai token yang lama
-                $snapToken = $order->snap_token;
+            if ($paymentData['status'] === 'success') {
+                $snapToken = $paymentData['token'];
+                $order->update(['snap_token' => $snapToken]);
             }
         }
         
-        // Kirim $snapToken ke halaman view
         return view('storefront.payment', compact('website', 'order', 'snapToken'));
     }
 

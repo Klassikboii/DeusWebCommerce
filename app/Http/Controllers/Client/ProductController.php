@@ -155,6 +155,7 @@ class ProductController extends Controller
         $finalIsActive = $userWantsActive; 
         $alertType = 'success';
         $alertMessage = 'Produk berhasil ditambahkan dan tersinkronisasi dengan Accurate!';
+        
 
         // 🚨 LOGIKA PEMAKSAAN LIMIT 
         if ($userWantsActive && $activeCount >= $limit) {
@@ -165,6 +166,11 @@ class ProductController extends Controller
 
         // --- 3. VALIDASI INPUT YANG BENAR ---
         $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
+
+        $mainSku = $request->sku;
+            if (!$hasVariants && empty($mainSku)) {
+                $mainSku = $this->generateUniqueSku();
+            }
 
         $rules = [
             'name' => 'required|string|max:255',
@@ -194,8 +200,7 @@ class ProductController extends Controller
                 'price'       => $hasVariants ? 0 : $request->price,
                 'stock'       => $hasVariants ? 0 : $request->stock,
                 'weight'      => $request->weight ?? 1000,
-                'sku'         => $request->sku,
-                // 🚨 GUNAKAN VARIABEL FINAL DI SINI
+                'sku'         => $hasVariants ? null : $mainSku, // 🚨 Gunakan $mainSku di sini                // 🚨 GUNAKAN VARIABEL FINAL DI SINI
                 'is_active'   => $finalIsActive, 
             ]);
 
@@ -206,6 +211,9 @@ class ProductController extends Controller
                 
                 foreach ($request->variants as $variantData) {
                     if (empty($variantData['name'])) continue;
+
+                    // 🚨 LOGIKA AUTO-SKU VARIAN
+                    $variantSku = !empty($variantData['sku']) ? $variantData['sku'] : $this->generateUniqueSku();
                     
                     // Varian juga mengikuti status induknya
                     $variantIsActive = isset($variantData['is_active']) ? $variantData['is_active'] : 1;
@@ -216,8 +224,7 @@ class ProductController extends Controller
                         'options'   => ['name' => $variantData['name']], 
                         'price'     => $variantData['price'] ?? 0,
                         'stock'     => $variantData['stock'] ?? 0,
-                        'sku'       => $variantData['sku'] ?? null,
-                        'weight'    => $request->weight ?? 1000, 
+                        'sku'       => $variantSku, // 🚨 Gunakan $variantSku di sini                        'weight'    => $request->weight ?? 1000, 
                         // 🚨 GUNAKAN STATUS YANG SUDAH DISESUAIKAN
                         'is_active' => $variantIsActive, 
                     ]);
@@ -333,6 +340,10 @@ public function update(Request $request, Website $website, Product $product)
 
         // --- 3. VALIDASI DASAR ---
         $hasVariants = $request->has('has_variants') && $request->has_variants == '1';
+        if (!$hasVariants && empty($mainSku)) {
+                // Gunakan SKU lama jika ada, jika tidak ada (kosong dari awal) buatkan baru
+                $mainSku = $product->sku ?: $this->generateUniqueSku();
+            }
 
         $rules = [
             'name' => 'required|string|max:255',
@@ -360,9 +371,10 @@ public function update(Request $request, Website $website, Product $product)
                 'name'        => $request->name,
                 'description' => $request->description,
                 'weight'      => $request->weight ?? 1000,
-                'sku'         => $hasVariants ? null : $request->sku, 
+                'sku'         => $hasVariants ? null : $mainSku, // 🚨 Gunakan $mainSku
                 'is_active'   => $finalIsActive, // 🚨 PAKAI VARIABEL FINAL
             ];
+            $product->update($dataToUpdate);
 
             // Logika Update Gambar
             if ($request->hasFile('image')) {
@@ -385,6 +397,12 @@ public function update(Request $request, Website $website, Product $product)
                 foreach ($request->variants as $index => $variantData) {
                     if (empty($variantData['sku']) || empty($variantData['name'])) continue;
 
+                    // 🚨 LOGIKA AUTO-SKU VARIAN (Cari SKU Lama atau Bikin Baru)
+                    $variantSku = $variantData['sku'] ?? null;
+                    if (empty($variantSku)) {
+                        $variantSku = $this->generateUniqueSku();
+                    }
+
                     $stockInput = (int)($variantData['stock'] ?? 0);
                     $priceInput = (float)($variantData['price'] ?? 0);
                     $isRemoveImage = isset($variantData['remove_image']) && $variantData['remove_image'] == '1';
@@ -396,7 +414,7 @@ public function update(Request $request, Website $website, Product $product)
                     $variant = \App\Models\ProductVariant::updateOrCreate(
                         [
                             'product_id' => $product->id,
-                            'sku' => $variantData['sku'],
+                            'sku' => $variantSku,
                         ],
                         [
                             'name'      => $variantData['name'],
@@ -863,5 +881,23 @@ $penjualantotal = OrderItem::where('product_id', $product->id)->sum('qty');
             return back()->with('warning', $message . ' (Cek file storage/logs/laravel.log untuk detail yang gagal).');
         }
         return back()->with('success', $message);
+    }
+    /**
+     * Membuat SKU 6 karakter unik secara otomatis (Alfanumerik Kapital)
+     */
+    private function generateUniqueSku()
+    {
+        do {
+            // Menghasilkan 6 karakter acak (contoh: A8X9QB)
+            $sku = strtoupper(\Illuminate\Support\Str::random(6));
+            
+            // Cek apakah SKU ini sudah ada di tabel produk ATAU varian
+            $existsInProducts = \App\Models\Product::where('sku', $sku)->exists();
+            $existsInVariants = class_exists('\App\Models\ProductVariant') 
+                                && \App\Models\ProductVariant::where('sku', $sku)->exists();
+                                
+        } while ($existsInProducts || $existsInVariants);
+
+        return $sku;
     }
 }
