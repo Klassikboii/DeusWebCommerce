@@ -32,6 +32,7 @@
         </div>
         
         {{-- Kumpulan Tombol di Kanan --}}
+       {{-- Kumpulan Tombol di Kanan --}}
         <div class="d-flex gap-2 align-items-center">
             
             <div class="badge {{ $isLimitReached ? 'bg-danger' : 'bg-success' }} p-2 d-none d-md-block">
@@ -40,68 +41,107 @@
                 <div style="font-size: 0.75rem;">Total Produk: {{ $currentCount }}</div>
             </div>
                         
-            <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> Tambah
+            <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-primary shadow-sm">
+                <i class="bi bi-plus-lg me-1"></i> Tambah
             </a>
 
-            {{-- 🚨 MENU DROPDOWN RAPI --}}
+            {{-- 🚨 1. MENU KHUSUS INTEGRASI ACCURATE 🚨 --}}
+            @if($website->accurateIntegration && $website->accurateIntegration->access_token && $website->accurateIntegration->accurate_database_id)
             <div class="dropdown">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="bi bi-gear"></i> Opsi
+                <button class="btn btn-success shadow-sm dropdown-toggle fw-bold" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-arrow-left-right me-1"></i> Sinkronisasi Accurate
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow" style="width: 320px;"> {{-- Diperlebar agar teks muat --}}
+                    
+                    {{-- GRUP 1: PULL (TARIK) --}}
+                    <li>
+                        <h6 class="dropdown-header text-success fw-bold">
+                            <i class="bi bi-cloud-download me-1"></i> Dari Accurate ke Web (Tarik Data)
+                        </h6>
+                    </li>
+                    <li>
+                        <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" onsubmit="return confirm('Tarik data terbaru dari Accurate?\n\nHarga, Stok, dan Status di Web akan diperbarui mengikuti Accurate.');">
+                            @csrf
+                            <button type="submit" class="dropdown-item py-2">
+                                <span class="d-block fw-bold text-dark">Tarik Katalog Produk</span>
+                                <small class="text-muted text-wrap">Perbarui stok dan harga web agar sama dengan Accurate.</small>
+                            </button>
+                        </form>
+                    </li>
+                    @if ($currentCount > 0)
+                    <li>
+                        <button id="btnSyncImages" class="dropdown-item py-2">
+                            <span class="d-block fw-bold text-dark">Tarik Gambar Baru</span>
+                            <small class="text-muted text-wrap">Cari dan unduh gambar untuk produk yang belum memiliki foto.</small>
+                        </button>
+                    </li>
+                    @endif
+
+                    <li><hr class="dropdown-divider"></li>
+
+                    {{-- GRUP 2: PUSH (KIRIM) --}}
+                    <li>
+                        <h6 class="dropdown-header text-primary fw-bold">
+                            <i class="bi bi-cloud-upload me-1"></i> Dari Web ke Accurate (Kirim Data)
+                        </h6>
+                    </li>
+                    @if ($currentCount > 0)
+                    <li>
+                        <button type="button" class="dropdown-item py-2" data-bs-toggle="modal" data-bs-target="#modalBulkSyncAccurate">
+                            <span class="d-block fw-bold text-dark">Kirim Semua Produk</span>
+                            <small class="text-muted text-wrap">Ekspor/buat produk yang ada di web ke sistem Accurate.</small>
+                        </button>
+                    </li>
+                    @else
+                    <li><span class="dropdown-item py-2 text-muted"><small>Web masih kosong, tidak ada yang bisa dikirim.</small></span></li>
+                    @endif
+
+                    <li><hr class="dropdown-divider"></li>
+
+                    {{-- GRUP 3: LINK EKSTERNAL --}}
+                    <li>
+                        <a href="https://account.accurate.id/" target="_blank" class="dropdown-item text-info py-2">
+                            <i class="bi bi-box-arrow-up-right me-2"></i> Buka Dashboard Accurate
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            @endif
+
+            {{-- 🚨 2. MENU OPSI LAINNYA (LOKAL) 🚨 --}}
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Opsi Web">
+                    <i class="bi bi-three-dots-vertical"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-file-earmark-excel text-success me-2"></i> Import CSV</button></li>
+                    <li><h6 class="dropdown-header">Manajemen Lokal</h6></li>
                     
-                    @if($website->accurateIntegration && $website->accurateIntegration->access_token && $website->accurateIntegration->accurate_database_id)
-                        <li><hr class="dropdown-divider"></li>
-                         <li><a href="https://account.accurate.id/" target="_blank" class="dropdown-item"><i class="bi bi-box-arrow-up-right text-info me-2"></i> Buka Accurate</a></li>
-
-                        <li>
-                            <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" onsubmit="return confirm('Tarik data terbaru dari Accurate? Harga dan Stok akan tertimpa.');">
-                                @csrf
-                                <button type="submit" class="dropdown-item"><i class="bi bi-arrow-repeat text-primary me-2"></i> Sync Accurate</button>
-                            </form>
-                        </li>
-                        
-                        @if ($website->products)
-                            <hr class="dropdown-divider">
-                             <li> 
-                            {{-- Tombol Tarik Gambar --}}
-                                <button id="btnSyncImages" class="btn">
-                                    <i class="bi bi-cloud-arrow-down-fill me-2"></i>Tarik Gambar Accurate
-                                </button>
-                             </li>
-                        @endif
-                       
-                    @else
-                    <li><hr class="dropdown-divider"></li>
-                     <li><a href="https://account.accurate.id/" target="_blank" class="dropdown-item"><i class="bi bi-box-arrow-up-right text-info me-2"></i> Buka Accurate</a></li>
-                        <li>
-                            <form action="{{ route('client.products.sync_accurate', $website->id) }}" method="POST" onsubmit="return confirm('Tarik data terbaru dari Accurate? Harga dan Stok akan tertimpa.');">
-                                @csrf
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#syncAccurateModal">
-                                    <i class="fas fa-sync"></i> Sync ke Accurate
-                                </button>
-                            </form>
-                        </li>
-                        <hr class="dropdown-divider">
-                        <li> 
-                            {{-- Tombol Tarik Gambar --}}
-                                <button id="btnSyncImages" class="btn" disabled >
-                                    <i class="bi bi-cloud-arrow-down-fill me-2"></i>Tarik Gambar Accurate
-                                </button>
-                        </li>
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#importModal">
+                            <i class="bi bi-file-earmark-excel text-success me-2"></i> Import CSV
+                        </button>
+                    </li>
+                    
+                    @if(empty($website->accurateIntegration->accurate_database_id))
+                    <li>
+                        <a href="https://account.accurate.id/" target="_blank" class="dropdown-item text-info">
+                            <i class="bi bi-box-arrow-up-right me-2"></i> Buka Accurate
+                        </a>
+                    </li>
                     @endif
-                    
+
                     <li><hr class="dropdown-divider"></li>
                     <li>
-                        <form action="{{ route('client.products.destroy_all', $website->id) }}" method="POST" onsubmit="return confirm('Kosongkan semua produk?');">
+                        <form action="{{ route('client.products.destroy_all', $website->id) }}" method="POST" onsubmit="return confirm('🚨 PERINGATAN: Anda yakin ingin mengosongkan SELURUH KATALOG PRODUK di Web ini?');">
                             @csrf
-                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash3-fill me-2"></i> Kosongkan Katalog</button>
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="bi bi-trash3-fill me-2"></i> Kosongkan Katalog
+                            </button>
                         </form>
                     </li>
                 </ul>
             </div>
+
         </div>
     </div>
 
@@ -427,5 +467,60 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+</script>
+
+{{-- Modal Kirim Semua Produk ke Accurate --}}
+<div class="modal fade" id="modalBulkSyncAccurate" tabindex="-1" aria-labelledby="modalBulkSyncAccurateLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('client.products.bulk_sync_accurate', $website->id) }}" method="POST" id="formBulkSyncAccurate">
+            @csrf
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="modalBulkSyncAccurateLabel">Kirim Semua Produk ke Accurate</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    {{-- Pesan diubah agar klien paham SEMUA produk akan terkirim --}}
+                    <p>Sistem akan memindai dan mengirim <strong>seluruh produk</strong> yang ada di katalog Web Anda ke sistem Accurate Online.</p>
+
+                    <div class="alert alert-warning border-warning text-dark mb-0">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle me-1"></i> Jika SKU produk sudah ada di Accurate:</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="conflict_resolution" id="conflictSkip" value="skip" checked>
+                            <label class="form-check-label" for="conflictSkip">
+                                <strong>Lewati (Skip)</strong> - Biarkan data di Accurate apa adanya.
+                            </label>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="radio" name="conflict_resolution" id="conflictOverwrite" value="overwrite">
+                            <label class="form-check-label" for="conflictOverwrite">
+                                <strong>Timpa Harga</strong> - Perbarui harga di Accurate agar sama dengan harga Web.
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btnSubmitBulkSync">
+                        <i class="bi bi-send me-1"></i> Mulai Pengiriman
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{{-- Script Loading Tombol Kirim ke Accurate --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const formSync = document.getElementById('formBulkSyncAccurate');
+
+        if(formSync) {
+            formSync.addEventListener('submit', function() {
+                let btn = document.getElementById('btnSubmitBulkSync');
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Memproses (Jangan ditutup)...';
+                btn.disabled = true;
+            });
+        }
+    });
 </script>
 @endsection

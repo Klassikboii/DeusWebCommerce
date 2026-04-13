@@ -808,4 +808,60 @@ $penjualantotal = OrderItem::where('product_id', $product->id)->sum('qty');
             return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan sistem.'], 500);
         }
     }
+
+   public function bulkSyncAccurate(Request $request, \App\Models\Website $website)
+    {
+        $this->authorize('view', $website);
+
+        $conflictResolution = $request->input('conflict_resolution', 'skip');
+        $forceUpdatePrice = ($conflictResolution === 'overwrite');
+
+        // Ambil semua produk beserta variannya
+        $products = \App\Models\Product::with('variants')->where('website_id', $website->id)->get();
+
+        if ($products->isEmpty()) {
+            return back()->with('error', 'Tidak ada produk di katalog web untuk dikirim ke Accurate.');
+        }
+
+        $accurateService = new AccurateService($website);
+        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0];
+
+        foreach ($products as $product) {
+            // 🚨 CEK APAKAH PRODUK PUNYA VARIAN?
+            if ($product->variants->count() > 0) {
+                // Looping dan kirim setiap anak (varian)
+                foreach ($product->variants as $variant) {
+                    // Gabungkan nama agar di Accurate lebih jelas (Contoh: Baju - Merah)
+                    $originalName = $variant->name;
+                    $variant->name = $product->name . ' - ' . $variant->name; 
+
+                    $result = $accurateService->pushProduct($variant, $forceUpdatePrice);
+                    
+                    // Rekap Status
+                    if ($result['status'] === 'created') $stats['created']++;
+                    elseif ($result['status'] === 'updated') $stats['updated']++;
+                    elseif ($result['status'] === 'skipped') $stats['skipped']++;
+                    else $stats['failed']++;
+
+                    // Kembalikan nama ke semula di memori
+                    $variant->name = $originalName;
+                }
+            } else {
+                // Jika produk satuan biasa
+                $result = $accurateService->pushProduct($product, $forceUpdatePrice);
+
+                if ($result['status'] === 'created') $stats['created']++;
+                elseif ($result['status'] === 'updated') $stats['updated']++;
+                elseif ($result['status'] === 'skipped') $stats['skipped']++;
+                else $stats['failed']++;
+            }
+        }
+
+        $message = "Hasil Sinkronisasi Web ke Accurate: {$stats['created']} baru dibuat, {$stats['updated']} harga diupdate, {$stats['skipped']} dilewati, {$stats['failed']} gagal.";
+        
+        if ($stats['failed'] > 0) {
+            return back()->with('warning', $message . ' (Cek file storage/logs/laravel.log untuk detail yang gagal).');
+        }
+        return back()->with('success', $message);
+    }
 }

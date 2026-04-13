@@ -109,6 +109,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/products/{product}', [App\Http\Controllers\Client\ProductController::class, 'update'])->name('client.products.update');
     
         Route::post('/products/sync-accurate', [\App\Http\Controllers\Client\ProductController::class, 'syncAccurate'])->name('client.products.sync_accurate');
+        Route::post('/products/bulk-sync-accurate', [\App\Http\Controllers\Client\ProductController::class, 'bulkSyncAccurate'])->name('client.products.bulk_sync_accurate');
        // Rute untuk mendownload template CSV kosong
         Route::get('products/template-csv', [\App\Http\Controllers\Client\ProductController::class, 'downloadTemplate'])->name('client.products.template');
 

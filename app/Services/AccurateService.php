@@ -766,9 +766,9 @@ class AccurateService
         }
 
         // 4. NONAKTIFKAN BARANG YANG DIHAPUS DI ACCURATE
-        \App\Models\Product::where('website_id', $this->website->id)
-            ->whereNotIn('sku', $syncedSkus)
-            ->update(['is_active' => false, 'stock' => 0]);
+        // \App\Models\Product::where('website_id', $this->website->id)
+        //     ->whereNotIn('sku', $syncedSkus)
+        //     ->update(['is_active' => false]);
 
         return true;
     }
@@ -931,5 +931,88 @@ class AccurateService
 
         \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Gagal untuk Web ID: {$this->website->id}. Response: " . $response->body());
         return false;
+    }
+  public function pushProduct($product, $forceUpdatePrice = false)
+    {
+        $session = $this->openDatabaseSession();
+        if (!$session) return ['status' => 'error', 'message' => 'Gagal membuka sesi.'];
+
+        $host = $session['host'];
+        $session_id = $session['session_id'];
+        $token = 'Bearer ' . $this->website->accurateIntegration->access_token;
+
+        if (empty($product->sku)) {
+            \Illuminate\Support\Facades\Log::warning("Push Accurate dilewati: Produk '{$product->name}' tidak memiliki SKU.");
+            return ['status' => 'failed', 'message' => 'SKU kosong.'];
+        }
+
+        // 1. CEK APAKAH BARANG SUDAH ADA (Sekaligus ambil datanya)
+        $checkResponse = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => $token,
+            'X-Session-ID' => $session_id,
+        ])->get($host . '/accurate/api/item/list.do', [
+            'filter.no.op' => 'EQUAL',
+            'filter.no.val' => $product->sku
+        ]);
+
+        $checkData = $checkResponse->json('d') ?? [];
+        $exists = count($checkData) > 0;
+        
+        // 🚨 KUNCI PERBAIKAN: Tangkap ID internal Accurate jika barangnya ketemu!
+        $accurateItemId = $exists ? $checkData[0]['id'] : null; 
+
+        if ($exists && !$forceUpdatePrice) {
+            return ['status' => 'skipped', 'message' => 'Produk sudah ada.'];
+        }
+
+        $payload = [
+            'itemType'  => 'INVENTORY',
+            'name'      => mb_substr($product->name, 0, 100),
+            'no'        => $product->sku, 
+            'unit1Name' => 'PCS', 
+            'unitPrice' => $product->price > 0 ? $product->price : 0,
+        ];
+
+        // 🚨 SUNTIKKAN ID JIKA INI ADALAH PROSES UPDATE (Timpa Harga)
+        // Dengan adanya ID ini, Accurate tahu kita mau update barang lama, bukan bikin duplikat
+        if ($exists && $accurateItemId) {
+            $payload['id'] = $accurateItemId;
+        }
+
+        // 2. SIMPAN/UPDATE WUJUD BARANG
+        $saveResponse = \Illuminate\Support\Facades\Http::withHeaders([
+            'Authorization' => $token,
+            'X-Session-ID' => $session_id,
+        ])->post($host . '/accurate/api/item/save.do', $payload);
+
+        if ($saveResponse->successful() && $saveResponse->json('s')) {
+            
+            // 3. LOGIKA INJEKSI SELISIH STOK 
+            try {
+                $cost = $product->price > 0 ? $product->price : 1;
+
+                if (!$exists) {
+                    if ($product->stock > 0) {
+                        $this->syncInventoryAdjustment($product->sku, $product->stock, $cost);
+                    }
+                } else if ($forceUpdatePrice) {
+                    $stokAccurate = $this->getAccurateStock($product->sku);
+                    $selisihStok = $product->stock - $stokAccurate;
+
+                    // Karena update wujud barang sudah sukses, kode sekarang PASTI masuk ke sini
+                    // untuk mencatat editan stok Anda saat offline tadi!
+                    if ($selisihStok != 0) {
+                        $this->syncInventoryAdjustment($product->sku, $selisihStok, $cost);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Gagal injeksi stok untuk SKU {$product->sku}: " . $e->getMessage());
+            }
+
+            return ['status' => $exists ? 'updated' : 'created', 'message' => 'Sukses'];
+        }
+
+        \Illuminate\Support\Facades\Log::error("Gagal push SKU {$product->sku}. RAW: " . $saveResponse->body());
+        return ['status' => 'failed', 'message' => 'Gagal push.'];
     }
 }
