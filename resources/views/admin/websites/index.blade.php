@@ -29,11 +29,16 @@
             <tbody>
                 @foreach($websites as $web)
                 @php
-                    $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
-                    // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
-                    $port = app()->environment('local') ? ':8000' : ''; 
-                    $storeUrl = 'http://' . $web->subdomain . '.' . $mainDomain . $port;
-                @endphp
+                        $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+
+                        // Scheme dinamis berdasarkan environment
+                        $scheme = app()->environment('local') ? 'http://' : 'https://';
+
+                        // Port hanya untuk local
+                        $port = app()->environment('local') ? ':8000' : '';
+
+                        $storeUrl = $scheme . $web->subdomain . '.' . $mainDomain . $port;
+                    @endphp
                 <tr>
                     <td class="px-4">
                         <div class="d-flex align-items-center gap-3">

@@ -184,14 +184,18 @@
 
                 @php
                     $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
-                    // Tambahkan port 8000 KHUSUS jika kita sedang di komputer lokal (Laragon)
-                    $port = app()->environment('local') ? ':8000' : ''; 
-                    
-                    // Cek apakah klien ini punya Custom Domain? Jika ya, prioritaskan itu!
+
+                    // Tentukan protocol berdasarkan environment
+                    $scheme = app()->environment('local') ? 'http://' : 'https://';
+
+                    // Port hanya untuk local
+                    $port = app()->environment('local') ? ':8000' : '';
+
+                    // Prioritas: custom domain > subdomain
                     if (!empty($website->custom_domain)) {
-                        $storeUrl = 'http://' . $website->custom_domain . $port;
+                        $storeUrl = $scheme . $website->custom_domain . $port;
                     } else {
-                        $storeUrl = 'http://' . $website->subdomain . '.' . $mainDomain . $port;
+                        $storeUrl = $scheme . $website->subdomain . '.' . $mainDomain . $port;
                     }
                 @endphp
                 

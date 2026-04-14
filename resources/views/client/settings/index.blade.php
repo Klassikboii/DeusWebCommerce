@@ -305,7 +305,7 @@
                     <li>Masih di menu Settings, pindah ke bagian <strong>Configuration</strong> (Konfigurasi).</li>
                     <li>Temukan kolom <strong>Payment Notification URL</strong>, lalu masukkan (Paste) alamat web khusus di bawah ini:
                         <div class="d-flex align-items-center mt-2 mb-3 p-2 bg-light border rounded">
-                            <code id="webhookUrlText" class="flex-grow-1 text-dark fs-6">{{ url('/api/webhook/midtrans') }}</code>
+                            <code id="webhookUrlText" class="flex-grow-1 text-dark fs-6">{{ url('/api/midtrans/webhook') }}</code>
                             <button type="button" class="btn btn-sm btn-outline-primary ms-2 shadow-sm" onclick="copyWebhookUrl()">
                                 <i class="bi bi-clipboard"></i> Salin URL
                             </button>

@@ -224,6 +224,7 @@ class ProductController extends Controller
                         'options'   => ['name' => $variantData['name']], 
                         'price'     => $variantData['price'] ?? 0,
                         'stock'     => $variantData['stock'] ?? 0,
+                        'image'       => $request->file('image') ? $request->file('image')->store('products', 'public') : null,
                         'sku'       => $variantSku, // 🚨 Gunakan $variantSku di sini                        'weight'    => $request->weight ?? 1000, 
                         // 🚨 GUNAKAN STATUS YANG SUDAH DISESUAIKAN
                         'is_active' => $variantIsActive, 

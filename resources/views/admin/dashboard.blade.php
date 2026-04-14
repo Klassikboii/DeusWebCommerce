@@ -118,9 +118,14 @@
 
                    @php
                         $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
-                        // Jika di lokal tambahkan port :8000, jika di server production tidak perlu
-                        $port = app()->environment('local') ? ':8000' : ''; 
-                        $storeUrl = 'http://' . $web->subdomain . '.' . $mainDomain . $port;
+
+                        // Scheme dinamis berdasarkan environment
+                        $scheme = app()->environment('local') ? 'http://' : 'https://';
+
+                        // Port hanya untuk local
+                        $port = app()->environment('local') ? ':8000' : '';
+
+                        $storeUrl = $scheme . $web->subdomain . '.' . $mainDomain . $port;
                     @endphp
                     <div class="list-group-item px-3 py-3">
                         <div class="d-flex w-100 justify-content-between">
