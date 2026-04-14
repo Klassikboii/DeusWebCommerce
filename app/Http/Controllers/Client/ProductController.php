@@ -209,24 +209,28 @@ class ProductController extends Controller
                 $minPrice = null;
                 $totalStock = 0;
                 
-                foreach ($request->variants as $variantData) {
+                // 🚨 PERBAIKAN 1: Tambahkan $index untuk melacak posisi baris varian
+                foreach ($request->variants as $index => $variantData) {
                     if (empty($variantData['name'])) continue;
 
-                    // 🚨 LOGIKA AUTO-SKU VARIAN
                     $variantSku = !empty($variantData['sku']) ? $variantData['sku'] : $this->generateUniqueSku();
                     
-                    // Varian juga mengikuti status induknya
                     $variantIsActive = isset($variantData['is_active']) ? $variantData['is_active'] : 1;
-                    if (!$finalIsActive) $variantIsActive = 0; // Jika induk dipaksa mati, varian ikut mati
+                    if (!$finalIsActive) $variantIsActive = 0; 
+
+                    // 🚨 PERBAIKAN 2: Tangkap gambar khusus untuk varian di indeks ini
+                    $variantImage = null;
+                    if ($request->hasFile("variants.{$index}.image")) {
+                        $variantImage = $request->file("variants.{$index}.image")->store('variants', 'public');
+                    }
 
                     $product->variants()->create([
                         'name'      => $variantData['name'],
                         'options'   => ['name' => $variantData['name']], 
                         'price'     => $variantData['price'] ?? 0,
                         'stock'     => $variantData['stock'] ?? 0,
-                        'image'       => $request->file('image') ? $request->file('image')->store('products', 'public') : null,
-                        'sku'       => $variantSku, // 🚨 Gunakan $variantSku di sini                        'weight'    => $request->weight ?? 1000, 
-                        // 🚨 GUNAKAN STATUS YANG SUDAH DISESUAIKAN
+                        'image'     => $variantImage, // 🚨 Masukkan variabel gambar varian
+                        'sku'       => $variantSku, 
                         'is_active' => $variantIsActive, 
                     ]);
                     
