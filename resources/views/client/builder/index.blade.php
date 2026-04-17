@@ -303,57 +303,40 @@
         const uniqueId = type + '-' + Date.now().toString().slice(-6);
         let defaultData = {};
         
-        if (type === 'hero') defaultData = { title: 'Judul Baru', subtitle: 'Deskripsi...', button_text: 'Klik Disini' };
-        else if (type === 'products') {
-            defaultData = { 
-                title: 'Produk Pilihan', 
-                subtitle: 'Koleksi terbaik dari toko kami', // <--- Tambahan Subjudul
-                limit: 8 
-            };
+        // --- TAMBAHAN BARU: Default Pengaturan Warna & Layout ---
+        let defaultSettings = {
+            bg_color: '#ffffff',
+            text_color: '#000000',
+            layout: 'center'
+        };
+        
+        if (type === 'hero') {
+            defaultData = { title: 'Judul Baru', subtitle: 'Deskripsi...', button_text: 'Klik Disini' };
+            defaultSettings.bg_color = '#f8f9fa'; // Default Abu-abu terang
         }
-        else if (type === 'features') defaultData = { title: 'Keunggulan Kami', 
-        f1_title: 'Fitur 1', f1_desc: 'Des 1', f1_icon: 'bi-star', 
-        f2_title: 'Fitur 2', f2_desc: 'Des 2', f2_icon: 'bi-lightning', 
-        f3_title: 'Fitur 3', f3_desc: 'Des 3', f3_icon: 'bi-shield-check' };
+        else if (type === 'products') {
+            defaultData = { title: 'Produk Pilihan', subtitle: 'Koleksi terbaik dari toko kami', limit: 8 };
+        }
+        else if (type === 'features') {
+            defaultData = { title: 'Keunggulan Kami', f1_title: 'Fitur 1', f1_desc: 'Des 1', f1_icon: 'bi-star', f2_title: 'Fitur 2', f2_desc: 'Des 2', f2_icon: 'bi-lightning', f3_title: 'Fitur 3', f3_desc: 'Des 3', f3_icon: 'bi-shield-check' };
+        }
         else if (type === 'text-image') {
-            // <--- TAMBAHAN BARU: Default data untuk Text & Image
-            defaultData = { 
-                title: 'Cerita Toko Kami', 
-                description: 'Ceritakan sejarah singkat toko Anda di sini...', 
-                button_text: 'Baca Selengkapnya',
-                button_link: '/blog',
-                layout: 'image_left' // Bisa 'image_left' atau 'image_right'
-            };}
+            defaultData = { title: 'Cerita Toko Kami', description: 'Ceritakan sejarah singkat toko Anda di sini...', button_text: 'Baca Selengkapnya', button_link: '/blog', layout: 'image_left' };
+        }
         else if (type === 'faq') {
-            defaultData = { 
-                title: 'Pertanyaan Umum', 
-                subtitle: 'Temukan jawaban untuk pertanyaan yang sering diajukan.', 
-                q1_ask: 'Berapa lama estimasi pengiriman?', q1_ans: 'Pengiriman memakan waktu 2-3 hari kerja.',
-                q2_ask: 'Apakah ada garansi pengembalian?', q2_ans: 'Ya, kami memberikan garansi 7 hari uang kembali jika produk cacat.',
-                q3_ask: 'Bagaimana cara melacak pesanan?',  q3_ans: 'Anda dapat memasukkan nomor pesanan di halaman Cek Pesanan.'
-            };
+            defaultData = { title: 'Pertanyaan Umum', subtitle: 'Temukan jawaban untuk pertanyaan yang sering diajukan.', q1_ask: 'Berapa lama estimasi pengiriman?', q1_ans: 'Pengiriman memakan waktu 2-3 hari kerja.' };
         }
         else if (type === 'testimonial') {
-            defaultData = { 
-                title: 'Apa Kata Mereka?', 
-                subtitle: 'Ulasan asli dari pelanggan setia kami.', 
-                t1_name: 'Budi Santoso', t1_role: 'Pengusaha', t1_review: 'Kualitas produk sangat luar biasa, pengiriman juga sangat cepat!',
-                t2_name: 'Siti Aminah', t2_role: 'Ibu Rumah Tangga', t2_review: 'Sangat puas belanja di sini. Admin ramah dan responsif.',
-                t3_name: 'Andi Wijaya', t3_role: 'Mahasiswa', t3_review: 'Barang sesuai dengan deskripsi, packing sangat aman. Bintang 5!'
-            }; 
+            defaultData = { title: 'Apa Kata Mereka?', subtitle: 'Ulasan asli dari pelanggan setia kami.', t1_name: 'Budi Santoso', t1_role: 'Pengusaha', t1_review: 'Kualitas produk luar biasa!' };
         }
         else if (type === 'cta') {
-            defaultData = { 
-                title: 'Dapatkan Diskon 20% Hari Ini!', 
-                subtitle: 'Gunakan kode promo: DEUS20 saat checkout.', 
-                button_text: 'Belanja Sekarang',
-                button_link: '#products'
-            };
+            defaultData = { title: 'Dapatkan Diskon 20% Hari Ini!', subtitle: 'Gunakan kode promo: DEUS20 saat checkout.', button_text: 'Belanja Sekarang', button_link: '#products' };
+            defaultSettings.bg_color = '#000000'; // Default hitam elegan
+            defaultSettings.text_color = '#ffffff';
         }
-    
 
-
-        currentSections.push({ id: uniqueId, type: type, visible: true, data: defaultData });
+        // Simpan data DAN settings ke dalam array JSON
+        currentSections.push({ id: uniqueId, type: type, visible: true, data: defaultData, settings: defaultSettings });
         saveToServer(true); 
     }
 
@@ -402,13 +385,21 @@
     }
 
     // Helper untuk menyimpan data yang diketik user sebelum HTML di render ulang
+    // Helper untuk menyimpan data yang diketik user sebelum HTML di render ulang
     function extractDataFromDOM() {
          document.querySelectorAll('.section-form-block').forEach(block => {
             const sId = block.dataset.sectionId;
             let sectionRef = currentSections.find(s => s.id === sId);
             if (sectionRef) {
+                // Ekstrak Teks/Konten
                 block.querySelectorAll('.live-update-section').forEach(input => {
                     sectionRef.data[input.dataset.key] = input.value; 
+                });
+                
+                // --- TAMBAHAN BARU: Ekstrak Pengaturan Warna/Layout ---
+                if(!sectionRef.settings) sectionRef.settings = {}; // Pastikan objek settings ada
+                block.querySelectorAll('.live-update-setting').forEach(input => {
+                    sectionRef.settings[input.dataset.key] = input.value; 
                 });
             }
         });
@@ -433,7 +424,28 @@
             const eyeIcon = isVisible ? 'bi-eye' : 'bi-eye-slash';
             const eyeColor = isVisible ? '' : 'text-danger';
             const sData = section.data || {};
+            // --- TAMBAHAN BARU: Ambil Settings ---
+            const sSettings = section.settings || {}; 
+            const bgColor = sSettings.bg_color || '#ffffff';
+            const textColor = sSettings.text_color || '#000000';
 
+            // HTML Komponen Pengaturan Warna (Bisa Dipakai Ulang)
+            const styleHtml = `
+                <div class="p-2 bg-white border rounded shadow-sm mb-3">
+                    <label class="form-label text-muted mb-2" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-palette me-1"></i>Tampilan & Warna</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label style="font-size: 10px;">Background</label>
+                            <input type="color" class="form-control form-control-color w-100 live-update-setting" data-section-id="${section.id}" data-key="bg_color" value="${bgColor}">
+                        </div>
+                        <div class="col-6">
+                            <label style="font-size: 10px;">Warna Teks</label>
+                            <input type="color" class="form-control form-control-color w-100 live-update-setting" data-section-id="${section.id}" data-key="text_color" value="${textColor}">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
             const disableUp = index === 0 ? 'disabled' : '';
             const disableDown = index === (currentSections.length - 1) ? 'disabled' : '';
 
@@ -453,7 +465,7 @@
             let formHtml = '';
             
             if(section.type === 'hero') {
-                formHtml = `
+                formHtml = `${styleHtml}
                     <div class="mb-2">
                         <label class="form-label text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Teks Utama</label>
                         <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul Banner">
@@ -471,7 +483,7 @@
             
             else if(section.type === 'products') {
                 const limitStr = sData.limit || 8;
-                formHtml = `
+                formHtml = `${styleHtml}
                     <div class="mb-3">
                         <label class="form-label text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Pengaturan Teks</label>
                         <input type="text" class="form-control form-control-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Produk Pilihan'}" placeholder="Judul Section">
@@ -489,7 +501,7 @@
             } 
             
             else if(section.type === 'features') {
-                formHtml = `
+                formHtml = `${styleHtml}
                     <div class="mb-3">
                         <input type="text" class="form-control form-control-sm fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || 'Kenapa Memilih Kami?'}" placeholder="Judul Section Fitur">
                     </div>
@@ -527,7 +539,7 @@
                 const svgPlaceholder = `data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect fill='%23eeeeee' width='150' height='150'/%3E%3Ctext fill='%23999999' x='50%25' y='50%25' text-anchor='middle' dy='.3em' font-family='Arial, sans-serif' font-size='14'%3EPilih Gambar%3C/text%3E%3C/svg%3E`;
                 const imgPreview = sData.image ? `/storage/${sData.image}` : svgPlaceholder;
                 
-                formHtml = `
+                formHtml = `${styleHtml}
                     <div class="mb-3">
                         <label class="form-label text-muted" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Layout & Konten</label>
                         <select class="form-select form-select-sm mb-2 live-update-section" data-section-id="${section.id}" data-key="layout">
@@ -557,7 +569,7 @@
             }
 
             else if(section.type === 'faq') {
-                formHtml = `
+                formHtml = `${styleHtml}
                     <div class="mb-3">
                         <input type="text" class="form-control form-control-sm mb-2 fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul FAQ">
                         <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="2" placeholder="Subjudul FAQ...">${sData.subtitle || ''}</textarea>
@@ -584,7 +596,7 @@
             }
 
             else if(section.type === 'testimonial') {
-                formHtml = `
+                formHtml = `${styleHtml}
                     <div class="mb-3">
                         <input type="text" class="form-control form-control-sm mb-2 fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul Testimonial">
                         <textarea class="form-control form-control-sm live-update-section" data-section-id="${section.id}" data-key="subtitle" rows="2" placeholder="Subjudul...">${sData.subtitle || ''}</textarea>
@@ -618,7 +630,7 @@
                     </div>
                 `;
             } else if(section.type === 'cta') {
-                formHtml = `
+                formHtml = `${styleHtml}
                     <div class="mb-3">
                         <label class="form-label text-muted mb-1" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Konten Penawaran</label>
                         <input type="text" class="form-control form-control-sm mb-2 fw-bold live-update-section" data-section-id="${section.id}" data-key="title" value="${sData.title || ''}" placeholder="Judul Promo/CTA">
@@ -675,6 +687,24 @@
                 const key = this.dataset.key;
                 if (key.includes('icon')) val = formatIconClass(val);
                 sendUpdate('updateSection', { sectionId: this.dataset.sectionId, key: key, value: val });
+            });
+        });
+
+        // --- TAMBAHAN BARU: EVENT LISTENER UNTUK SETTINGS (Warna) ---
+        // --- TAMBAHAN BARU: EVENT LISTENER UNTUK SETTINGS (Warna) ---
+        document.querySelectorAll('.live-update-setting').forEach(input => {
+            input.addEventListener('input', function() {
+                // 1. Ambil nilai warna dan target seksi
+                const val = this.value;
+                const key = this.dataset.key; // 'bg_color' atau 'text_color'
+                const sectionId = this.dataset.sectionId;
+
+                // 2. Kirim pesan gaib (postMessage) ke dalam Iframe Storefront
+                sendUpdate('updateSetting', { sectionId: sectionId, key: key, value: val });
+
+                // 3. Simpan diam-diam ke hidden input agar siap di-save
+                extractDataFromDOM();
+                document.getElementById('sectionsJsonInput').value = JSON.stringify(currentSections);
             });
         });
     }

@@ -16,18 +16,34 @@
         // 2. LOGIKA BARU: Cek Visibilitas
         // Jika ada key 'visible' bernilai false, atau key 'hidden' bernilai true -> SKIP
         $isVisible = $section['visible'] ?? true; 
+
+        // 👇 1. TANGKAP SETTINGS DARI JSON 👇
+                $sectionSettings = $section['settings'] ?? [];
         
         // Fitur tambahan: inject ID agar live preview jalan
         $sectionData['id'] = $section['id'] ?? uniqid();
         // --- TAMBAHKAN BARIS INI ---
         $sectionSettings = $section['settings'] ?? [];
     @endphp
+    @if($isVisible)
+                <div class="template-section">
+                    
+                    {{-- 👇 2. LEMPARKAN SETTINGS KE DALAM INCLUDE 👇 --}}
+                    @if(view()->exists('storefront.sections.' . $sectionType))
+                        @include('storefront.sections.' . $sectionType, [
+                            'data' => $sectionData,
+                            'settings' => $sectionSettings  {{-- KABEL PENGHUBUNGNYA DI SINI --}}
+                        ])
+                    @endif
+                    
+                </div>
+            @endif
 
     {{-- 3. Penjaga Pintu: Kalau tidak visible, lewati (continue) --}}
     @if(!$isVisible)
         @continue
     @endif
-
+<!-- 
     <div id="{{ $section['id'] ?? '' }}">
         
         @if($sectionType === 'hero')
@@ -53,7 +69,7 @@
             @include('storefront.sections.cta', ['data' => $sectionData])
         @endif
 
-    </div>
+    </div> -->
 
 @endforeach
         

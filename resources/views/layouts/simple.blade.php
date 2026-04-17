@@ -532,6 +532,55 @@
             });
         }
     </script>
+    <script>
+    // Pendengar Pesan dari Parent (Builder)
+    window.addEventListener('message', function(event) {
+        const data = event.data;
+        if (!data || !data.type) return;
+
+        // --- Logika Live Preview untuk Teks (Jika sudah ada, biarkan saja) ---
+        if (data.type === 'updateSection') {
+            const elements = document.querySelectorAll(`[data-section-id="${data.sectionId}"][data-key="${data.key}"]`);
+            elements.forEach(el => {
+                if (el.tagName === 'IMG') el.src = data.value;
+                else if (el.tagName === 'A' && data.key.includes('link')) el.href = data.value;
+                else el.innerHTML = data.value.replace(/\n/g, '<br>');
+            });
+        }
+
+        // --- TAMBAHAN BARU: Logika Live Preview untuk Warna/Settings ---
+        if (data.type === 'updateSetting') {
+            const section = document.getElementById(data.sectionId);
+            if (!section) return;
+
+            // Jika yang digeser adalah Background Color
+            if (data.key === 'bg_color') {
+                section.style.backgroundColor = data.value;
+            }
+
+            // Jika yang digeser adalah Text Color
+            if (data.key === 'text_color') {
+                // 1. Ubah warna elemen judul dan paragraf
+                const textElements = section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)');
+                textElements.forEach(el => {
+                    // Cek apakah elemen ini memiliki pengaturan warna sebaris (inline) dari Blade
+                    if (el.style.color || el.classList.contains('serif')) {
+                        el.style.color = data.value;
+                    }
+                });
+
+                // 2. Ubah warna garis luar (border) pada tombol dan kartu agar ikut serasi
+                const borderedElements = section.querySelectorAll('.btn, .classic-accordion-button');
+                borderedElements.forEach(el => {
+                    if (el.style.borderColor) {
+                        el.style.borderColor = data.value;
+                        el.style.color = data.value;
+                    }
+                });
+            }
+        }
+    });
+</script>
     @stack('scripts')
 </body>
 {{-- BANNER TOKO TUTUP --}}
