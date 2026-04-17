@@ -1,16 +1,34 @@
 @php
+    // 1. AMBIL DATA KONTEN DARI JSON BUILDER
     $title = $data['title'] ?? 'Pertanyaan Umum';
     $subtitle = $data['subtitle'] ?? 'Temukan jawaban untuk pertanyaan yang sering diajukan.';
-    $sectionId = $data['id'] ?? uniqid();
+    $sectionId = $data['id'] ?? 'faq-' . uniqid();
+
+    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Gaya Klasik via JSON)
+    $settings = $settings ?? []; 
+    $bgColor = $settings['bg_color'] ?? '#ffffff'; 
+    $textColor = $settings['text_color'] ?? '#000000'; 
+    $paddingY = $settings['padding'] ?? 'py-5 py-md-5';
 @endphp
 
-<section class="py-5 bg-white faq-section" id="{{ $sectionId }}">
+<section class="{{ $paddingY }} faq-section live-section" id="{{ $sectionId }}" style="background-color: {{ $bgColor }};">
     <div class="container py-4">
         
-        {{-- HEADER --}}
-        <div class="text-center mb-5">
-            <h2 class="fw-bold live-editable" data-section-id="{{ $sectionId }}" data-key="title">{{ $title }}</h2>
-            <p class="text-muted live-editable" data-section-id="{{ $sectionId }}" data-key="subtitle">{{ $subtitle }}</p>
+        {{-- HEADER SECTION --}}
+        <div class="text-center mb-5 pb-3">
+            <h2 class="display-6 fw-bold live-editable serif text-uppercase" 
+                data-section-id="{{ $sectionId }}" 
+                data-key="title"
+                style="color: {{ $textColor }}; letter-spacing: 2px;">
+                {{ $title }}
+            </h2>
+            
+            <p class="live-editable mt-3" 
+               data-section-id="{{ $sectionId }}" 
+               data-key="subtitle"
+               style="color: {{ $textColor }}; opacity: 0.7; letter-spacing: 0.5px;">
+                {{ $subtitle }}
+            </p>
         </div>
         
         {{-- ACCORDION CONTENT --}}
@@ -28,26 +46,37 @@
                             if(empty($ask) && empty($ans)) continue;
                         @endphp
                         
-                        <div class="accordion-item border-0 mb-3 shadow-sm rounded">
+                        {{-- KOTAK ACCORDION KLASIK: Tanpa shadow, tanpa rounded --}}
+                        <div class="accordion-item classic-accordion-item mb-3">
                             <h2 class="accordion-header" id="heading-{{ $sectionId }}-{{ $i }}">
-                                <button class="accordion-button {{ $i !== 1 ? 'collapsed' : '' }} fw-bold bg-light rounded" 
+                                <button class="accordion-button classic-accordion-button {{ $i !== 1 ? 'collapsed' : '' }} fw-bold" 
                                         type="button" 
                                         data-bs-toggle="collapse" 
                                         data-bs-target="#collapse-{{ $sectionId }}-{{ $i }}" 
                                         aria-expanded="{{ $i === 1 ? 'true' : 'false' }}">
                                     
                                     {{-- Sensor Live Preview Teks Pertanyaan --}}
-                                    <span class="live-editable" data-section-id="{{ $sectionId }}" data-key="q{{ $i }}_ask">{{ $ask }}</span>
+                                    <span class="live-editable" 
+                                          data-section-id="{{ $sectionId }}" 
+                                          data-key="q{{ $i }}_ask"
+                                          style="letter-spacing: 0.5px;">
+                                        {{ $ask }}
+                                    </span>
                                     
                                 </button>
                             </h2>
                             <div id="collapse-{{ $sectionId }}-{{ $i }}" 
                                  class="accordion-collapse collapse {{ $i === 1 ? 'show' : '' }}" 
                                  data-bs-parent="#accordion-{{ $sectionId }}">
-                                <div class="accordion-body text-muted pt-4 pb-4">
+                                <div class="accordion-body pt-3 pb-4">
                                     
                                     {{-- Sensor Live Preview Teks Jawaban --}}
-                                    <span class="live-editable d-block" data-section-id="{{ $sectionId }}" data-key="q{{ $i }}_ans" style="line-height: 1.8;">{!! nl2br(e($ans)) !!}</span>
+                                    <span class="live-editable d-block" 
+                                          data-section-id="{{ $sectionId }}" 
+                                          data-key="q{{ $i }}_ans" 
+                                          style="line-height: 1.8; color: {{ $textColor }}; opacity: 0.8; font-size: 0.95rem;">
+                                        {!! nl2br(e($ans)) !!}
+                                    </span>
                                     
                                 </div>
                             </div>
@@ -61,18 +90,33 @@
     </div>
 </section>
 
-{{-- Tambahan CSS agar Accordion terlihat lebih modern (mirip Elementor) --}}
+{{-- CSS Tambahan Khusus untuk Tampilan Klasik --}}
 <style>
-    .faq-section .accordion-button:not(.collapsed) {
-        color: var(--primary-color);
-        background-color: #fff !important;
-        box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+    /* Reset gaya bawaan Bootstrap pada Accordion khusus di section ini */
+    #{{ $sectionId }} .classic-accordion-item {
+        border: 1px solid rgba(0,0,0,0.1) !important;
+        border-radius: 0px !important;
+        background-color: transparent !important;
     }
-    .faq-section .accordion-button:focus {
-        box-shadow: none;
-        border-color: rgba(0,0,0,.125);
+    
+    #{{ $sectionId }} .classic-accordion-button {
+        border-radius: 0px !important;
+        background-color: transparent !important;
+        color: {{ $textColor }} !important;
+        box-shadow: none !important;
+        padding: 1.25rem 1.5rem;
     }
-    .faq-section .accordion-item {
-        border: 1px solid rgba(0,0,0,.05) !important;
+
+    /* Saat accordion terbuka, berikan highlight sangat tipis */
+    #{{ $sectionId }} .classic-accordion-button:not(.collapsed) {
+        background-color: rgba(0,0,0,0.02) !important;
+        color: {{ $textColor }} !important;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* Menghilangkan border focus yang mengganggu dari Bootstrap */
+    #{{ $sectionId }} .classic-accordion-button:focus {
+        border-color: rgba(0,0,0,0.1) !important;
+        box-shadow: none !important;
     }
 </style>

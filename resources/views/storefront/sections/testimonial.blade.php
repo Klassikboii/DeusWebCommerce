@@ -1,16 +1,34 @@
 @php
+    // 1. AMBIL DATA KONTEN DARI JSON BUILDER
     $title = $data['title'] ?? 'Apa Kata Mereka?';
     $subtitle = $data['subtitle'] ?? 'Ulasan asli dari pelanggan setia kami.';
-    $sectionId = $data['id'] ?? uniqid();
+    $sectionId = $data['id'] ?? 'testimonial-' . uniqid();
+
+    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Gaya Klasik via JSON)
+    $settings = $settings ?? []; 
+    // Kita gunakan warna abu-abu sangat terang sebagai default agar kontras dengan section lain yang putih
+    $bgColor = $settings['bg_color'] ?? '#f9fafb'; 
+    $textColor = $settings['text_color'] ?? '#000000'; 
+    $paddingY = $settings['padding'] ?? 'py-5 py-md-5';
 @endphp
 
-<section class="py-5 bg-light" id="{{ $sectionId }}">
+<section class="{{ $paddingY }} live-section" id="{{ $sectionId }}" style="background-color: {{ $bgColor }};">
     <div class="container py-4">
         
-        {{-- HEADER --}}
-        <div class="text-center mb-5">
-            <h2 class="fw-bold live-editable" data-section-id="{{ $sectionId }}" data-key="title">{{ $title }}</h2>
-            <p class="text-muted live-editable" data-section-id="{{ $sectionId }}" data-key="subtitle">{{ $subtitle }}</p>
+        {{-- HEADER SECTION --}}
+        <div class="text-center mb-5 pb-3">
+            <h2 class="display-6 fw-bold live-editable serif text-uppercase" 
+                data-section-id="{{ $sectionId }}" 
+                data-key="title"
+                style="color: {{ $textColor }}; letter-spacing: 2px;">
+                {{ $title }}
+            </h2>
+            <p class="live-editable mt-3" 
+               data-section-id="{{ $sectionId }}" 
+               data-key="subtitle"
+               style="color: {{ $textColor }}; opacity: 0.7; letter-spacing: 0.5px;">
+                {{ $subtitle }}
+            </p>
         </div>
         
         {{-- GRID TESTIMONIAL --}}
@@ -28,32 +46,48 @@
                 @endphp
                 
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 border-0 shadow-sm p-4 text-center rounded-4 position-relative">
+                    {{-- KARTU KLASIK: Tanpa shadow, tanpa rounded, transparan, dengan border tipis --}}
+                    <div class="card h-100 rounded-0 p-4 p-md-5 text-center classic-testimonial-card"
+                         style="background-color: transparent; border: 1px solid rgba(0,0,0,0.08);">
                         
-                        {{-- Icon Kutipan --}}
-                        <div class="mb-3 text-primary" style="opacity: 0.2;">
-                            <i class="bi bi-quote" style="font-size: 3rem; position: absolute; top: 10px; left: 20px;"></i>
+                        {{-- Icon Kutipan (Dibuat Monokrom) --}}
+                        <div class="mb-4" style="color: {{ $textColor }}; opacity: 0.15;">
+                            <i class="bi bi-quote" style="font-size: 3.5rem; line-height: 0;"></i>
                         </div>
                         
-                        {{-- Bintang Statis --}}
-                        <div class="text-warning mb-3">
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
+                        {{-- Bintang (Monokrom elegan, bukan kuning) --}}
+                        <div class="mb-4" style="color: {{ $textColor }}; opacity: 0.8; font-size: 0.8rem;">
+                            <i class="bi bi-star-fill mx-1"></i>
+                            <i class="bi bi-star-fill mx-1"></i>
+                            <i class="bi bi-star-fill mx-1"></i>
+                            <i class="bi bi-star-fill mx-1"></i>
+                            <i class="bi bi-star-fill mx-1"></i>
                         </div>
 
                         {{-- Teks Ulasan --}}
-                        <p class="card-text fst-italic text-muted flex-grow-1 live-editable" 
+                        <p class="card-text fst-italic flex-grow-1 live-editable" 
                            data-section-id="{{ $sectionId }}" 
                            data-key="t{{ $i }}_review"
-                           style="line-height: 1.6;">"{!! nl2br(e($review)) !!}"</p>
+                           style="line-height: 1.8; color: {{ $textColor }}; opacity: 0.85; font-size: 0.95rem;">
+                            "{!! nl2br(e($review)) !!}"
+                        </p>
                         
                         {{-- Profil Penulis --}}
-                        <div class="mt-4 pt-3 border-top">
-                            <h6 class="fw-bold mb-1 live-editable" data-section-id="{{ $sectionId }}" data-key="t{{ $i }}_name">{{ $name }}</h6>
-                            <small class="text-muted live-editable" data-section-id="{{ $sectionId }}" data-key="t{{ $i }}_role">{{ $role }}</small>
+                        <div class="mt-4 pt-4" style="border-top: 1px solid rgba(0,0,0,0.05);">
+                            {{-- Nama: Serif dan Uppercase --}}
+                            <h6 class="fw-bold mb-1 live-editable serif text-uppercase" 
+                                data-section-id="{{ $sectionId }}" 
+                                data-key="t{{ $i }}_name"
+                                style="color: {{ $textColor }}; letter-spacing: 1px;">
+                                {{ $name }}
+                            </h6>
+                            {{-- Role: Kecil, berjarak lebar --}}
+                            <small class="live-editable text-uppercase" 
+                                   data-section-id="{{ $sectionId }}" 
+                                   data-key="t{{ $i }}_role"
+                                   style="color: {{ $textColor }}; opacity: 0.5; font-size: 0.65rem; letter-spacing: 1.5px;">
+                                {{ $role }}
+                            </small>
                         </div>
                     </div>
                 </div>

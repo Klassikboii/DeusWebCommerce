@@ -1,81 +1,87 @@
 @php
-    // Ambil Data dari JSON
+    // 1. AMBIL DATA KONTEN
     $title = $data['title'] ?? 'Koleksi Terbaru';
     $subtitle = $data['subtitle'] ?? 'Temukan gaya terbaik Anda.';
     $btnText = $data['button_text'] ?? 'Shop Now';
+    
     // --- FIX LINK BUTTON ---
     $rawLink = $data['button_link'] ?? '#products';
     if ($rawLink === '/blog') {
-        // Jika minta ke blog, kita buatkan rute dinamis lengkap dengan subdomain
-        $btnLink = route('storefront.blog.index');
+        $btnLink = route('storefront.blog.index', ['subdomain' => $website->active_domain ?? '']);
     } else {
-        // Jika #anchor atau URL luar, biarkan apa adanya
         $btnLink = $rawLink;
     }
     // -----------------------
     
-    // ID Unik (Default ke 'hero-1' agar cocok dengan input di Editor)
-    $sectionId = $data['id'] ?? 'hero-1';
+    $sectionId = $data['id'] ?? 'hero-' . uniqid();
 
-    // Deteksi Template Aktif
-    $isSimple = ($website->active_template == 'simple');
+    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Gaya Klasik via JSON)
+    $settings = $settings ?? []; 
+    $layout = $settings['layout'] ?? 'center'; // Opsi: 'center', 'left', 'right'
+    $bgColor = $settings['bg_color'] ?? '#f8f9fa'; // bg-light Bootstrap
+    $textColor = $settings['text_color'] ?? '#000000';
+    $paddingY = $settings['padding'] ?? 'py-5 py-md-5'; // Jarak atas bawah Bootstrap
+    
+    // Logika warna teks jika ada gambar latar belakang
+    $finalTextColor = $website->hero_image ? '#ffffff' : $textColor;
+
+    // Logika Perataan Bootstrap
+    $alignmentClass = 'justify-content-center text-center';
+    if ($layout === 'left') $alignmentClass = 'justify-content-start text-start';
+    if ($layout === 'right') $alignmentClass = 'justify-content-end text-end';
 @endphp
 
-@if($isSimple)
-    <div class="hero-section-simple text-center" 
-         style="background-color: var(--hero-bg-color); 
-                {{ $website->hero_image ? 'background-image: url('.asset('storage/'.$website->hero_image).'); color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);' : 'color: var(--primary-color);' }}">
-         
-        <div class="container">
-            <h2 class="display-6 fst-italic mb-3 live-editable" 
-                data-section-id="{{ $sectionId }}" 
-                data-key="title">
-                {{ $title }}
-            </h2>
-            
-            <p class="{{ $website->hero_image ? 'text-white' : 'text-secondary' }} mb-4 live-editable"
-               data-section-id="{{ $sectionId }}" 
-               data-key="subtitle">
-                {{ $subtitle }}
-            </p>
-            
-            @if($btnText)
-            <a href="{{ $btnLink }}" 
-               class="btn btn-custom px-5 py-2 text-uppercase live-editable" 
-               style="font-size: 12px; letter-spacing: 1px;"
-               data-section-id="{{ $sectionId }}" 
-               data-key="button_text">
-                {{ $btnText }}
-            </a>
-            @endif
+{{-- 3. STRUKTUR HTML BOOTSTRAP YANG FLEKSIBEL --}}
+<section id="{{ $sectionId }}" 
+         class="position-relative {{ $paddingY }} live-section"
+         style="background-color: {{ $bgColor }}; overflow: hidden; min-height: 60vh; display: flex; align-items: center;">
+    
+    {{-- Gambar Latar Belakang --}}
+    @if($website->hero_image)
+        <div class="position-absolute top-0 start-0 w-100 h-100" 
+             style="background-image: url('{{ asset('storage/'.$website->hero_image) }}'); background-size: cover; background-position: center; z-index: 0;">
+            {{-- Overlay Hitam agar teks putih terbaca --}}
+            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark" style="opacity: 0.6;"></div> 
+        </div>
+    @endif
+
+    {{-- Konten Utama --}}
+    <div class="container position-relative" style="z-index: 1;">
+        <div class="row {{ $alignmentClass }}">
+            <div class="col-12 col-lg-8">
+                
+                {{-- Judul menggunakan gaya Serif (Playfair Display) dari classic.blade.php --}}
+                <h1 class="display-3 fw-bold mb-3 live-editable serif" 
+                    data-section-id="{{ $sectionId }}" 
+                    data-key="title"
+                    style="color: {{ $finalTextColor }}; letter-spacing: 1px;">
+                    {{ $title }}
+                </h1>
+                
+                <p class="lead mb-5 live-editable" 
+                   data-section-id="{{ $sectionId }}" 
+                   data-key="subtitle"
+                   style="color: {{ $finalTextColor }}; font-weight: 400;">
+                    {{ $subtitle }}
+                </p>
+                
+                @if($btnText)
+                {{-- Tombol dibuat kotak (rounded-0) dan transparan agar berkesan 'Classic' --}}
+                <a href="{{ $btnLink }}" 
+                   class="btn rounded-0 px-5 py-3 fw-bold text-uppercase live-editable shadow-sm"
+                   style="border: 2px solid {{ $website->hero_image ? '#fff' : '#000' }}; 
+                          color: {{ $website->hero_image ? '#fff' : '#000' }}; 
+                          background-color: transparent; 
+                          font-size: 0.85rem; letter-spacing: 2px;"
+                   data-section-id="{{ $sectionId }}" 
+                   data-key="button_text"
+                   onmouseover="this.style.backgroundColor='{{ $website->hero_image ? '#fff' : '#000' }}'; this.style.color='{{ $website->hero_image ? '#000' : '#fff' }}';"
+                   onmouseout="this.style.backgroundColor='transparent'; this.style.color='{{ $website->hero_image ? '#fff' : '#000' }}';">
+                    {{ $btnText }}
+                </a>
+                @endif
+                
+            </div>
         </div>
     </div>
-
-@else
-    <header class="bg-primary-custom text-white py-20 text-center hero-section"
-            style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('{{ $website->hero_image ? asset('storage/'.$website->hero_image) : '' }}'); background-size: cover;">
-        <div class="container mx-auto px-4">
-            
-            <h1 class="display-4 fw-bold mb-3 live-editable" 
-                data-section-id="{{ $sectionId }}" 
-                data-key="title">
-                {{ $title }}
-            </h1>
-            
-            <p class="lead mb-4 opacity-90 live-editable" 
-               data-section-id="{{ $sectionId }}" 
-               data-key="subtitle">
-                {{ $subtitle }}
-            </p>
-            
-            @if($btnText)
-            <a href="{{ $btnLink }}" 
-               class="btn btn-light rounded-pill px-5 fw-bold text-primary-custom live-editable"
-               data-section-id="{{ $sectionId }}" 
-               data-key="button_text">
-                {{ $btnText }}
-            </a>
-            @endif
-        </div>
-    </header>
-@endif
+</section>

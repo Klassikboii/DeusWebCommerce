@@ -19,6 +19,8 @@
         
         // Fitur tambahan: inject ID agar live preview jalan
         $sectionData['id'] = $section['id'] ?? uniqid();
+        // --- TAMBAHKAN BARIS INI ---
+        $sectionSettings = $section['settings'] ?? [];
     @endphp
 
     {{-- 3. Penjaga Pintu: Kalau tidak visible, lewati (continue) --}}
