@@ -1,4 +1,4 @@
-@extends('layouts.modern')
+@extends('layouts.' . ($website->active_template ?? 'simple'))
 
 @section('title', 'Katalog Produk - ' . $website->site_name)
 

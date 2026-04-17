@@ -1,4 +1,5 @@
 {{-- resources/views/storefront/products/partials/product_list.blade.php --}}
+@extends('layouts.' . ($website->active_template ?? 'simple'))
 
 @if($products->count() > 0)
     <div class="row g-4">
