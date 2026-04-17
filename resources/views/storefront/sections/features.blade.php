@@ -19,15 +19,26 @@
 
     $sectionId = $data['id'] ?? 'features-' . uniqid();
 
-    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Fleksibilitas Warna)
+    /// 2. AMBIL PENGATURAN GAYA / SETTINGS
     $settings = $settings ?? []; 
-    $bgColor = $settings['bg_color'] ?? '#ffffff'; // Latar belakang default
-    $textColor = $settings['text_color'] ?? '#000000'; // Warna teks default
+    $colorMode = $settings['color_mode'] ?? 'global';
+    
+    // Logika Warna: Jika Global, ambil dari CSS Variable. Jika Custom, ambil dari Hex.
+    if ($colorMode === 'global') {
+        $bgColor = 'var(--bg-base)';
+        $textColor = 'var(--text-base)';
+    } else {
+        $bgColor = $settings['bg_color'] ?? '#ffffff';
+        $textColor = $settings['text_color'] ?? '#000000';
+    }
+
+    // Logika Jarak (Padding)
+    $paddingY = $settings['padding'] ?? 'py-5';
     
     // Opsional: Warna khusus ikon jika klien ingin ikonnya berbeda dari warna teks
     $iconColor = $settings['icon_color'] ?? $textColor; 
     
-    $paddingY = $settings['padding'] ?? 'py-5 py-md-5';
+    
 @endphp
 
 <section id="{{ $sectionId }}" class="{{ $paddingY }} live-section" style="background-color: {{ $bgColor }}; border-top: 1px solid rgba(0,0,0,0.05); border-bottom: 1px solid rgba(0,0,0,0.05);">

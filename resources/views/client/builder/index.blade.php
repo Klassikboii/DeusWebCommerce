@@ -345,6 +345,26 @@
         currentSections = currentSections.filter(s => s.id !== sectionId);
         saveToServer(true);
     }
+    // Fungsi untuk memunculkan/menyembunyikan pemilih warna saat dropdown diubah
+    window.toggleColorPickers = function(sectionId, val) {
+    const div = document.querySelector(`.color-pickers-${sectionId}`);
+    if(div) {
+        div.style.display = (val === 'custom') ? 'flex' : 'none';
+    }
+    
+    // Kirim pesan ke iframe agar warna langsung berubah saat mode diganti
+    // Kita ambil warna dari picker jika manual, atau kirim sinyal 'global'
+    const bgColor = document.querySelector(`[data-section-id="${sectionId}"][data-key="bg_color"]`).value;
+    const textColor = document.querySelector(`[data-section-id="${sectionId}"][data-key="text_color"]`).value;
+    
+    sendUpdate('updateSetting', { 
+        sectionId: sectionId, 
+        key: 'color_mode', 
+        value: val,
+        customBg: bgColor,
+        customText: textColor
+    });
+};
 
     function moveSection(sectionId, direction) {
         // Ambil data terbaru dari input form agar tidak hilang saat ditukar posisinya
@@ -428,12 +448,23 @@
             const sSettings = section.settings || {}; 
             const bgColor = sSettings.bg_color || '#ffffff';
             const textColor = sSettings.text_color || '#000000';
+            const colorMode = sSettings.color_mode || 'global'; // 'global' atau 'custom'
+            const paddingOpt = sSettings.padding || 'py-5'; // 'py-3' (Rapat), 'py-5' (Normal), 'py-5 py-md-5 pt-lg-7 pb-lg-7' (Longgar)
 
             // HTML Komponen Pengaturan Warna (Bisa Dipakai Ulang)
             const styleHtml = `
                 <div class="p-2 bg-white border rounded shadow-sm mb-3">
                     <label class="form-label text-muted mb-2" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-palette me-1"></i>Tampilan & Warna</label>
-                    <div class="row g-2">
+                    
+                    <div class="mb-2">
+                        <label style="font-size: 10px;">Skema Warna</label>
+                        <select class="form-select form-select-sm live-update-setting" data-section-id="${section.id}" data-key="color_mode" onchange="toggleColorPickers('${section.id}', this.value)">
+                            <option value="global" ${colorMode === 'global' ? 'selected' : ''}>Ikuti Tema Global</option>
+                            <option value="custom" ${colorMode === 'custom' ? 'selected' : ''}>Kustomisasi Manual</option>
+                        </select>
+                    </div>
+
+                    <div class="row g-2 color-pickers-${section.id}" style="${colorMode === 'global' ? 'display:none;' : 'display:flex;'}">
                         <div class="col-6">
                             <label style="font-size: 10px;">Background</label>
                             <input type="color" class="form-control form-control-color w-100 live-update-setting" data-section-id="${section.id}" data-key="bg_color" value="${bgColor}">
@@ -442,6 +473,17 @@
                             <label style="font-size: 10px;">Warna Teks</label>
                             <input type="color" class="form-control form-control-color w-100 live-update-setting" data-section-id="${section.id}" data-key="text_color" value="${textColor}">
                         </div>
+                    </div>
+
+                    <hr class="my-2 border-light">
+                    
+                    <div class="mb-1">
+                        <label style="font-size: 10px;">Jarak Atas & Bawah (Padding)</label>
+                        <select class="form-select form-select-sm live-update-setting" data-section-id="${section.id}" data-key="padding">
+                            <option value="py-3" ${paddingOpt === 'py-3' ? 'selected' : ''}>Rapat (Kecil)</option>
+                            <option value="py-5" ${paddingOpt === 'py-5' ? 'selected' : ''}>Normal (Standar)</option>
+                            <option value="py-5 py-md-5 pt-lg-7 pb-lg-7" ${paddingOpt === 'py-5 py-md-5 pt-lg-7 pb-lg-7' ? 'selected' : ''}>Longgar (Besar)</option>
+                        </select>
                     </div>
                 </div>
             `;

@@ -4,11 +4,21 @@
     $subtitle = $data['subtitle'] ?? 'Temukan jawaban untuk pertanyaan yang sering diajukan.';
     $sectionId = $data['id'] ?? 'faq-' . uniqid();
 
-    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Gaya Klasik via JSON)
+    // 2. AMBIL PENGATURAN GAYA / SETTINGS
     $settings = $settings ?? []; 
-    $bgColor = $settings['bg_color'] ?? '#ffffff'; 
-    $textColor = $settings['text_color'] ?? '#000000'; 
-    $paddingY = $settings['padding'] ?? 'py-5 py-md-5';
+    $colorMode = $settings['color_mode'] ?? 'global';
+    
+    // Logika Warna: Jika Global, ambil dari CSS Variable. Jika Custom, ambil dari Hex.
+    if ($colorMode === 'global') {
+        $bgColor = 'var(--bg-base)';
+        $textColor = 'var(--text-base)';
+    } else {
+        $bgColor = $settings['bg_color'] ?? '#ffffff';
+        $textColor = $settings['text_color'] ?? '#000000';
+    }
+
+    // Logika Jarak (Padding)
+    $paddingY = $settings['padding'] ?? 'py-5';
 @endphp
 
 <section class="{{ $paddingY }} faq-section live-section" id="{{ $sectionId }}" style="background-color: {{ $bgColor }};">

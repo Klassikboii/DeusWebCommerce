@@ -550,35 +550,57 @@
 
         // --- TAMBAHAN BARU: Logika Live Preview untuk Warna/Settings ---
         if (data.type === 'updateSetting') {
-            const section = document.getElementById(data.sectionId);
-            if (!section) return;
+    const section = document.getElementById(data.sectionId);
+    if (!section) return;
 
-            // Jika yang digeser adalah Background Color
-            if (data.key === 'bg_color') {
-                section.style.backgroundColor = data.value;
-            }
-
-            // Jika yang digeser adalah Text Color
-            if (data.key === 'text_color') {
-                // 1. Ubah warna elemen judul dan paragraf
-                const textElements = section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)');
-                textElements.forEach(el => {
-                    // Cek apakah elemen ini memiliki pengaturan warna sebaris (inline) dari Blade
-                    if (el.style.color || el.classList.contains('serif')) {
-                        el.style.color = data.value;
-                    }
-                });
-
-                // 2. Ubah warna garis luar (border) pada tombol dan kartu agar ikut serasi
-                const borderedElements = section.querySelectorAll('.btn, .classic-accordion-button');
-                borderedElements.forEach(el => {
-                    if (el.style.borderColor) {
-                        el.style.borderColor = data.value;
-                        el.style.color = data.value;
-                    }
-                });
-            }
+    // --- A. LOGIKA LIVE PREVIEW WARNA ---
+    if (data.key === 'color_mode' || data.key === 'bg_color' || data.key === 'text_color') {
+        // Tentukan sumber warna
+        const mode = (data.key === 'color_mode') ? data.value : 'custom';
+        
+        let targetBg, targetText;
+        if (mode === 'global') {
+            targetBg = 'var(--bg-base)';
+            targetText = 'var(--text-base)';
+        } else {
+            // Jika sedang geser picker, gunakan nilainya langsung. 
+            // Jika baru ganti mode ke manual, gunakan nilai dari pesan.
+            targetBg = (data.key === 'bg_color') ? data.value : (data.customBg || section.style.backgroundColor);
+            targetText = (data.key === 'text_color') ? data.value : (data.customText || '');
         }
+
+        // Terapkan Warna Background
+        section.style.backgroundColor = targetBg;
+
+        // Terapkan Warna Teks ke elemen-elemen di dalamnya
+        if (targetText) {
+            const textElements = section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)');
+            textElements.forEach(el => { el.style.color = targetText; });
+
+            // Update border dan teks pada tombol agar tetap selaras
+            const buttons = section.querySelectorAll('.btn, .classic-accordion-button');
+            buttons.forEach(btn => {
+                btn.style.borderColor = targetText;
+                btn.style.color = targetText;
+            });
+        }
+    }
+
+    // --- B. LOGIKA LIVE PREVIEW PADDING (Bootstrap Class Swapper) ---
+    if (data.key === 'padding') {
+        // 1. List semua kemungkinan class padding yang kita gunakan
+        const allPaddingClasses = ['py-3', 'py-5', 'py-md-5', 'pt-lg-7', 'pb-lg-7'];
+        
+        // 2. Hapus semua class padding yang lama
+        allPaddingClasses.forEach(cls => section.classList.remove(cls));
+        
+        // 3. Tambahkan class padding yang baru (data.value adalah string seperti "py-3")
+        const newClasses = data.value.split(' ');
+        newClasses.forEach(cls => {
+            if(cls) section.classList.add(cls);
+        });
+    }
+}
     });
 </script>
     @stack('scripts')

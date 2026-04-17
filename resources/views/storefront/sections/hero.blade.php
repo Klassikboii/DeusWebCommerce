@@ -14,16 +14,25 @@
     // -----------------------
     
     $sectionId = $data['id'] ?? 'hero-' . uniqid();
-
-    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Gaya Klasik via JSON)
-    $settings = $settings ?? []; 
     $layout = $settings['layout'] ?? 'center'; // Opsi: 'center', 'left', 'right'
-    $bgColor = $settings['bg_color'] ?? '#f8f9fa'; // bg-light Bootstrap
-    $textColor = $settings['text_color'] ?? '#000000';
-    $paddingY = $settings['padding'] ?? 'py-5 py-md-5'; // Jarak atas bawah Bootstrap
+   // 2. AMBIL PENGATURAN GAYA / SETTINGS
+    $settings = $settings ?? []; 
+    $colorMode = $settings['color_mode'] ?? 'global';
+    
+    // Logika Warna: Jika Global, ambil dari CSS Variable. Jika Custom, ambil dari Hex.
+    if ($colorMode === 'global') {
+        $bgColor = 'var(--bg-base)';
+        $textColor = 'var(--text-base)';
+    } else {
+        $bgColor = $settings['bg_color'] ?? '#ffffff';
+        $textColor = $settings['text_color'] ?? '#000000';
+    }
+
+    // Logika Jarak (Padding)
+    $paddingY = $settings['padding'] ?? 'py-5';
     
     // Logika warna teks jika ada gambar latar belakang
-    $finalTextColor = $website->hero_image ? '#ffffff' : $textColor;
+    $finalTextColor = $website->hero_image ? $textColor: '#ffffff' ;
 
     // Logika Perataan Bootstrap
     $alignmentClass = 'justify-content-center text-center';

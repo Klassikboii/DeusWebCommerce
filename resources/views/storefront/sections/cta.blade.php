@@ -14,15 +14,24 @@
     
     $sectionId = $data['id'] ?? 'cta-' . uniqid();
 
-    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Gaya Klasik via JSON)
+    // 2. AMBIL PENGATURAN GAYA / SETTINGS
     $settings = $settings ?? []; 
-    $bgColor = $settings['bg_color'] ?? '#000000'; // Default hitam pekat untuk kontras CTA
-    $textColor = $settings['text_color'] ?? '#ffffff'; // Default teks putih
-    $paddingY = $settings['padding'] ?? 'py-5 py-md-5';
+    $colorMode = $settings['color_mode'] ?? 'global';
+    
+    // Logika Warna: Jika Global, ambil dari CSS Variable. Jika Custom, ambil dari Hex.
+    if ($colorMode === 'global') {
+        $bgColor = 'var(--bg-base)';
+        $textColor = 'var(--text-base)';
+    } else {
+        $bgColor = $settings['bg_color'] ?? '#ffffff';
+        $textColor = $settings['text_color'] ?? '#000000';
+    }
+
+    // Logika Jarak (Padding)
+    $paddingY = $settings['padding'] ?? 'py-5';
 @endphp
 
-<section id="{{ $sectionId }}" class="{{ $paddingY }} live-section" style="background-color: {{ $bgColor }};">
-    <div class="container py-5 text-center">
+<section id="{{ $sectionId }}" class="{{ $paddingY }} text-image-section live-section" style="background-color: {{ $bgColor }};">    <div class="container py-5 text-center">
         
         <div class="row justify-content-center">
             <div class="col-lg-8">

@@ -4,81 +4,43 @@
 @section('content')
 
     {{-- LOOPING JSON DARI DATABASE --}}
-    @if($website->sections && is_array($website->sections) && count($website->sections) > 0)
+    @if(!empty($website->sections) && is_array($website->sections) && count($website->sections) > 0)
         
         @foreach($website->sections as $section)
-    
-    {{-- 1. Ambil Data Dasar --}}
-    @php 
-        $sectionData = $section['data'] ?? []; 
-        $sectionType = $section['type'] ?? '';
-        
-        // 2. LOGIKA BARU: Cek Visibilitas
-        // Jika ada key 'visible' bernilai false, atau key 'hidden' bernilai true -> SKIP
-        $isVisible = $section['visible'] ?? true; 
-
-        // 👇 1. TANGKAP SETTINGS DARI JSON 👇
+            @php 
+                // 1. Ambil Konten, Tipe, Visibilitas, dan Settings
+                $sectionData = $section['data'] ?? []; 
+                $sectionType = $section['type'] ?? '';
+                $isVisible = $section['visible'] ?? true; 
                 $sectionSettings = $section['settings'] ?? [];
-        
-        // Fitur tambahan: inject ID agar live preview jalan
-        $sectionData['id'] = $section['id'] ?? uniqid();
-        // --- TAMBAHKAN BARIS INI ---
-        $sectionSettings = $section['settings'] ?? [];
-    @endphp
-    @if($isVisible)
+                
+                // Inject ID unik agar Live Preview Iframe tetap berfungsi
+                $sectionData['id'] = $section['id'] ?? 'sec-' . uniqid();
+            @endphp
+
+            {{-- 2. Penjaga Pintu: Render hanya jika status visible adalah TRUE --}}
+            @if($isVisible)
                 <div class="template-section">
                     
-                    {{-- 👇 2. LEMPARKAN SETTINGS KE DALAM INCLUDE 👇 --}}
+                    {{-- 3. Pemanggilan Dinamis: Mengirim 'data' DAN 'settings' --}}
                     @if(view()->exists('storefront.sections.' . $sectionType))
                         @include('storefront.sections.' . $sectionType, [
                             'data' => $sectionData,
-                            'settings' => $sectionSettings  {{-- KABEL PENGHUBUNGNYA DI SINI --}}
+                            'settings' => $sectionSettings
                         ])
-                    @endif
+                    @else
+                        {{-- Log jika file section tidak ditemukan untuk debugging --}}
+                        @endif
                     
                 </div>
             @endif
-
-    {{-- 3. Penjaga Pintu: Kalau tidak visible, lewati (continue) --}}
-    @if(!$isVisible)
-        @continue
-    @endif
-<!-- 
-    <div id="{{ $section['id'] ?? '' }}">
-        
-        @if($sectionType === 'hero')
-            @include('storefront.sections.hero', ['data' => $sectionData])
-        
-        @elseif($sectionType === 'products')
-            @include('storefront.sections.products', ['data' => $sectionData])
-        
-        @elseif($sectionType === 'features')
-            @include('storefront.sections.features', ['data' => $sectionData])
-        @elseif($sectionType === 'blog')
-            @include('storefront.blog.index', ['data' => $sectionData])
-        {{-- TAMBAHAN BARU: Teks & Gambar --}}
-        @elseif($sectionType === 'text-image')
-            @include('storefront.sections.text-image', ['data' => $sectionData])
-        {{-- TAMBAHAN BARU: FAQ --}}
-        @elseif($sectionType === 'faq')
-            @include('storefront.sections.faq', ['data' => $sectionData])
-        @elseif($sectionType === 'testimonial')
-            @include('storefront.sections.testimonial', ['data' => $sectionData])
-            {{-- TAMBAHAN BARU: CTA BANNER --}}
-        @elseif($sectionType === 'cta')
-            @include('storefront.sections.cta', ['data' => $sectionData])
-        @endif
-
-    </div> -->
-
-@endforeach
-        
+        @endforeach
 
     @else
-        {{-- Pesan jika Data JSON Kosong --}}
-        <div class="py-5 text-center">
-            <h3>Belum ada konten.</h3>
-            <p>Silakan atur tampilan di menu Editor Website.</p>
+        {{-- Tampilan Standar jika Data JSON Kosong --}}
+        <div class="container py-5 text-center">
+            <h3 class="text-muted">Belum ada konten yang disusun.</h3>
+            <p>Silakan buka Editor Website untuk mulai menambahkan bagian halaman.</p>
         </div>
     @endif
 
