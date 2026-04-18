@@ -334,8 +334,10 @@
         // Setup Mobile (Input Blok di dalam Menu)
         setupLiveSearch('mobile-search-input', 'mobile-search-results', 'mobile-search-loading');
     });
-
-    // Hanya jalankan listener jika berada di dalam iframe (Mode Preview)
+    </script>
+    {{-- SCRIPT LIVE PREVIEW BUILDER (SUDAH DIGABUNGKAN MENJADI SATU) --}}
+    <script>
+        // Hanya jalankan listener jika berada di dalam iframe (Mode Preview)
         const isPreview = (window.self !== window.top);
 
         if (isPreview) {
@@ -343,275 +345,128 @@
 
             // 1. Blokir Link & Form HANYA jika di preview
             document.querySelectorAll('a, form').forEach(el => {
-                // Jangan blokir anchor link (#) agar smooth scroll tetap bisa dicek di preview
-                if (el.tagName === 'A' && el.getAttribute('href').startsWith('#')) {
-                    return; 
-                }
-
-                // Blokir link pindah halaman
-                el.addEventListener('click', e => {
-                    e.preventDefault();
-                    // Opsional: alert('Link dimatikan di mode editor');
-                });
-                
-                // Blokir submit form
+                if (el.tagName === 'A' && el.getAttribute('href').startsWith('#')) return; 
                 el.addEventListener('submit', e => {
                     e.preventDefault();
                 });
             });
 
-            // 2. Event Listener Utama
+            // 2. SATU EVENT LISTENER UNTUK SEMUA FITUR (Teks, Gambar, Style, Layout, Warna, Padding)
             window.addEventListener('message', function(event) {
                 const data = event.data;
-                
-                // A. UPDATE STYLE (Warna/Font)
+                if (!data || !data.type) return;
+
+                // A. UPDATE STYLE KESELURUHAN (Warna Tema & Font)
                 if (data.type === 'updateStyle') {
-                    // 👇 TAMBAHAN BARU: Jika yang diubah adalah Font
                     if (data.variable === '--font-main') {
                         const fontName = data.value.replace(/ /g, '+');
                         const fontLink = document.getElementById('google-font-link');
-                        if (fontLink) {
-                            // Suruh browser mendownload font yang baru dipilih!
-                            fontLink.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;600;700&display=swap`;
-                        }
-                        
-                        // Set CSS Variable dengan tambahan fallback sans-serif
+                        if (fontLink) fontLink.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;600;700&display=swap`;
                         document.documentElement.style.setProperty(data.variable, `'${data.value}', sans-serif`);
-                    } 
-                    // Jika yang diubah warna (Primary/Secondary)
-                    else {
+                    } else {
                         document.documentElement.style.setProperty(data.variable, data.value);
                     }
                 }
 
-               // B. UPDATE TEXT (Konten Section)
+                // B. UPDATE TEXT & LOGIKA KONTEN SECTION
                 else if (data.type === 'updateSection') {
-                    
-                    // --- LOGIKA LIMIT PRODUK ---
                     if (data.key === 'limit') {
                         const newLimit = parseInt(data.value);
-                        const items = document.querySelectorAll('.product-item');
-                        items.forEach((item, index) => {
-                            if (index < newLimit) {
-                                item.style.setProperty('display', 'block', 'important');
-                            } else {
-                                item.style.setProperty('display', 'none', 'important');
-                            }
+                        document.querySelectorAll('.product-item').forEach((item, index) => {
+                            item.style.setProperty('display', (index < newLimit) ? 'block' : 'none', 'important');
                         });
-                    }
-                    // --- LOGIKA UPDATE ICON ---
-                    else if (data.key.includes('icon')) {
-                        const selector = `[data-section-id="${data.sectionId}"][data-key="${data.key}"]`;
-                        const element = document.querySelector(selector);
-                        if (element) {
-                            element.className = `bi ${data.value} live-editable`;
-                        }
-                    }
-                    // 👇=== LOGIKA POSISI GAMBAR (LAYOUT) ===👇
-                    else if (data.key === 'layout') {
-                        const selector = `[data-section-id="${data.sectionId}"][data-key="layout"]`;
-                        const rowElement = document.querySelector(selector);
-                        if (rowElement) {
-                            if (data.value === 'image_right') {
-                                rowElement.classList.add('flex-row-reverse');
-                            } else {
-                                rowElement.classList.remove('flex-row-reverse');
-                            }
-                        }
-                    }
-                    // 👇=== LOGIKA UPDATE LINK TOMBOL ===👇
-                    else if (data.key === 'button_link') {
-                        const selector = `[data-section-id="${data.sectionId}"][data-link-key="button_link"]`;
-                        const btnElement = document.querySelector(selector);
-                        if (btnElement) {
-                            btnElement.href = data.value;
-                        }
-                    }
-                    // --- LOGIKA TEXT & GAMBAR BIASA ---
-                    else {
-                        const selector = `[data-section-id="${data.sectionId}"][data-key="${data.key}"]`;
-                        const element = document.querySelector(selector);
-                        if (element) {
-                            // Jika tag-nya IMG, ganti src gambarnya
-                            if (element.tagName === 'IMG') {
-                                element.src = data.value;
-                            } 
-                            // PAGAR PELINDUNG: Jangan pernah timpa HTML jika tag-nya DIV
-                            else if (element.tagName !== 'DIV' && element.tagName !== 'SECTION') {
-                                element.innerText = data.value;
-                            }
-                        }
+                    } else if (data.key.includes('icon')) {
+                        const el = document.querySelector(`[data-section-id="${data.sectionId}"][data-key="${data.key}"]`);
+                        if (el) el.className = `bi ${data.value} live-editable`;
+                    } else if (data.key === 'layout') {
+                        const el = document.querySelector(`[data-section-id="${data.sectionId}"][data-key="layout"]`);
+                        if (el) data.value === 'image_right' ? el.classList.add('flex-row-reverse') : el.classList.remove('flex-row-reverse');
+                    } else if (data.key === 'button_link') {
+                        const el = document.querySelector(`[data-section-id="${data.sectionId}"][data-link-key="button_link"]`);
+                        if (el) el.href = data.value;
+                    } else {
+                        // Teks & Gambar Biasa
+                        const elements = document.querySelectorAll(`[data-section-id="${data.sectionId}"][data-key="${data.key}"]`);
+                        elements.forEach(el => {
+                            if (el.tagName === 'IMG') el.src = data.value;
+                            else if (el.tagName !== 'DIV' && el.tagName !== 'SECTION') el.innerHTML = data.value.replace(/\n/g, '<br>');
+                        });
                     }
                 }
 
-               // C. UPDATE GAMBAR (Logo/Hero/Hapus)
+                // C. UPDATE GAMBAR LOGO / HERO
                 else if (data.type === 'updateImage') {
-                    
-                    // === LOGIK LOGO ===
                     if (data.target === 'logo') {
-            const img = document.getElementById('logo-img-preview');
-            const txt = document.getElementById('site-name-text');
-            
-            if (data.action === 'remove') {
-                if(img) img.style.display = 'none';
-                if(txt) txt.style.display = 'inline';
-            } else {
-                if(img) {
-                    img.src = data.src;
-                    img.style.display = 'inline';
-                }
-                if(txt) txt.style.display = 'none';
-            }
-        }
-                    
-                    // === LOGIK HERO BANNER ===
-                    else if (data.target === 'hero') {
+                        const img = document.getElementById('logo-img-preview');
+                        const txt = document.getElementById('site-name-text');
+                        if (data.action === 'remove') {
+                            if(img) img.style.display = 'none';
+                            if(txt) txt.style.display = 'inline';
+                        } else {
+                            if(img) { img.src = data.src; img.style.display = 'inline'; }
+                            if(txt) txt.style.display = 'none';
+                        }
+                    } else if (data.target === 'hero') {
                         const heroSimple = document.querySelector('.hero-section');
-                        const heroModern = document.querySelector('header'); 
-                        
-                        // Default Style (Tanpa Gambar)
-                        const noImageStyle = "background-color: var(--hero-bg-color); background-image: none; color: var(--primary-color); text-shadow: none;";
-                        
                         if (data.action === 'remove') {
                             if(heroSimple) {
-                                heroSimple.style = noImageStyle;
-                                // Reset warna teks kembali ke primary (hitam/biru) karena background putih
-                                heroSimple.style.color = 'var(--primary-color)'; 
-                                // Reset juga class text-white di p
+                                heroSimple.style = "background-color: var(--hero-bg-color); background-image: none; color: var(--primary-color); text-shadow: none;";
                                 const p = heroSimple.querySelector('p');
                                 if(p) { p.classList.remove('text-white'); p.classList.add('text-secondary'); }
                             }
-                        } 
-                        else {
-                            // Ada Gambar
-                            const bgStyle = `url('${data.src}')`;
+                        } else {
                             if(heroSimple) {
-                                heroSimple.style.backgroundImage = bgStyle;
+                                heroSimple.style.backgroundImage = `url('${data.src}')`;
                                 heroSimple.style.backgroundColor = 'transparent';
                                 heroSimple.style.color = 'white'; 
                                 heroSimple.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
-                                
-                                // Ubah teks deskripsi jadi putih biar terbaca
                                 const p = heroSimple.querySelector('p');
                                 if(p) { p.classList.remove('text-secondary'); p.classList.add('text-white'); }
                             }
                         }
                     }
                 }
-                // D. TOGGLE VISIBILITY (Show/Hide Section)
+
+                // D. TOGGLE VISIBILITY & REORDER
                 else if (data.type === 'toggleSection') {
                     const sectionEl = document.getElementById(data.sectionId);
-                    if (sectionEl) {
-                        // Jika visible=true -> display: block
-                        // Jika visible=false -> display: none
-                        sectionEl.style.display = data.visible ? 'block' : 'none';
-                    }
-                }
-                // E. MOVE SECTION (Reorder)
+                    if (sectionEl) sectionEl.style.display = data.visible ? 'block' : 'none';
+                } 
                 else if (data.type === 'moveSection') {
                     const sectionEl = document.getElementById(data.sectionId);
-                    
                     if (sectionEl) {
                         const parent = sectionEl.parentNode;
-                        
-                        if (data.direction === 'up') {
-                            // Pindahkan SEBELUM elemen di atasnya (previousSibling)
-                            if (sectionEl.previousElementSibling) {
-                                parent.insertBefore(sectionEl, sectionEl.previousElementSibling);
-                            }
-                        } 
-                        else {
-                            // Pindahkan SETELAH elemen di bawahnya (nextSibling)
-                            // insertBefore tidak punya "insertAfter", jadi kita insert sebelum "depannya si tetangga"
-                            if (sectionEl.nextElementSibling) {
-                                parent.insertBefore(sectionEl, sectionEl.nextElementSibling.nextElementSibling);
-                            }
+                        if (data.direction === 'up' && sectionEl.previousElementSibling) parent.insertBefore(sectionEl, sectionEl.previousElementSibling);
+                        else if (data.direction === 'down' && sectionEl.nextElementSibling) parent.insertBefore(sectionEl, sectionEl.nextElementSibling.nextElementSibling);
+                    }
+                }
+                
+                // E. UPDATE SETTING (WARNA CUSTOM & PADDING) 
+                else if (data.type === 'updateSetting') {
+                    const section = document.getElementById(data.sectionId);
+                    if (!section) return;
+
+                    // Logika Live Warna
+                    if (data.key === 'color_mode' || data.key === 'bg_color' || data.key === 'text_color') {
+                        const mode = (data.key === 'color_mode') ? data.value : 'custom';
+                        let targetBg = (mode === 'global') ? 'var(--bg-base)' : (data.key === 'bg_color' ? data.value : (data.customBg || section.style.backgroundColor));
+                        let targetText = (mode === 'global') ? 'var(--text-base)' : (data.key === 'text_color' ? data.value : (data.customText || ''));
+
+                        section.style.backgroundColor = targetBg;
+                        if (targetText) {
+                            section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)').forEach(el => { el.style.color = targetText; });
+                            section.querySelectorAll('.btn, .classic-accordion-button').forEach(btn => {
+                                btn.style.borderColor = targetText; btn.style.color = targetText;
+                            });
                         }
+                    } 
+                    // Logika Live Padding
+                    else if (data.key === 'padding') {
+                        ['py-3', 'py-5', 'py-md-5', 'pt-lg-7', 'pb-lg-7'].forEach(cls => section.classList.remove(cls));
+                        data.value.split(' ').forEach(cls => { if(cls) section.classList.add(cls); });
                     }
                 }
             });
         }
     </script>
-    <script>
-    // Pendengar Pesan dari Parent (Builder)
-    window.addEventListener('message', function(event) {
-        const data = event.data;
-        if (!data || !data.type) return;
-
-        // --- Logika Live Preview untuk Teks (Jika sudah ada, biarkan saja) ---
-        if (data.type === 'updateSection') {
-            const elements = document.querySelectorAll(`[data-section-id="${data.sectionId}"][data-key="${data.key}"]`);
-            elements.forEach(el => {
-                if (el.tagName === 'IMG') el.src = data.value;
-                else if (el.tagName === 'A' && data.key.includes('link')) el.href = data.value;
-                else el.innerHTML = data.value.replace(/\n/g, '<br>');
-            });
-        }
-
-        // --- TAMBAHAN BARU: Logika Live Preview untuk Warna/Settings ---
-        if (data.type === 'updateSetting') {
-    const section = document.getElementById(data.sectionId);
-    if (!section) return;
-
-    // --- A. LOGIKA LIVE PREVIEW WARNA ---
-    if (data.key === 'color_mode' || data.key === 'bg_color' || data.key === 'text_color') {
-        // Tentukan sumber warna
-        const mode = (data.key === 'color_mode') ? data.value : 'custom';
-        
-        let targetBg, targetText;
-        if (mode === 'global') {
-            targetBg = 'var(--bg-base)';
-            targetText = 'var(--text-base)';
-        } else {
-            // Jika sedang geser picker, gunakan nilainya langsung. 
-            // Jika baru ganti mode ke manual, gunakan nilai dari pesan.
-            targetBg = (data.key === 'bg_color') ? data.value : (data.customBg || section.style.backgroundColor);
-            targetText = (data.key === 'text_color') ? data.value : (data.customText || '');
-        }
-
-        // Terapkan Warna Background
-        section.style.backgroundColor = targetBg;
-
-        // Terapkan Warna Teks ke elemen-elemen di dalamnya
-        if (targetText) {
-            const textElements = section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)');
-            textElements.forEach(el => { el.style.color = targetText; });
-
-            // Update border dan teks pada tombol agar tetap selaras
-            const buttons = section.querySelectorAll('.btn, .classic-accordion-button');
-            buttons.forEach(btn => {
-                btn.style.borderColor = targetText;
-                btn.style.color = targetText;
-            });
-        }
-    }
-
-    // --- B. LOGIKA LIVE PREVIEW PADDING (Bootstrap Class Swapper) ---
-    if (data.key === 'padding') {
-        // 1. List semua kemungkinan class padding yang kita gunakan
-        const allPaddingClasses = ['py-3', 'py-5', 'py-md-5', 'pt-lg-7', 'pb-lg-7'];
-        
-        // 2. Hapus semua class padding yang lama
-        allPaddingClasses.forEach(cls => section.classList.remove(cls));
-        
-        // 3. Tambahkan class padding yang baru (data.value adalah string seperti "py-3")
-        const newClasses = data.value.split(' ');
-        newClasses.forEach(cls => {
-            if(cls) section.classList.add(cls);
-        });
-    }
-}
-    });
-</script>
-    @stack('scripts')
-</body>
-{{-- BANNER TOKO TUTUP --}}
-    @if(!$website->is_open)
-    <div class="bg-danger text-white text-center py-2" style="z-index: 1050; position: relative;">
-        <div class="container small fw-bold">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> 
-            Mohon maaf, toko saat ini sedang TUTUP. Anda tidak dapat melakukan pemesanan untuk sementara waktu.
-        </div>
-    </div>
-    @endif
 </html>
