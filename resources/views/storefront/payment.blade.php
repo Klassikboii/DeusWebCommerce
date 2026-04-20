@@ -127,26 +127,27 @@
                             @endif
                         </div>
 
+                       {{-- ================================================= --}}
+                        {{-- BLOK PEMBAYARAN OTOMATIS PIVOT (JIKA ADA URL) --}}
                         {{-- ================================================= --}}
-                            {{-- BLOK PEMBAYARAN OTOMATIS MIDTRANS (JIKA ADA TOKEN) --}}
-                            {{-- ================================================= --}}
-                            @if(isset($snapToken) && $snapToken)
-                                <div class="card border-primary shadow-sm mb-4 border" >
-                                    <div class="card-body text-center p-4">
-                                        <h5 class="fw-bold text-primary mb-3">Bayar Lebih Cepat & Otomatis!</h5>
-                                        <p class="text-muted mb-4">Gunakan metode pembayaran otomatis (Virtual Account, e-Wallet, QRIS, dll) agar pesanan Anda langsung diproses tanpa perlu upload bukti transfer.</p>
-                                        
-                                        <button id="pay-button" class="btn btn-primary btn-lg px-5 rounded-pill shadow">
-                                            <i class="bi bi-shield-lock me-2"></i> Bayar Sekarang
-                                        </button>
-                                    </div>
+                        @if(isset($paymentUrl) && $paymentUrl)
+                            <div class="card border-primary shadow-sm mb-4 border">
+                                <div class="card-body text-center p-4">
+                                    <h5 class="fw-bold text-primary mb-3">Bayar Lebih Cepat & Otomatis!</h5>
+                                    <p class="text-muted mb-4">Selesaikan pembayaran Anda menggunakan Virtual Account, e-Wallet, atau QRIS. Status pesanan akan otomatis lunas tanpa perlu upload bukti.</p>
+                                    
+                                    {{-- 🚨 TOMBOL PIVOT: Langsung mengarah ke URL Pivot --}}
+                                    <a href="{{ $paymentUrl }}" target="_self" class="btn btn-primary btn-lg px-5 rounded-pill shadow">
+                                        <i class="bi bi-shield-lock me-2"></i> Lanjutkan Pembayaran
+                                    </a>
                                 </div>
-                                
-                                <div class="text-center text-muted mb-4 fw-bold">--- ATAU ---</div>
-                            @endif
-                            {{-- ================================================= --}}
+                            </div>
+                            
+                            <div class="text-center text-muted mb-4 fw-bold">--- ATAU MANUAL ---</div>
+                        @endif
+                        {{-- ================================================= --}}
 
-                        {{-- OPSI 2: FORM UPLOAD (Database) --}}
+                        {{-- OPSI 2: FORM UPLOAD MANUAL (Database) --}}
                         
                         {{-- Peringatan Re-Upload --}}
                         @if($order->payment_proof && $order->status == 'pending')
@@ -167,17 +168,15 @@
 
                             <div class="mb-3">
                                 <label class="form-label small fw-bold">Foto Bukti Transfer <span class="text-danger">*</span></label>
-                                {{-- UBAH BAGIAN ACCEPT DAN TAMBAHKAN ID --}}
                                 <input type="file" id="payment_proof_input" name="payment_proof" class="form-control form-control-sm" accept=".jpg, .jpeg, .png" required>
                                 <div class="form-text small">Format: JPG/PNG. Max 2MB.</div>
                                 
-                                {{-- Tempat untuk memunculkan pesan error tulisan merah --}}
                                 <div id="file_error_message" class="text-danger small mt-1" style="display: none;"></div>
                             </div>
 
-                            <button type="submit" class="btn w-100 fw-bold btn-primary">
+                            <button type="submit" class="btn w-100 fw-bold btn-outline-primary">
                                 <i class="bi bi-cloud-upload me-2"></i> 
-                                {{ $order->payment_proof ? 'Kirim Ulang Bukti' : 'Upload Bukti Pembayaran' }}
+                                {{ $order->payment_proof ? 'Kirim Ulang Bukti' : 'Upload Bukti Manual' }}
                             </button>
                         </form>
 
@@ -185,74 +184,38 @@
 
                 </div>
             </div>
-
         </div>
     </div>
 </div>
-@if(isset($snapToken) && $snapToken)
-    @php
-        // Cek apakah klien ini pakai Production atau Sandbox
-        $snapUrl = $website->midtrans_is_production 
-            ? 'https://app.midtrans.com/snap/snap.js' 
-            : 'https://app.sandbox.midtrans.com/snap/snap.js';
-    @endphp
 
-    <script src="{{ $snapUrl }}" data-client-key="{{ $website->midtrans_client_key }}"></script>
-
-    <script>
-        document.getElementById('pay-button').onclick = function () {
-            // Panggil popup Snap menggunakan Token yang dikirim dari Controller
-            window.snap.pay('{{ $snapToken }}', {
-                onSuccess: function (result) {
-                    // Pembayaran sukses! (Misal: pakai QRIS atau Gopay)
-                    alert("Pembayaran berhasil! Terima kasih.");
-                    window.location.reload(); 
-                },
-                onPending: function (result) {
-                    // Menunggu pembayaran (Misal: user memilih bayar di Indomaret/VA)
-                    alert("Menunggu pembayaran Anda. Silakan selesaikan instruksi pembayaran yang diberikan.");
-                    window.location.reload();
-                },
-                onError: function (result) {
-                    // Pembayaran gagal
-                    alert("Mohon maaf, pembayaran gagal. Silakan coba lagi.");
-                },
-                onClose: function () {
-                    // User menutup popup tanpa menyelesaikan pembayaran
-                    alert('Anda menutup layar pembayaran sebelum menyelesaikannya.');
-                }
-            });
-        };
-    </script>
-@endif
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const fileInput = document.getElementById('payment_proof_input');
     const errorMessage = document.getElementById('file_error_message');
 
+    // Mencegah error jika element tidak ditemukan (misal: order sudah dibayar, form disembunyikan)
+    if(!fileInput) return;
+
     fileInput.addEventListener('change', function () {
-        // Hilangkan pesan error sebelumnya
         errorMessage.style.display = 'none';
         errorMessage.innerText = '';
 
         const file = this.files[0];
 
         if (file) {
-            // 1. Validasi Tipe File (Jaga-jaga jika HP pengunjung memaksa format lain)
             const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
             if (!validTypes.includes(file.type)) {
                 errorMessage.innerText = 'Format file tidak didukung! Harap gunakan JPG, JPEG, atau PNG.';
                 errorMessage.style.display = 'block';
-                this.value = ''; // Hapus file yang terlanjur dipilih
+                this.value = ''; 
                 return;
             }
 
-            // 2. Validasi Ukuran File (2 MB = 2 * 1024 * 1024 bytes)
             const maxSize = 2 * 1024 * 1024;
             if (file.size > maxSize) {
                 errorMessage.innerText = 'Ukuran file terlalu besar! Maksimal 2MB. (Ukuran file Anda: ' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
                 errorMessage.style.display = 'block';
-                this.value = ''; // Hapus file yang terlanjur dipilih
+                this.value = ''; 
                 return;
             }
         }

@@ -4,11 +4,14 @@
 
 @section('content')
 <head>
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/trix@2.0.0/dist/trix.css">
-    <script type="text/javascript" src="https://unpkg.com/trix@2.0.0/dist/trix.umd.min.js"></script>
+    
     <style>
         trix-editor { min-height: 300px; background-color: white; }
         .trix-button--icon-attach { display: none; }
+
+        .ck-editor__editable {
+    min-height: 300px;
+}
     </style>
 </head>
 
@@ -43,9 +46,38 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">Isi Artikel</label>
                     
-                    <input id="bodyContent" type="hidden" name="content" value="{{ $post->content }}">
-                    
-                    <trix-editor input="bodyContent"></trix-editor>
+                    <textarea name="content" id="editor">
+                            {{ old('content', $post->content) }}
+                        </textarea>
+
+                        <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+                        <script>
+                        ClassicEditor.create(document.querySelector('#editor'), {
+                            toolbar: [
+                                'heading',
+                                '|',
+                                'bold', 'italic', 'strikethrough',
+                                'link',
+                                '|',
+                                'blockQuote', 'code',
+                                '|',
+                                'bulletedList', 'numberedList',
+                                '|',
+                                'undo', 'redo'
+                            ],
+                            heading: {
+                                options: [
+                                    { model: 'paragraph', title: 'Paragraph' },
+                                    { model: 'heading1', view: 'h1', title: 'Heading 1' },
+                                    { model: 'heading2', view: 'h2', title: 'Heading 2' },
+                                    { model: 'heading3', view: 'h3', title: 'Heading 3' },
+                                    { model: 'heading4', view: 'h4', title: 'Heading 4' },
+                                    { model: 'heading5', view: 'h5', title: 'Heading 5' },
+                                ]
+                            },
+                            placeholder: 'Tulis isi artikel di sini...',
+                        });
+                        </script>
                 </div>
 
             </div>

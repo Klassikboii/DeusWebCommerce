@@ -8,7 +8,24 @@ class Order extends Model
 {
     protected $guarded = ['id'];
     // protected $fillable = ['payment_status', 'bank_name', 'payment_proof']; // Tambahkan fillable untuk payment_status agar bisa diupdate
-    protected $fillable = ['payment_url'];
+    // protected $fillable = ['payment_url', 'snap_token', 'website_id'];
+    protected $fillable = [
+        'website_id',
+        'order_number',
+        'customer_name',
+        'customer_whatsapp',
+        'customer_address',
+        'shipping_cost',
+        'courier_name',
+        'courier_service',
+        'payment_status',
+        'total_amount',
+        'status',
+        'payment_proof',
+        'bank_name',
+        'snap_token',
+        'payment_url', // Kolom Pivot yang baru
+    ];
     // Relasi ke Item Belanja
     public function items()
     {

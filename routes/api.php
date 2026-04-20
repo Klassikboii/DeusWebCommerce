@@ -10,3 +10,6 @@ Route::post('/midtrans/webhook', [WebhookController::class, 'handlePaymentWebhoo
 
 // Di dalam file routes/api.php
 Route::post('/webhooks/accurate', [\App\Http\Controllers\WebhookController::class, 'handleAccurateWebhook']);
+
+// Rute Webhook Pivot (Baru)
+Route::post('/pivot/webhook', [WebhookController::class, 'handlePivotWebhook']);

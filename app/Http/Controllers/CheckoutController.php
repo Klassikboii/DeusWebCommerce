@@ -269,6 +269,7 @@ class CheckoutController extends Controller
     }
 
    // 6. HALAMAN KONFIRMASI PEMBAYARAN
+    // 6. HALAMAN KONFIRMASI PEMBAYARAN
     public function payment(Request $request, $order_number)
     {
         $website = $request->get('website');
@@ -278,24 +279,31 @@ class CheckoutController extends Controller
                       ->firstOrFail();
 
         $snapToken = $order->snap_token;
+        $paymentUrl = $order->payment_url; // 🚨 BACA URL PIVOT DARI DATABASE
 
-        // 🚨 SULAP TERJADI DI SINI: Jika pesanan belum punya token, minta ke Gateway!
-        if (empty($snapToken)) {
+        // SULAP TERJADI DI SINI: Jika pesanan belum punya token/url, minta ke Gateway!
+        if (empty($snapToken) && empty($paymentUrl)) {
             $paymentGateway = \App\Services\Payment\PaymentFactory::make($website);
             $paymentData = $paymentGateway->createTransaction($order);
 
             // Cek apakah balasan dari Service memiliki status 'success'
             if (isset($paymentData['status']) && $paymentData['status'] === 'success') {
                 $snapToken = $paymentData['token'];
-                // Simpan token ke database agar tidak double-generate jika di-refresh
-                $order->update(['snap_token' => $snapToken]);
+                $paymentUrl = $paymentData['redirect_url']; // 🚨 TANGKAP URL PIVOT
+                
+                // Simpan token dan URL ke database agar tidak double-generate
+                $order->update([
+                    'snap_token' => $snapToken,
+                    'payment_url' => $paymentUrl // 🚨 SIMPAN KE DATABASE
+                ]);
             } else {
-                // Opsional: Beri pesan error ke pembeli jika Gateway sedang gangguan
-                // \Illuminate\Support\Facades\Session::flash('error', 'Sistem pembayaran sedang sibuk. Silakan muat ulang halaman ini.');
+                // Beri pesan error ke pembeli jika Gateway Pivot sedang gangguan
+                \Illuminate\Support\Facades\Session::flash('error', 'Sistem pembayaran sedang sibuk atau kunci API toko salah. Silakan hubungi admin toko.');
             }
         }
         
-        return view('storefront.payment', compact('website', 'order', 'snapToken'));
+        // 🚨 LEMPAR paymentUrl KE VIEW BLADE
+        return view('storefront.payment', compact('website', 'order', 'snapToken', 'paymentUrl'));
     }
 
     // 7. PROSES UPLOAD BUKTI (DENGAN SECURITY CHECK)

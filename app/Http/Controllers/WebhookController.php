@@ -13,6 +13,45 @@ use App\Models\AccurateIntegration;
 
 class WebhookController extends Controller
 {
+
+public function handlePivotWebhook(Request $request)
+{
+    // 1. Cari data website. Karena ini API, kita perlu tahu ini website siapa.
+    // Opsional: Jika Pivot mengirimkan clientReferenceId, kita bisa cari ordernya dulu
+    $order = \App\Models\Order::where('order_number', $request->clientReferenceId)->first();
+    
+    if (!$order) {
+        return response()->json(['status' => 'error', 'message' => 'Order not found'], 404);
+    }
+
+    $website = $order->website;
+
+    // 2. Gunakan PivotService untuk memproses data
+    $paymentService = new \App\Services\Payment\PivotService($website);
+    $result = $paymentService->handleWebhook($request);
+
+    // 3. Jika valid, update status pesanan
+    if ($result['is_valid']) {
+        if ($result['status'] === 'paid') {
+            $order->update([
+                'status' => 'processing', // Sesuaikan dengan alur toko Anda
+                'payment_status' => 'paid',
+                'bank_name' => $result['payment_method']
+            ]);
+            
+            // Catat history (jika ada sistem history)
+            \App\Models\OrderHistory::create([
+                'order_id' => $order->id,
+                'status' => 'paid',
+                'description' => 'Pembayaran lunas via Pivot (' . $result['payment_method'] . ')'
+            ]);
+        }
+
+        return response()->json(['status' => 'success', 'message' => 'Webhook Processed']);
+    }
+
+    return response()->json(['status' => 'error', 'message' => 'Invalid Signature'], 403);
+}
    public function handlePaymentWebhook(Request $request)
     {
         $payload = $request->all();
