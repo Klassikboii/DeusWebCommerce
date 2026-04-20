@@ -8,7 +8,7 @@ class Order extends Model
 {
     protected $guarded = ['id'];
     // protected $fillable = ['payment_status', 'bank_name', 'payment_proof']; // Tambahkan fillable untuk payment_status agar bisa diupdate
-
+    protected $fillable = ['payment_url'];
     // Relasi ke Item Belanja
     public function items()
     {

@@ -20,9 +20,9 @@ class PivotService implements PaymentGatewayInterface
     {
         $this->website = $website;
         
-        // Ambil dari database website (Pastikan Anda membuat kolom ini nanti)
-        $this->merchantId = $this->website->pivot_merchant_id; 
-        $this->merchantSecret = $this->website->pivot_merchant_secret;
+       // 🚨 SESUAIKAN DENGAN NAMA KOLOM DI MIGRATION KITA SEBELUMNYA
+        $this->merchantId = $this->website->pivot_client_key; 
+        $this->merchantSecret = $this->website->pivot_server_key;
         
         $this->baseUrl = config('app.env') === 'production' 
             ? 'https://api.pivot.id' 

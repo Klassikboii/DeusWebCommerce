@@ -76,19 +76,20 @@ class SettingController extends Controller
         // Pastikan hanya pemilik website yang bisa mengubahnya
         $this->authorize('update', $website); 
 
+        // Validasi Kredensial Pivot
         $request->validate([
-            'midtrans_client_key' => 'nullable|string|max:255',
-            'midtrans_server_key' => 'nullable|string|max:255',
-            // Checkbox HTML jika tidak dicentang tidak akan terkirim, kita tangani di bawah
+            'pivot_client_key' => 'nullable|string|max:255',
+            'pivot_server_key' => 'nullable|string|max:255',
+            // pivot_is_production adalah boolean (checkbox)
         ]);
 
         $website->update([
-            'midtrans_client_key' => $request->midtrans_client_key,
-            'midtrans_server_key' => $request->midtrans_server_key,
+            'pivot_client_key' => $request->pivot_client_key,
+            'pivot_server_key' => $request->pivot_server_key,
             // Jika checkbox dicentang nilainya 1 (true), jika tidak ada maka 0 (false/sandbox)
-            'midtrans_is_production' => $request->has('midtrans_is_production') ? 1 : 0, 
+            'pivot_is_production' => $request->has('pivot_is_production') ? 1 : 0, 
         ]);
 
-        return redirect()->back()->with('success', 'Pengaturan Pembayaran Midtrans berhasil diperbarui!');
+        return redirect()->back()->with('success', 'Pengaturan Pembayaran Pivot berhasil diperbarui!');
     }
 }

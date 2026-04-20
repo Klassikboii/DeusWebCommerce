@@ -37,7 +37,10 @@ class Website extends Model
         // 'hero_subtitle', 
         // 'hero_btn_text', 
         // 'hero_btn_url',
-        
+        // --- TAMBAHKAN 3 BARIS INI KE DALAM ARRAY ---
+        'pivot_server_key',
+        'pivot_client_key',
+        'pivot_is_production',
         // 5. Data JSON (Menu & Section)
         'sections', 
         'navigation_menu',

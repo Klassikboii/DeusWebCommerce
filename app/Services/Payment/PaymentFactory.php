@@ -3,20 +3,15 @@
 namespace App\Services\Payment;
 
 use App\Models\Website;
-use App\Contracts\PaymentGatewayInterface;
+use Exception;
 
 class PaymentFactory
 {
-    public static function make(Website $website): PaymentGatewayInterface
+    public static function make(Website $website)
     {
-        // Asumsikan Anda menambahkan kolom 'active_payment_gateway' di tabel websites
-        $gateway = $website->active_payment_gateway ?? 'midtrans';
-
-        if ($gateway === 'pivot') {
-            return new PivotService($website);
-        }
-
-        // Default kembalikan Midtrans
-        return new MidtransService($website);
+        // Karena bos meminta pindah total ke Pivot, kita arahkan langsung ke PivotService
+        // Jika nanti ada banyak pilihan (Midtrans/Pivot/Xendit), kita bisa pakai if-else berdasarkan setting klien.
+        
+        return new PivotService($website);
     }
 }

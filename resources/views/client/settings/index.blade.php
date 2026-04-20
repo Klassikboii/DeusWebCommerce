@@ -218,16 +218,15 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-5" style="border-left: 4px solid #17a2b8 !important;">
-        <div class="card-header bg-white py-3 fw-bold text-info-emphasis">
-            <i class="bi bi-credit-card me-2"></i>Payment Gateway (Midtrans)
-            <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanMidtrans" title="Cara Setup">
-            <i class="bi bi-question-circle"></i>
-        </button>
+    <div class="card border-0 shadow-sm mb-5" style="border-left: 4px solid #7B2CBF !important;"> <div class="card-header bg-white py-3 fw-bold" style="color: #7B2CBF;">
+            <i class="bi bi-credit-card me-2"></i>Payment Gateway (Pivot)
+            <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanPivot" title="Cara Setup">
+                <i class="bi bi-question-circle"></i>
+            </button>
         </div>
         <div class="card-body p-4">
             <div class="alert bg-light border text-muted small mb-4">
-                <i class="bi bi-info-circle me-1"></i> Masukkan API Key dari akun Midtrans Anda agar pembayaran dari pelanggan langsung masuk ke saldo Anda.
+                <i class="bi bi-info-circle me-1"></i> Masukkan kredensial dari akun Pivot Anda agar pembeli dapat membayar dengan VA, QRIS, E-Wallet, dll.
             </div>
 
             <form action="{{ route('client.settings.payment.update', $website->id) }}" method="POST">
@@ -235,10 +234,10 @@
                 @method('PUT')
 
                 <div class="mb-4">
-                    <label class="form-label fw-bold">Environment (Lingkungan)</label>
+                    <label class="form-label fw-bold">Lingkungan (Environment)</label>
                     <div class="form-check form-switch fs-5">
-                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="midtrans_is_production" name="midtrans_is_production" value="1" {{ $website->midtrans_is_production ? 'checked' : '' }}>
-                        <label class="form-check-label ms-2 fs-6 mt-1" for="midtrans_is_production">
+                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="pivot_is_production" name="pivot_is_production" value="1" {{ $website->pivot_is_production ? 'checked' : '' }}>
+                        <label class="form-check-label ms-2 fs-6 mt-1" for="pivot_is_production">
                             Gunakan <strong>Production</strong> (Live / Uang Asli)
                         </label>
                     </div>
@@ -246,24 +245,24 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Client Key</label>
-                    <input type="text" name="midtrans_client_key" class="form-control" value="{{ old('midtrans_client_key', $website->midtrans_client_key) }}" placeholder="Contoh: SB-Mid-client-xxxxxx">
+                    <label class="form-label fw-bold">Merchant ID (Client Key)</label>
+                    <input type="text" name="pivot_client_key" class="form-control" value="{{ old('pivot_client_key', $website->pivot_client_key) }}" placeholder="Contoh: PIVOT-MID-12345">
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label fw-bold">Server Key</label>
+                    <label class="form-label fw-bold">Merchant Secret (Server Key)</label>
                     <div class="input-group">
-                        <input type="password" name="midtrans_server_key" id="server_key_input" class="form-control" value="{{ old('midtrans_server_key', $website->midtrans_server_key) }}" placeholder="Contoh: SB-Mid-server-xxxxxx">
+                        <input type="password" name="pivot_server_key" id="server_key_input" class="form-control" value="{{ old('pivot_server_key', $website->pivot_server_key) }}" placeholder="Masukkan Secret Key rahasia...">
                         <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('server_key_input').type = document.getElementById('server_key_input').type === 'password' ? 'text' : 'password'">
                             <i class="bi bi-eye"></i>
                         </button>
                     </div>
-                    <div class="form-text text-danger"><i class="bi bi-shield-lock"></i> Jaga kerahasiaan Server Key Anda!</div>
+                    <div class="form-text text-danger"><i class="bi bi-shield-lock"></i> Jaga kerahasiaan Merchant Secret Anda!</div>
                 </div>
 
                 <div class="text-end">
-                    <button type="submit" class="btn btn-info text-white px-4">
-                        <i class="bi bi-key me-1"></i> Simpan Kunci Midtrans
+                    <button type="submit" class="btn text-white px-4" style="background-color: #7B2CBF;">
+                        <i class="bi bi-key me-1"></i> Simpan Kunci Pivot
                     </button>
                 </div>
             </form>
