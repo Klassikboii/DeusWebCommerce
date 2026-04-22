@@ -129,11 +129,33 @@
     <header class="bg-white border-bottom sticky-top py-4">
         <div class="container d-flex align-items-center justify-content-between">
             
-            <nav class="d-none d-lg-flex gap-5">
-                <a href="/" class="text-decoration-none text-secondary hover-dark text-uppercase small fw-bold tracking-widest">Home</a>
-                <a href="{{ route('store.products' ) }}" class="text-decoration-none text-secondary hover-dark text-uppercase small fw-bold tracking-widest">Shop</a>
-                <a href="{{ route('store.track') }}" class="text-decoration-none text-secondary hover-dark text-uppercase small fw-bold tracking-widest">Tracking</a>
-            </nav>
+             @php $navMenus = $website->navigation_menu ?? [['label' => 'Home', 'url' => '#'], ['label' => 'Shop', 'url' => '#shop']]; @endphp
+                   @foreach($navMenus as $menu)
+                        
+                            @php
+                                $url = $menu['url'];
+                                $href = $url; // Default untuk link eksternal (https://...)
+
+                                // KASUS 1: Anchor Link (#) - Scroll di halaman Home
+                                if (str_starts_with($url, '#')) {
+                                    if (!request()->routeIs('store.home')) {
+                                        // Jika sedang tidak di home, arahkan ke home dulu + anchor
+                                        $href = route('store.home') . $url; 
+                                    }
+                                } 
+                                // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
+                                elseif (str_starts_with($url, '/')) {
+                                    // FIX: Gunakan helper 'url' manual agar path-nya bersih
+                                    // Hasil: http://domain.com/s/elecjos/blog
+                                    $href = url($url);
+                                }
+                            @endphp
+
+                            <a class="text-decoration-none text-secondary hover-dark text-uppercase small fw-bold tracking-widest" href="{{ $href }}">
+                                {{ $menu['label'] }}
+                            </a>
+                        
+                        @endforeach
 
             <div class="text-center">
                 <a href="/" class="text-decoration-none text-dark">
@@ -154,13 +176,47 @@
                         <div id="desktop-search-content"></div>
                     </div>
                 </form>
+               @if(Auth::guard('customer')->check())
+                            
+                            {{-- MENU JIKA SUDAH LOGIN (Gaya Classic) --}}
+                            <div class="dropdown ms-3">
+                                <a class="text-decoration-none text-dark fw-bold text-uppercase small tracking-wider dropdown-toggle" href="#" id="customerMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 13px;">
+                                    {{ strtok(Auth::guard('customer')->user()->name, ' ') }}
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 mt-3 border-dark" aria-labelledby="customerMenu">
+                                    <li>
+                                        <a class="dropdown-item py-2 small fw-bold text-uppercase tracking-wider" href="{{ route('store.account') }}">
+                                            <i class="bi bi-bag-check me-2"></i> Riwayat
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider border-dark opacity-25"></li>
+                                    <li>
+                                        <form action="{{ route('store.logout') }}" method="POST" class="m-0">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item py-2 small fw-bold text-uppercase tracking-wider text-danger">
+                                                <i class="bi bi-box-arrow-right me-2"></i> Keluar
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+
+                        @else
+                            {{-- TOMBOL JIKA BELUM LOGIN (Gaya Classic) --}}
+                            <a class="nav-link text-dark text-uppercase small fw-bold tracking-wider ms-3" href="{{ route('store.track') }}" style="font-size: 13px;">
+                                Cek Pesanan
+                            </a>
+                            <a href="{{ route('store.login') }}" class="text-decoration-none text-dark fw-bold text-uppercase small tracking-wider ms-3" style="font-size: 13px;">
+                                Masuk / Daftar
+                            </a>
+                        @endif
                 @php
                         $cartKey = 'cart_' . $website->id;
                         $cartSession = session()->get($cartKey, []);
                         $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
                     @endphp
                 <a href="{{ route('store.cart') }}" id="cart-icon-btn" class="btn btn-link text-decoration-none text-dark fw-bold text-uppercase p-0 tracking-wider" style="font-size: 13px;">
-                    Cart ({{ count(session('cart', [])) }})
+                    Cart ({{ $cartCount }})
                 </a>
             </div>
         </div>
@@ -217,7 +273,7 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script> -->
 
     {{-- SCRIPT LIVE SEARCH & LIVE EDITOR ANDA (TIDAK ADA YANG DIUBAH) --}}
     <script>

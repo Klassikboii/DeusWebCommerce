@@ -197,13 +197,44 @@
                             </a>
                         </li>
                         @endforeach
-                        {{-- ITEM TAMBAHAN: CEK PESANAN --}}
-                    <li class="nav-item">
-                        <a class="nav-link text-dark" href="{{ route('store.track') }}">
-                            Cek Pesanan
-                        </a>
-                    </li>
-                    {{-- CART BUTTON --}}
+                   
+                   
+                    {{-- Cek apakah pelanggan sudah login menggunakan guard 'customer' --}}
+                        @if(Auth::guard('customer')->check())
+                            
+                            {{-- MENU JIKA SUDAH LOGIN (Berupa Dropdown) --}}
+                            <div class="nav-item dropdown ms-3">
+                                <a class="btn btn-outline-primary dropdown-toggle rounded-pill" href="#" id="customerMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle me-1"></i> Halo, {{ strtok(Auth::guard('customer')->user()->name, ' ') }}
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="customerMenu">
+                                    <li>
+                                        <a class="dropdown-item py-2" href="{{ route('store.account') }}">
+                                            <i class="bi bi-bag-check me-2 text-primary"></i> Riwayat Pesanan
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form action="{{ route('store.logout') }}" method="POST" class="m-0">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item py-2 text-danger">
+                                                <i class="bi bi-box-arrow-right me-2"></i> Keluar
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+
+                        @else
+                            <a class="nav-link text-dark" href="{{ route('store.track') }}">
+                                    Cek Pesanan
+                                </a>
+                            {{-- TOMBOL JIKA BELUM LOGIN --}}
+                            <a href="{{ route('store.login') }}" class="btn btn-outline-secondary rounded-pill ms-3 shadow-sm">
+                                <i class="bi bi-person me-1"></i> Masuk / Daftar
+                            </a>
+                        @endif
+                         {{-- CART BUTTON --}}
                     @php
                         $cartKey = 'cart_' . $website->id;
                         $cartSession = session()->get($cartKey, []);

@@ -153,7 +153,7 @@ class PivotService implements PaymentGatewayInterface
 
         if (!hash_equals($calculatedSignature, $signatureFromPivot ?? '')) {
             Log::error("Pivot Webhook Error: Signature tidak valid untuk order {$orderId}");
-            // return ['is_valid' => false]; 
+            return ['is_valid' => false]; 
         }
 
         $finalStatus = 'pending';

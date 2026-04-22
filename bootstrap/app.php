@@ -13,7 +13,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         //
-
+        $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {
+            if ($request->routeIs('store.*')) {
+                return route('store.login');
+            }
+            return route('login');
+        });
         // --- DAFTARKAN ALIAS DI SINI ---
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,

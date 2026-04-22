@@ -8,6 +8,8 @@ use App\Http\Middleware\ResolveTenant;
 use App\Models\Website;
 use Illuminate\Support\Facades\Session;
 use App\Http\Controllers\Client\AccurateController;
+use App\Http\Controllers\Storefront\CustomerAuthController;
+use App\Http\Controllers\Storefront\CustomerAccountController; // 🚨 Tambahkan import ini di atas
 
 
 // 🚨 1. AMBIL DOMAIN UTAMA DARI .ENV (Akan berisi 'localhost')
@@ -254,6 +256,25 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
 // Ini akan memaksa Laravel hanya mengambil kata depan sebelum titik sebagai {subdomain}
 Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function () {
     Route::get('/', [App\Http\Controllers\StorefrontController::class, 'index'])->name('store.home');
+
+        // Rute untuk Tamu (Belum Login)
+    Route::middleware('guest:customer')->group(function () {
+        Route::get('/login', [CustomerAuthController::class, 'showAuthForm'])->name('store.login');
+        Route::post('/login', [CustomerAuthController::class, 'login'])->name('store.login.submit');
+        Route::post('/register', [CustomerAuthController::class, 'register'])->name('store.register.submit');
+    });
+
+    // Rute untuk Pembeli (Sudah Login)
+    Route::middleware('auth:customer')->group(function () {
+        Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('store.logout');
+        // 🚨 Buka rute dasbor riwayat pesanan
+    Route::get('/account', [CustomerAccountController::class, 'index'])->name('store.account');
+        
+        // Nanti kita buat Controller untuk ini, sementara arahkan ke view langsung atau biarkan kosong
+        // Route::get('/account', [CustomerAccountController::class, 'index'])->name('store.account'); 
+    });
+
+    
         // Di dalam Route Group 's/{subdomain}'
     Route::get('/products', [App\Http\Controllers\StorefrontController::class, 'products'])->name('store.products');
     Route::get('products/{product}/insight', [App\Http\Controllers\Client\ProductController::class, 'insight'])->name('store.products.insight');
@@ -282,4 +303,6 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
     // === ROUTE BLOG (SUDAH BENAR) ===
     Route::get('/blog', [App\Http\Controllers\StorefrontController::class, 'blogIndex'])->name('storefront.blog.index');
     Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('storefronts.blog.show');
+
+    
 });
