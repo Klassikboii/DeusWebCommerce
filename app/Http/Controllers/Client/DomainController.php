@@ -59,11 +59,11 @@ class DomainController extends Controller
                 }
 
                 // 2. Daftarkan domain baru ke Cloudflare
-                $cloudflareSuccess = $this->addCloudflareHostname($customDomain);
+                // $cloudflareSuccess = $this->addCloudflareHostname($customDomain);
                 
-                if (!$cloudflareSuccess) {
-                    return back()->with('error', 'Gagal mendaftarkan domain ke sistem keamanan Cloudflare. Silakan hubungi admin.');
-                }
+                // if (!$cloudflareSuccess) {
+                //     return back()->with('error', 'Gagal mendaftarkan domain ke sistem keamanan Cloudflare. Silakan hubungi admin.');
+                // }
             }
 
             $website->custom_domain = $customDomain;
