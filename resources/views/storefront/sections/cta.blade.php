@@ -26,12 +26,19 @@
         $bgColor = $settings['bg_color'] ?? '#ffffff';
         $textColor = $settings['text_color'] ?? '#000000';
     }
+    // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
+    $textTransform = $settings['text_transform'] ?? 'none';
+    $fontWeight = $settings['font_weight'] ?? 'bold'; // Default hero biasanya bold
+    $fontStyle = $settings['font_style'] ?? 'normal';
+    $headingSize = $settings['heading_size'] ?? 'display-3'; // Default ukuran judul
+    // ----------------------------------------------------
 
     // Logika Jarak (Padding)
     $paddingY = $settings['padding'] ?? 'py-5';
 @endphp
 
-<section id="{{ $sectionId }}" class="{{ $paddingY }} text-image-section live-section" style="background-color: {{ $bgColor }};">    <div class="container py-5 text-center">
+<section id="{{ $sectionId }}" class="{{ $paddingY }} text-image-section live-section" style="background-color: {{ $bgColor }}; text-transform: {{ $textTransform }}; 
+                font-style: {{ $fontStyle }};">    <div class="container py-5 text-center">
         
         <div class="row justify-content-center">
             <div class="col-lg-8">
@@ -40,7 +47,7 @@
                 <h2 class="display-5 fw-bold mb-4 live-editable serif text-uppercase" 
                     data-section-id="{{ $sectionId }}" 
                     data-key="title"
-                    style="color: {{ $textColor }}; letter-spacing: 2px;">
+                    style="color: {{ $textColor }}; letter-spacing: 2px; font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
                     {{ $title }}
                 </h2>
                 
@@ -48,7 +55,7 @@
                 <p class="fs-5 mb-5 live-editable" 
                    data-section-id="{{ $sectionId }}" 
                    data-key="subtitle"
-                   style="color: {{ $textColor }}; opacity: 0.8; letter-spacing: 1px;">
+                   style="color: {{ $textColor }}; opacity: 0.8; letter-spacing: 1px; font-family: var(--font-body); line-height: 1.6;">
                     {{ $subtitle }}
                 </p>
                 

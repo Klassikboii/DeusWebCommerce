@@ -34,6 +34,13 @@
     // Logika warna teks jika ada gambar latar belakang
     $finalTextColor = $website->hero_image ? $textColor: '#ffffff' ;
 
+    // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
+    $textTransform = $settings['text_transform'] ?? 'none';
+    $fontWeight = $settings['font_weight'] ?? 'bold'; // Default hero biasanya bold
+    $fontStyle = $settings['font_style'] ?? 'normal';
+    $headingSize = $settings['heading_size'] ?? 'display-3'; // Default ukuran judul
+    // ----------------------------------------------------
+
     // Logika Perataan Bootstrap
     $alignmentClass = 'justify-content-center text-center';
     if ($layout === 'left') $alignmentClass = 'justify-content-start text-start';
@@ -43,7 +50,9 @@
 {{-- 3. STRUKTUR HTML BOOTSTRAP YANG FLEKSIBEL --}}
 <section id="{{ $sectionId }}" 
          class="position-relative {{ $paddingY }} live-section"
-         style="background-color: {{ $bgColor }}; overflow: hidden; min-height: 60vh; display: flex; align-items: center;">
+         style="background-color: {{ $bgColor }}; 
+         text-transform: {{ $textTransform }}; 
+                font-style: {{ $fontStyle }};overflow: hidden; min-height: 60vh; display: flex; align-items: center;">
     
     {{-- Gambar Latar Belakang --}}
     @if($website->hero_image)
@@ -63,14 +72,14 @@
                 <h1 class="display-3 fw-bold mb-3 live-editable serif" 
                     data-section-id="{{ $sectionId }}" 
                     data-key="title"
-                    style="color: {{ $finalTextColor }}; letter-spacing: 1px;">
+                    style="color: {{ $finalTextColor }}; letter-spacing: 1px;font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
                     {{ $title }}
                 </h1>
                 
                 <p class="lead mb-5 live-editable" 
                    data-section-id="{{ $sectionId }}" 
                    data-key="subtitle"
-                   style="color: {{ $finalTextColor }}; font-weight: 400;">
+                   style="color: {{ $finalTextColor }}; font-weight: 400;font-family: var(--font-body); line-height: 1.6;">
                     {{ $subtitle }}
                 </p>
                 

@@ -19,9 +19,16 @@
 
     // Logika Jarak (Padding)
     $paddingY = $settings['padding'] ?? 'py-5';
+    // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
+    $textTransform = $settings['text_transform'] ?? 'none';
+    $fontWeight = $settings['font_weight'] ?? 'bold'; // Default hero biasanya bold
+    $fontStyle = $settings['font_style'] ?? 'normal';
+    $headingSize = $settings['heading_size'] ?? 'display-3'; // Default ukuran judul
+    // ----------------------------------------------------
 @endphp
 
-<section class="{{ $paddingY }} live-section" id="{{ $sectionId }}" style="background-color: {{ $bgColor }};">
+<section class="{{ $paddingY }} live-section" id="{{ $sectionId }}" style="background-color: {{ $bgColor }};text-transform: {{ $textTransform }}; 
+                font-style: {{ $fontStyle }};">
     <div class="container py-4">
         
         {{-- HEADER SECTION --}}
@@ -29,7 +36,7 @@
             <h2 class="display-6 fw-bold live-editable serif text-uppercase" 
                 data-section-id="{{ $sectionId }}" 
                 data-key="title"
-                style="color: {{ $textColor }}; letter-spacing: 2px;">
+                style="color: {{ $textColor }}; letter-spacing: 2px;font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
                 {{ $title }}
             </h2>
             <p class="live-editable mt-3" 

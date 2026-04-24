@@ -16,12 +16,19 @@
         $bgColor = $settings['bg_color'] ?? '#ffffff';
         $textColor = $settings['text_color'] ?? '#000000';
     }
+    // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
+    $textTransform = $settings['text_transform'] ?? 'none';
+    $fontWeight = $settings['font_weight'] ?? 'bold'; // Default hero biasanya bold
+    $fontStyle = $settings['font_style'] ?? 'normal';
+    $headingSize = $settings['heading_size'] ?? 'display-3'; // Default ukuran judul
+    // ----------------------------------------------------
 
     // Logika Jarak (Padding)
     $paddingY = $settings['padding'] ?? 'py-5';
 @endphp
 
-<section class="{{ $paddingY }} faq-section live-section" id="{{ $sectionId }}" style="background-color: {{ $bgColor }};">
+<section class="{{ $paddingY }} faq-section live-section" id="{{ $sectionId }}" style="background-color: {{ $bgColor }}; text-transform: {{ $textTransform }}; 
+                font-style: {{ $fontStyle }};">
     <div class="container py-4">
         
         {{-- HEADER SECTION --}}
@@ -29,14 +36,14 @@
             <h2 class="display-6 fw-bold live-editable serif text-uppercase" 
                 data-section-id="{{ $sectionId }}" 
                 data-key="title"
-                style="color: {{ $textColor }}; letter-spacing: 2px;">
+                style="color: {{ $textColor }}; letter-spacing: 2px;font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
                 {{ $title }}
             </h2>
             
             <p class="live-editable mt-3" 
                data-section-id="{{ $sectionId }}" 
                data-key="subtitle"
-               style="color: {{ $textColor }}; opacity: 0.7; letter-spacing: 0.5px;">
+               style="color: {{ $textColor }}; opacity: 0.7; letter-spacing: 0.5px;font-family: var(--font-body); line-height: 1.6;">
                 {{ $subtitle }}
             </p>
         </div>

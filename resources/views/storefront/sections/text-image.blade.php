@@ -27,9 +27,16 @@
     $bgColor = $settings['bg_color'] ?? '#ffffff'; // Default putih
     $textColor = $settings['text_color'] ?? '#000000'; // Default teks hitam
     $paddingY = $settings['padding'] ?? 'py-5 py-md-5';
+    // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
+    $textTransform = $settings['text_transform'] ?? 'none';
+    $fontWeight = $settings['font_weight'] ?? 'bold'; // Default hero biasanya bold
+    $fontStyle = $settings['font_style'] ?? 'normal';
+    $headingSize = $settings['heading_size'] ?? 'display-3'; // Default ukuran judul
+    // ----------------------------------------------------
 @endphp
 
-<section id="{{ $sectionId }}" class="{{ $paddingY }} text-image-section live-section" style="background-color: {{ $bgColor }};">
+<section id="{{ $sectionId }}" class="{{ $paddingY }} text-image-section live-section" style="background-color: {{ $bgColor }};text-transform: {{ $textTransform }}; 
+                font-style: {{ $fontStyle }};">
     <div class="container py-4">
         
         {{-- Logika Layout: Gambar Kiri atau Kanan --}}
@@ -54,7 +61,7 @@
                 <h2 class="display-6 fw-bold mb-4 live-editable serif text-uppercase" 
                     data-section-id="{{ $sectionId }}" 
                     data-key="title"
-                    style="color: {{ $textColor }}; letter-spacing: 1px;">
+                    style="color: {{ $textColor }}; letter-spacing: 1px;font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
                     {{ $title }}
                 </h2>
                 

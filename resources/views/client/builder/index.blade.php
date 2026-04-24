@@ -74,17 +74,60 @@
                         </div>
                        
                         <hr>
+                        
                         <h6 class="fw-bold mb-3">Tipografi</h6>
-                        <div class="mb-3">
-                            <label class="form-label small">Jenis Font</label>
-                            <select name="font_family" class="form-select live-update-style" data-style-var="--font-main">
-                                @php $currentFont = $website->theme_config['typography']['main'] ?? $website->font_family ?? 'Inter'; @endphp
-                                <option value="Inter" {{ $currentFont == 'Inter' ? 'selected' : '' }} style="font-family: Inter;">Inter (Modern)</option>
-                                <option value="Playfair Display" {{ $currentFont == 'Playfair Display' ? 'selected' : '' }} style="font-family: Playfair Display;">Playfair (Elegant)</option>
-                                <option value="Roboto" {{ $currentFont == 'Roboto' ? 'selected' : '' }} style="font-family: Roboto;">Roboto (Neutral)</option>
-                                <option value="Courier Prime" {{ $currentFont == 'Courier Prime' ? 'selected' : '' }} style="font-family: Courier Prime;">Courier (Retro)</option>
-                            </select>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Font Judul (Headings)</label>
+                                <select name="font_heading" class="form-select live-update-style" data-style-var="--font-heading">
+                                    @php $currentHeading = $website->theme_config['typography']['heading'] ?? 'Playfair Display'; @endphp
+                                    {{-- Gunakan daftar font yang sudah kita buat sebelumnya --}}
+                                    <optgroup label="Modern & Bersih (Sans-Serif)">
+                                    <option value="Inter" {{ $currentHeading == 'Inter' ? 'selected' : '' }} style="font-family: 'Inter', sans-serif;">Inter (Bawaan)</option>
+                                    <option value="Poppins" {{ $currentHeading == 'Poppins' ? 'selected' : '' }} style="font-family: 'Poppins', sans-serif;">Poppins (Bulat & Ramah)</option>
+                                    <option value="Plus Jakarta Sans" {{ $currentHeading == 'Plus Jakarta Sans' ? 'selected' : '' }} style="font-family: 'Plus Jakarta Sans', sans-serif;">Plus Jakarta (Profesional)</option>
+                                    <option value="Montserrat" {{ $currentHeading == 'Montserrat' ? 'selected' : '' }} style="font-family: 'Montserrat', sans-serif;">Montserrat (Tegas)</option>
+                                    <option value="Lato" {{ $currentHeading == 'Lato' ? 'selected' : '' }} style="font-family: 'Lato', sans-serif;">Lato (Hangat)</option>
+                                    <option value="Roboto" {{ $currentHeading == 'Roboto' ? 'selected' : '' }} style="font-family: 'Roboto', sans-serif;">Roboto (Standar)</option>
+                                </optgroup>
+
+                                <optgroup label="Elegan & Klasik (Serif)">
+                                    <option value="Playfair Display" {{ $currentHeading == 'Playfair Display' ? 'selected' : '' }} style="font-family: 'Playfair Display', serif;">Playfair Display (Butik)</option>
+                                    <option value="Lora" {{ $currentHeading == 'Lora' ? 'selected' : '' }} style="font-family: 'Lora', serif;">Lora (Estetik)</option>
+                                    <option value="Tinos" {{ $currentHeading == 'Tinos' ? 'selected' : '' }} style="font-family: 'Tinos', serif;">Tinos (Formal)</option>
+                                </optgroup>
+
+                                <optgroup label="Unik & Spesial">
+                                    <option value="Bebas Neue" {{ $currentHeading == 'Bebas Neue' ? 'selected' : '' }} style="font-family: 'Bebas Neue', sans-serif;">Bebas Neue (Rapat & Besar)</option>
+                                    <option value="Courier Prime" {{ $currentHeading == 'Courier Prime' ? 'selected' : '' }} style="font-family: 'Courier Prime', monospace;">Courier Prime (Retro/Ketik)</option>
+                                </optgroup>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small">Font Teks (Body)</label>
+                                <select name="font_body" class="form-select live-update-style" data-style-var="--font-body">
+                                    @php $currentBody = $website->theme_config['typography']['body'] ?? 'Inter'; @endphp
+                                    <optgroup label="Modern & Bersih (Sans-Serif)">
+                                    <option value="Inter" {{ $currentBody == 'Inter' ? 'selected' : '' }} style="font-family: 'Inter', sans-serif;">Inter (Bawaan)</option>
+                                    <option value="Poppins" {{ $currentBody == 'Poppins' ? 'selected' : '' }} style="font-family: 'Poppins', sans-serif;">Poppins (Bulat & Ramah)</option>
+                                    <option value="Plus Jakarta Sans" {{ $currentBody == 'Plus Jakarta Sans' ? 'selected' : '' }} style="font-family: 'Plus Jakarta Sans', sans-serif;">Plus Jakarta (Profesional)</option>
+                                    <option value="Montserrat" {{ $currentBody == 'Montserrat' ? 'selected' : '' }} style="font-family: 'Montserrat', sans-serif;">Montserrat (Tegas)</option>
+                                    <option value="Lato" {{ $currentBody == 'Lato' ? 'selected' : '' }} style="font-family: 'Lato', sans-serif;">Lato (Hangat)</option>
+                                    <option value="Roboto" {{ $currentBody == 'Roboto' ? 'selected' : '' }} style="font-family: 'Roboto', sans-serif;">Roboto (Standar)</option>
+                                </optgroup>
+
+                                <optgroup label="Elegan & Klasik (Serif)">
+                                    <option value="Playfair Display" {{ $currentBody == 'Playfair Display' ? 'selected' : '' }} style="font-family: 'Playfair Display', serif;">Playfair Display (Butik)</option>
+                                    <option value="Lora" {{ $currentBody == 'Lora' ? 'selected' : '' }} style="font-family: 'Lora', serif;">Lora (Estetik)</option>
+                                    <option value="Tinos" {{ $currentBody == 'Tinos' ? 'selected' : '' }} style="font-family: 'Tinos', serif;">Tinos (Formal)</option>
+                                </optgroup>
+
+                                <optgroup label="Unik & Spesial">
+                                    <option value="Bebas Neue" {{ $currentBody == 'Bebas Neue' ? 'selected' : '' }} style="font-family: 'Bebas Neue', sans-serif;">Bebas Neue (Rapat & Besar)</option>
+                                    <option value="Courier Prime" {{ $currentBody == 'Courier Prime' ? 'selected' : '' }} style="font-family: 'Courier Prime', monospace;">Courier Prime (Retro/Ketik)</option>
+                                </optgroup>
+                                </select>
+                            </div>
                         <div class="mb-3">
                             <label class="form-label small">Rasio Gambar Produk</label>
                             <select name="product_image_ratio" class="form-select live-update-style" data-style-var="--ratio-product">
@@ -299,20 +342,26 @@
         }
     }
 
-    function addNewSection(type) {
+   function addNewSection(type) {
         const uniqueId = type + '-' + Date.now().toString().slice(-6);
         let defaultData = {};
         
-        // --- TAMBAHAN BARU: Default Pengaturan Warna & Layout ---
+        // Default Pengaturan Warna, Layout, & TIPOGRAFI
         let defaultSettings = {
             bg_color: '#ffffff',
             text_color: '#000000',
-            layout: 'center'
+            layout: 'center',
+            text_transform: 'none',
+            font_weight: 'normal',
+            font_style: 'normal',
+            heading_size: 'fs-3' // Menggunakan class font-size Bootstrap
         };
         
+        // ... (Biarkan logika if-else type hero, products, dll tetap sama persis seperti kode Anda sebelumnya) ...
         if (type === 'hero') {
             defaultData = { title: 'Judul Baru', subtitle: 'Deskripsi...', button_text: 'Klik Disini' };
-            defaultSettings.bg_color = '#f8f9fa'; // Default Abu-abu terang
+            defaultSettings.bg_color = '#f8f9fa';
+            defaultSettings.heading_size = 'fs-1'; // Hero defaultnya besar
         }
         else if (type === 'products') {
             defaultData = { title: 'Produk Pilihan', subtitle: 'Koleksi terbaik dari toko kami', limit: 8 };
@@ -328,14 +377,15 @@
         }
         else if (type === 'testimonial') {
             defaultData = { title: 'Apa Kata Mereka?', subtitle: 'Ulasan asli dari pelanggan setia kami.', t1_name: 'Budi Santoso', t1_role: 'Pengusaha', t1_review: 'Kualitas produk luar biasa!' };
+            defaultSettings.font_style = 'italic'; // Testimonial biasanya italic
         }
         else if (type === 'cta') {
             defaultData = { title: 'Dapatkan Diskon 20% Hari Ini!', subtitle: 'Gunakan kode promo: DEUS20 saat checkout.', button_text: 'Belanja Sekarang', button_link: '#products' };
-            defaultSettings.bg_color = '#000000'; // Default hitam elegan
+            defaultSettings.bg_color = '#000000';
             defaultSettings.text_color = '#ffffff';
+            defaultSettings.text_transform = 'uppercase'; // CTA biasanya lebih nge-gas
         }
 
-        // Simpan data DAN settings ke dalam array JSON
         currentSections.push({ id: uniqueId, type: type, visible: true, data: defaultData, settings: defaultSettings });
         saveToServer(true); 
     }
@@ -444,14 +494,20 @@
             const eyeIcon = isVisible ? 'bi-eye' : 'bi-eye-slash';
             const eyeColor = isVisible ? '' : 'text-danger';
             const sData = section.data || {};
-            // --- TAMBAHAN BARU: Ambil Settings ---
+           // ... (di dalam loop currentSections.forEach) ...
             const sSettings = section.settings || {}; 
             const bgColor = sSettings.bg_color || '#ffffff';
             const textColor = sSettings.text_color || '#000000';
-            const colorMode = sSettings.color_mode || 'global'; // 'global' atau 'custom'
-            const paddingOpt = sSettings.padding || 'py-5'; // 'py-3' (Rapat), 'py-5' (Normal), 'py-5 py-md-5 pt-lg-7 pb-lg-7' (Longgar)
+            const colorMode = sSettings.color_mode || 'global';
+            const paddingOpt = sSettings.padding || 'py-5';
+            
+            // Variabel Tipografi Baru
+            const textTransform = sSettings.text_transform || 'none';
+            const fontWeight = sSettings.font_weight || 'normal';
+            const fontStyle = sSettings.font_style || 'normal';
+            const headingSize = sSettings.heading_size || 'fs-3';
 
-            // HTML Komponen Pengaturan Warna (Bisa Dipakai Ulang)
+            // HTML Komponen Pengaturan Warna & Tipografi
             const styleHtml = `
                 <div class="p-2 bg-white border rounded shadow-sm mb-3">
                     <label class="form-label text-muted mb-2" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-palette me-1"></i>Tampilan & Warna</label>
@@ -477,13 +533,57 @@
 
                     <hr class="my-2 border-light">
                     
-                    <div class="mb-1">
+                    <div class="mb-2">
                         <label style="font-size: 10px;">Jarak Atas & Bawah (Padding)</label>
                         <select class="form-select form-select-sm live-update-setting" data-section-id="${section.id}" data-key="padding">
                             <option value="py-3" ${paddingOpt === 'py-3' ? 'selected' : ''}>Rapat (Kecil)</option>
                             <option value="py-5" ${paddingOpt === 'py-5' ? 'selected' : ''}>Normal (Standar)</option>
                             <option value="py-5 py-md-5 pt-lg-7 pb-lg-7" ${paddingOpt === 'py-5 py-md-5 pt-lg-7 pb-lg-7' ? 'selected' : ''}>Longgar (Besar)</option>
                         </select>
+                    </div>
+
+                    <hr class="my-2 border-light">
+                    <label class="form-label text-muted mb-2" style="font-size: 11px; font-weight: 600; text-transform: uppercase;"><i class="bi bi-type me-1"></i>Tipografi Teks</label>
+                    
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label style="font-size: 10px;">Gaya Huruf (Transform)</label>
+                            <select class="form-select form-select-sm live-update-setting" data-section-id="${section.id}" data-key="text_transform">
+                                <option value="none" ${textTransform === 'none' ? 'selected' : ''}>Bawaan (Normal)</option>
+                                <option value="uppercase" ${textTransform === 'uppercase' ? 'selected' : ''}>UPPERCASE</option>
+                                <option value="lowercase" ${textTransform === 'lowercase' ? 'selected' : ''}>lowercase</option>
+                                <option value="capitalize" ${textTransform === 'capitalize' ? 'selected' : ''}>Capitalize</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label style="font-size: 10px;">Ukuran Judul</label>
+                            <select class="form-select form-select-sm live-update-setting" data-section-id="${section.id}" data-key="heading_size">
+                                <option value="fs-1" ${headingSize === 'fs-1' ? 'selected' : ''}>Sangat Besar (H1)</option>
+                                <option value="fs-2" ${headingSize === 'fs-2' ? 'selected' : ''}>Besar (H2)</option>
+                                <option value="fs-3" ${headingSize === 'fs-3' ? 'selected' : ''}>Sedang (H3)</option>
+                                <option value="fs-5" ${headingSize === 'fs-5' ? 'selected' : ''}>Kecil (H5)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label style="font-size: 10px;">Ketebalan (Weight)</label>
+                            <select class="form-select form-select-sm live-update-setting" data-section-id="${section.id}" data-key="font_weight">
+                                <option value="300" ${fontWeight === '300' ? 'selected' : ''}>Tipis (300)</option>
+                                <option value="normal" ${fontWeight === 'normal' ? 'selected' : ''}>Normal (400)</option>
+                                <option value="600" ${fontWeight === '600' ? 'selected' : ''}>Semi-Tebal (600)</option>
+                                <option value="bold" ${fontWeight === 'bold' ? 'selected' : ''}>Tebal (700)</option>
+                                <option value="900" ${fontWeight === '900' ? 'selected' : ''}>Extra Tebal (900)</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label style="font-size: 10px;">Kemiringan</label>
+                            <select class="form-select form-select-sm live-update-setting" data-section-id="${section.id}" data-key="font_style">
+                                <option value="normal" ${fontStyle === 'normal' ? 'selected' : ''}>Normal</option>
+                                <option value="italic" ${fontStyle === 'italic' ? 'selected' : ''}>Italic (Miring)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             `;

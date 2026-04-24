@@ -10,7 +10,16 @@
     <meta property="og:description" content="@yield('meta_description', $website->meta_description)">
     <meta property="og:image" content="{{ $website->logo ? asset('storage/'.$website->logo) : asset('default-image.jpg') }}">
     <meta property="og:url" content="{{ url()->current() }}">
+    @php
+    $headingFont = $website->theme_config['typography']['heading'] ?? 'Playfair Display';
+    $bodyFont = $website->theme_config['typography']['body'] ?? 'Inter';
     
+    $headingUrl = str_replace(' ', '+', $headingFont);
+    $bodyUrl = str_replace(' ', '+', $bodyFont);
+@endphp
+
+    {{-- Memuat font dengan semua ketebalan (300, 400, 600, 700, 900) dan gaya (italic) --}}
+    <link id="google-font-link" href="https://fonts.googleapis.com/css2?family={{ $fontUrl }}:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
    @php
@@ -32,7 +41,8 @@
             --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#0d6efd' }}; 
             --secondary-color: {{ $website->theme_config['colors']['secondary'] ?? '#6c757d' }};
             --hero-bg-color: {{ $website->theme_config['colors']['bg_hero'] ?? '#333333' }};
-            --font-main: '{{ $website->theme_config['typography']['main'] ?? 'Inter' }}', sans-serif;
+            --font-heading: '{{ $headingFont }}', serif;
+        --font-body: '{{ $bodyFont }}', sans-serif;
             --ratio-product: {{ $website->theme_config['shapes']['product_ratio'] ?? '1/1' }};
             /* 👇 TAMBAHAN BARU: Variabel Radius & Shadow */
             --radius-base: {{ $website->theme_config['shapes']['radius'] ?? '0.5rem' }};
@@ -42,10 +52,11 @@
         }
         
         body { 
-            font-family: var(--font-main), 'georgia', serif; 
+           font-family: var(--font-body);
             background-color: var(--bg-base);
             color: var(--text-base);
         }
+        h1, h2, h3, h4, h5, h6, .serif { font-family: var(--font-heading); }
         /* 👇 TRIK AJAIB: Timpa class Bootstrap agar mengikuti tema warna pilihan klien */
         .bg-white, .bg-light { background-color: var(--bg-base) !important; }
         .text-dark { color: var(--text-base) !important; }
@@ -389,11 +400,17 @@
 
                 // A. UPDATE STYLE KESELURUHAN (Warna Tema & Font)
                 if (data.type === 'updateStyle') {
-                    if (data.variable === '--font-main') {
-                        const fontName = data.value.replace(/ /g, '+');
+                   if (data.variable === '--font-heading' || data.variable === '--font-body') {
+                        // Ambil nilai terbaru dari kedua select untuk membangun URL Google Font yang baru
+                        const hFont = document.querySelector('[data-style-var="--font-heading"]').value.replace(/ /g, '+');
+                        const bFont = document.querySelector('[data-style-var="--font-body"]').value.replace(/ /g, '+');
+                        
                         const fontLink = document.getElementById('google-font-link');
-                        if (fontLink) fontLink.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;600;700&display=swap`;
-                        document.documentElement.style.setProperty(data.variable, `'${data.value}', sans-serif`);
+                        if (fontLink) {
+                            fontLink.href = `https://fonts.googleapis.com/css2?family=${hFont}:wght@400;700&family=${bFont}:wght@400;700&display=swap`;
+                        }
+                        
+                        document.documentElement.style.setProperty(data.variable, `'${data.value}'`);
                     } else {
                         document.documentElement.style.setProperty(data.variable, data.value);
                     }
@@ -496,6 +513,24 @@
                         ['py-3', 'py-5', 'py-md-5', 'pt-lg-7', 'pb-lg-7'].forEach(cls => section.classList.remove(cls));
                         data.value.split(' ').forEach(cls => { if(cls) section.classList.add(cls); });
                     }
+                    // --- TAMBAHAN: Logika Live Tipografi ---
+                    if (data.key === 'text_transform') {
+                        section.style.textTransform = data.value;
+                    } 
+                    else if (data.key === 'font_weight') {
+                        section.style.fontWeight = data.value;
+                    } 
+                    else if (data.key === 'font_style') {
+                        section.style.fontStyle = data.value;
+                    } 
+                    else if (data.key === 'heading_size') {
+                        // Hapus semua class ukuran (fs-1 sampai fs-6) pada judul
+                        ['fs-1', 'fs-2', 'fs-3', 'fs-4', 'fs-5', 'fs-6'].forEach(cls => {
+                            section.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => h.classList.remove(cls));
+                        });
+                        // Tambahkan class ukuran yang baru
+                        section.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => h.classList.add(data.value));
+                    }  
                 }
             });
         }

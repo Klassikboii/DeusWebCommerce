@@ -37,11 +37,18 @@
     
     // Opsional: Warna khusus ikon jika klien ingin ikonnya berbeda dari warna teks
     $iconColor = $settings['icon_color'] ?? $textColor; 
+    // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
+    $textTransform = $settings['text_transform'] ?? 'none';
+    $fontWeight = $settings['font_weight'] ?? 'bold'; // Default hero biasanya bold
+    $fontStyle = $settings['font_style'] ?? 'normal';
+    $headingSize = $settings['heading_size'] ?? 'display-3'; // Default ukuran judul
+    // ----------------------------------------------------
     
     
 @endphp
 
-<section id="{{ $sectionId }}" class="{{ $paddingY }} live-section" style="background-color: {{ $bgColor }}; border-top: 1px solid rgba(0,0,0,0.05); border-bottom: 1px solid rgba(0,0,0,0.05);">
+<section id="{{ $sectionId }}" class="{{ $paddingY }} live-section" style="background-color: {{ $bgColor }};text-transform: {{ $textTransform }}; 
+                font-style: {{ $fontStyle }}; border-top: 1px solid rgba(0,0,0,0.05); border-bottom: 1px solid rgba(0,0,0,0.05);">
     <div class="container py-4">
         
         {{-- HEADER SECTION --}}
@@ -49,7 +56,7 @@
             <h2 class="display-6 fw-bold section-title live-editable serif text-uppercase" 
                 data-section-id="{{ $sectionId }}" 
                 data-key="title"
-                style="color: {{ $textColor }}; letter-spacing: 2px;">
+                style="color: {{ $textColor }}; letter-spacing: 2px;font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
                 {{ $title }}
             </h2>
         </div>
