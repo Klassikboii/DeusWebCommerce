@@ -56,7 +56,7 @@
             <h2 class="display-6 fw-bold section-title live-editable serif text-uppercase" 
                 data-section-id="{{ $sectionId }}" 
                 data-key="title"
-                style="color: {{ $textColor }}; letter-spacing: 2px;font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
+                style="color: {{ $textColor }}; letter-spacing: 2px;font-family: var(--font-heading); font-weight: {{ $fontWeight }};">
                 {{ $title }}
             </h2>
         </div>
@@ -77,13 +77,13 @@
                     <h5 class="fw-bold live-editable serif text-uppercase" 
                         data-section-id="{{ $sectionId }}" 
                         data-key="f1_title"
-                        style="color: {{ $textColor }}; letter-spacing: 1px;">
+                        style="color: {{ $textColor }}; letter-spacing: 1px;font-family: var(--font-heading)">
                         {{ $f1_title }}
                     </h5>
                     <p class="small live-editable mt-3" 
                        data-section-id="{{ $sectionId }}" 
                        data-key="f1_desc"
-                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;">
+                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;font-family: var(--font-body);    ">
                         {{ $f1_desc }}
                     </p>
                 </div>
@@ -101,13 +101,13 @@
                     <h5 class="fw-bold live-editable serif text-uppercase" 
                         data-section-id="{{ $sectionId }}" 
                         data-key="f2_title"
-                        style="color: {{ $textColor }}; letter-spacing: 1px;">
+                        style="color: {{ $textColor }}; letter-spacing: 1px;font-family: var(--font-heading)">
                         {{ $f2_title }}
                     </h5>
                     <p class="small live-editable mt-3" 
                        data-section-id="{{ $sectionId }}" 
                        data-key="f2_desc"
-                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;">
+                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;font-family: var(--font-body);">
                         {{ $f2_desc }}
                     </p>
                 </div>
@@ -125,13 +125,13 @@
                     <h5 class="fw-bold live-editable serif text-uppercase" 
                         data-section-id="{{ $sectionId }}" 
                         data-key="f3_title"
-                        style="color: {{ $textColor }}; letter-spacing: 1px;">
+                        style="color: {{ $textColor }}; letter-spacing: 1px;font-family: var(--font-heading)">
                         {{ $f3_title }}
                     </h5>
                     <p class="small live-editable mt-3" 
                        data-section-id="{{ $sectionId }}" 
                        data-key="f3_desc"
-                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;">
+                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;font-family: var(--font-body);">
                         {{ $f3_desc }}
                     </p>
                 </div>

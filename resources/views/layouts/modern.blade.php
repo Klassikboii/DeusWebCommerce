@@ -520,22 +520,30 @@
                 if (!data || !data.type) return;
 
                 // A. UPDATE STYLE KESELURUHAN (Warna Tema & Font)
-                if (data.type === 'updateStyle') {
-                    if (data.variable === '--font-heading' || data.variable === '--font-body') {
-                        // Ambil nilai terbaru dari kedua select untuk membangun URL Google Font yang baru
-                        const hFont = document.querySelector('[data-style-var="--font-heading"]').value.replace(/ /g, '+');
-                        const bFont = document.querySelector('[data-style-var="--font-body"]').value.replace(/ /g, '+');
-                        
-                        const fontLink = document.getElementById('google-font-link');
-                        if (fontLink) {
-                            fontLink.href = `https://fonts.googleapis.com/css2?family=${hFont}:wght@400;700&family=${bFont}:wght@400;700&display=swap`;
-                        }
-                        
-                        document.documentElement.style.setProperty(data.variable, `'${data.value}'`);
-                    }else {
+                    if (data.type === 'updateStyle') {
+                        // 1. Terapkan perubahan variabel CSS segera agar tampilan berubah
                         document.documentElement.style.setProperty(data.variable, data.value);
+
+                        // 2. Jika yang dirubah adalah font, perbarui link Google Fonts
+                        if (data.variable === '--font-heading' || data.variable === '--font-body') {
+                            const root = document.documentElement;
+                            
+                            // Ambil nilai font saat ini langsung dari CSS Variables di :root
+                            // getComputedStyle memastikan kita mendapatkan nilai terbaru setelah setProperty
+                            let hFont = getComputedStyle(root).getPropertyValue('--font-heading').trim().replace(/['"]/g, '');
+                            let bFont = getComputedStyle(root).getPropertyValue('--font-body').trim().replace(/['"]/g, '');
+
+                            const fontLink = document.getElementById('google-font-link');
+                            if (fontLink) {
+                                // Format nama font untuk URL (spasi jadi +)
+                                const hUrl = hFont.replace(/ /g, '+');
+                                const bUrl = bFont.replace(/ /g, '+');
+
+                                // Muat kedua font sekaligus dalam satu request
+                                fontLink.href = `https://fonts.googleapis.com/css2?family=${hUrl}:wght@700;900&family=${bUrl}:ital,wght@0,400;0,700;1,400&display=swap`;
+                            }
+                        }
                     }
-                }
 
                 // B. UPDATE TEXT & LOGIKA KONTEN SECTION
                 else if (data.type === 'updateSection') {

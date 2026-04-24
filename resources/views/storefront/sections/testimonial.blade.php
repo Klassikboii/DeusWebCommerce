@@ -42,7 +42,7 @@
             <p class="live-editable mt-3" 
                data-section-id="{{ $sectionId }}" 
                data-key="subtitle"
-               style="color: {{ $textColor }}; opacity: 0.7; letter-spacing: 0.5px;">
+               style="color: {{ $textColor }}; opacity: 0.7; letter-spacing: 0.5px;font-family: var(--font-body);">
                 {{ $subtitle }}
             </p>
         </div>

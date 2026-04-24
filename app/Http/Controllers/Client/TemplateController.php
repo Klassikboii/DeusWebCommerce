@@ -48,21 +48,24 @@ class TemplateController extends Controller
         $newConfig = $website->theme_config ?? [];
 
         if ($templateId === 'classic') {
-            $newConfig['typography']['main'] = 'Playfair Display'; // Font elegan
+            $newConfig['typography']['heading'] = 'Playfair Display'; // Judul Elegan
+        $newConfig['typography']['body'] = 'Lora';
             $newConfig['shapes']['radius'] = '0px';                // Sudut tajam
             $newConfig['shapes']['shadow'] = 'none';               // Flat design
             $newConfig['colors']['primary'] = '#000000';           // Hitam premium
             $newConfig['colors']['bg_base'] = '#Fcfcfc';           // Off-white
         } 
         elseif ($templateId === 'modern') {
-            $newConfig['typography']['main'] = 'Inter';            // Font santai
+            $newConfig['typography']['heading'] = 'Plus Jakarta Sans'; // Judul Profesional
+        $newConfig['typography']['body'] = 'Inter';           // Font santai
             $newConfig['shapes']['radius'] = '0.75rem';            // Melengkung (12px)
             $newConfig['shapes']['shadow'] = '0 10px 15px -3px rgba(0,0,0,0.1)'; // Bayangan melayang
             $newConfig['colors']['primary'] = '#0d6efd';           // Biru modern
             $newConfig['colors']['bg_base'] = '#f8f9fa';           // Abu-abu sangat muda
         }
         elseif ($templateId === 'simple') {
-            $newConfig['typography']['main'] = 'Roboto';
+            $newConfig['typography']['heading'] = 'Montserrat';       // Judul Tegas
+        $newConfig['typography']['body'] = 'Lato';
             $newConfig['shapes']['radius'] = '0.25rem';            // Sedikit melengkung (4px)
             $newConfig['shapes']['shadow'] = '0 1px 3px rgba(0,0,0,0.1)'; // Bayangan tipis
             $newConfig['colors']['primary'] = '#333333';

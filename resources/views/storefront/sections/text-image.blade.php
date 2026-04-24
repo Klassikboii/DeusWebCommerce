@@ -69,7 +69,7 @@
                 <p class="mb-5 live-editable" 
                    data-section-id="{{ $sectionId }}" 
                    data-key="description" 
-                   style="color: {{ $textColor }}; line-height: 1.8; opacity: 0.8; font-size: 1.05rem;">
+                   style="color: {{ $textColor }}; line-height: 1.8; opacity: 0.8; font-size: 1.05rem;font-family: var(--font-body);">
                     {!! nl2br(e($description)) !!}
                 </p>
                 
