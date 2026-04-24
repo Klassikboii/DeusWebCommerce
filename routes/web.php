@@ -269,6 +269,8 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
         Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('store.logout');
         // 🚨 Buka rute dasbor riwayat pesanan
     Route::get('/account', [CustomerAccountController::class, 'index'])->name('store.account');
+    Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
+    Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
         
         // Nanti kita buat Controller untuk ini, sementara arahkan ke view langsung atau biarkan kosong
         // Route::get('/account', [CustomerAccountController::class, 'index'])->name('store.account'); 
@@ -282,8 +284,7 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
     Route::get('/product/{slug}', [App\Http\Controllers\StorefrontController::class, 'product'])->name('store.product');
     
     // ... Cart Routes (Pastikan controller menerima parameter $subdomain) ...
-    Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
-    Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
+    
     Route::patch('/cart/update', [App\Http\Controllers\CheckoutController::class, 'updateCart'])->name('store.cart.update');
     Route::delete('/cart/remove/{id}', [App\Http\Controllers\CheckoutController::class, 'removeFromCart'])->name('store.cart.remove');
         // Route untuk AJAX Cek Ongkir (Ditaruh di group Storefront)

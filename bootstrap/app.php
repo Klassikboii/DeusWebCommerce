@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return route('store.login');
             }
             return route('login');
+            
         });
         // --- DAFTARKAN ALIAS DI SINI ---
         $middleware->alias([

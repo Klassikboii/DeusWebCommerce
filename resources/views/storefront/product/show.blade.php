@@ -112,7 +112,7 @@
                 </div>
 
                 <hr>
-
+                
                 {{-- FORM ADD TO CART --}}
                 <form action="{{ route('store.cart.add', [ 'id' => $product->id]) }}" method="POST">
                     @csrf
@@ -147,17 +147,22 @@
                             <button class="btn btn-outline-secondary" type="button" onclick="adjustQty(-1)">
                                 <i class="bi bi-dash"></i>
                             </button>
-                            <input type="number" name="quantity" class="form-control text-center desktop-qty no-arrow fw-bold" 
-                                   value="1" min="1" max="{{ $product->stock }}" onchange="syncQty(this.value)">
+                            <input type="number" name="quantity" class="form-control" value="1" @guest('customer') disabled @endguest>
                             <button class="btn btn-outline-secondary" type="button" onclick="adjustQty(1)">
                                 <i class="bi bi-plus"></i>
                             </button>
                         </div>
-                        
+                        @auth('customer')
                         <button type="submit" id="desktop-add-btn" class="btn btn-primary btn-lg rounded-pill px-5 add-btn"
                                 {{ (!$product->hasVariants() && $product->stock < 1) ? 'disabled' : '' }}>
                             <i class="bi bi-bag-plus "></i> Masukkan Keranjang
                         </button>
+                        @else
+                            {{-- Jika BELUM Login: Tampilkan tombol arahkan ke halaman Login --}}
+                            <a href="{{ route('store.login') }}" class="btn btn-outline-primary w-100 py-3 fw-bold" style="border-radius: var(--radius-base); border-width: 2px;">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> Masuk untuk Berbelanja
+                            </a>
+                        @endauth
                     </div>
 
                     {{-- 
@@ -177,12 +182,18 @@
                                     <i class="bi bi-plus"></i>
                                 </button>
                             </div>
-
+                            @auth('customer')
                             {{-- Tombol Beli --}}
                             <button type="submit" id="mobile-add-btn" class="btn btn-primary rounded-pill flex-grow-1 add-btn"
                                     {{ (!$product->hasVariants() && $product->stock < 1) ? 'disabled' : '' }}>
                                 <i class="bi bi-bag-plus me-1"></i> Beli
                             </button>
+                            @else
+                            {{-- Jika BELUM Login: Tampilkan tombol arahkan ke halaman Login --}}
+                            <a href="{{ route('store.login') }}" class="btn btn-outline-primary w-100 py-3 fw-bold" style="border-radius: var(--radius-base); border-width: 2px;">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> Masuk untuk Berbelanja
+                            </a>
+                        @endauth
                         </div>
                     </div>
 
