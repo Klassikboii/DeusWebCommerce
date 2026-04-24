@@ -19,7 +19,8 @@
     @endphp
 
     {{-- Memuat font dengan semua ketebalan (300, 400, 600, 700, 900) dan gaya (italic) --}}
-    <link id="google-font-link" href="https://fonts.googleapis.com/css2?family={{ $fontUrl }}:ital,wght@0,300;0,400;0,600;0,700;0,900;1,400;1,700&display=swap" rel="stylesheet">
+{{-- 🚨 MENGGUNAKAN API V1: Lebih aman dan anti-error untuk Web Builder --}}
+    <link id="google-font-link" href="https://fonts.googleapis.com/css?family={{ $headingUrl }}:300,400,600,700|{{ $bodyUrl }}:300,400,400i,600,700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     @php
@@ -57,6 +58,29 @@
             background-color: var(--bg-base);
             color: var(--text-base);
         }
+        /* Terapkan secara agresif ke elemen-elemen penting */
+    
+    /* 1. Semua Card/Kotak */
+    .card, .section-box, .feature-card {
+        border-radius: var(--radius-base) !important;
+        box-shadow: var(--shadow-base) !important;
+        border: none !important; /* Opsional: hilangkan border agar shadow lebih cantik */
+    }
+
+    /* 2. Semua Tombol */
+    .btn {
+        border-radius: var(--radius-base) !important;
+    }
+
+    /* 3. Input Form */
+    .form-control, .form-select {
+        border-radius: var(--radius-base) !important;
+    }
+
+    /* 4. Gambar Produk */
+    .product-img-wrapper img {
+        border-radius: var(--radius-base);
+    }
         h1, h2, h3, h4, h5, h6, .serif { font-family: var(--font-heading); }
         .text-primary-custom { color: var(--primary-color) !important; }
         .bg-primary-custom { background-color: var(--hero-bg-color) !important; color: white; }
@@ -125,7 +149,7 @@
     }
 @endphp
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top" style="box-shadow: var(--shadow-base)">
         <div class="container gap-lg-4">
             {{-- LOGO --}}
             <a class="navbar-brand fw-bold me-0" href="#">
@@ -540,8 +564,12 @@
                                 const bUrl = bFont.replace(/ /g, '+');
 
                                 // Muat kedua font sekaligus dalam satu request
-                                fontLink.href = `https://fonts.googleapis.com/css2?family=${hUrl}:wght@700;900&family=${bUrl}:ital,wght@0,400;0,700;1,400&display=swap`;
+                                fontLink.href = `https://fonts.googleapis.com/css?family=${hUrl}:300,400,600,700|${bUrl}:300,400,400i,600,700&display=swap`;    
                             }
+                        }
+                        // 🚨 TAMBAHAN UNTUK RADIUS & SHADOW
+                        if (data.variable === '--radius-base' || data.variable === '--shadow-base') {
+                            document.documentElement.style.setProperty(data.variable, data.value);
                         }
                     }
 

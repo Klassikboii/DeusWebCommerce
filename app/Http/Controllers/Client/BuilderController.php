@@ -48,8 +48,15 @@ class BuilderController extends Controller
         ];
 
         $themeConfig['typography'] = [
-            'main' => $request->font_family ?? ($themeConfig['typography']['main'] ?? 'Inter'),
-        ];
+                // Jika ada request font_heading gunakan itu, jika tidak gunakan yang lama, jika tidak ada default ke Playfair
+                'heading' => $request->font_heading ?? ($themeConfig['typography']['heading'] ?? 'Playfair Display'),
+                
+                // Jika ada request font_body gunakan itu, jika tidak gunakan yang lama, jika tidak ada default ke Inter
+                'body'    => $request->font_body ?? ($themeConfig['typography']['body'] ?? 'Inter'),
+                
+                // Tetap simpan 'main' sebagai fallback atau jika template lama masih membutuhkannya
+                'main'    => $request->font_heading ?? ($themeConfig['typography']['main'] ?? 'Inter'),
+            ];
 
         // 👇 PERUBAHAN DI SINI: Tambah Radius & Shadow
         $themeConfig['shapes'] = [
