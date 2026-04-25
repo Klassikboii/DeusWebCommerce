@@ -148,8 +148,21 @@
         if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->active_domain . '.localhost:8000'; }
     }
 @endphp
-
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top" style="box-shadow: var(--shadow-base)">
+@php
+            $navItems = $website->navigation_menu ?? [];
+            $menuCount = count($navItems);
+            
+            $expandClass = 'navbar-expand-lg'; // Standar (s/d 4 menu)
+            
+            if ($menuCount > 4 && $menuCount <= 6) {
+                $expandClass = 'navbar-expand-xl'; // Hamburger di laptop kecil
+            } elseif ($menuCount > 6) {
+                // 🚨 KUNCI UTAMA: Kosongkan class!
+                // Jika > 6, paksa jadi Hamburger selamanya (bahkan di TV 4K)
+                $expandClass = ''; 
+            }
+        @endphp
+    <nav class="navbar {{ $expandClass }} navbar-light bg-white shadow-sm sticky-top" style="box-shadow: var(--shadow-base)">
         <div class="container gap-lg-4">
             {{-- LOGO --}}
             <a class="navbar-brand fw-bold me-0" href="#">
@@ -245,12 +258,7 @@
                             </a>
                         </li>
                         @endforeach
-                        {{-- ITEM TAMBAHAN: CEK PESANAN --}}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ route('store.track') }}">
-                            Cek Pesanan
-                        </a>
-                    </li>
+                       
                     {{-- Cek apakah pelanggan sudah login menggunakan guard 'customer' --}}
                         @if(Auth::guard('customer')->check())
                             

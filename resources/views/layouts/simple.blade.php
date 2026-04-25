@@ -160,132 +160,91 @@
             if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->active_domain . '.localhost:8000'; }
         }
     @endphp
+   @php
+        $rawMenu = $website->navigation_menu;
+        $navMenus = is_string($rawMenu) ? json_decode($rawMenu, true) : $rawMenu;
+        if (!is_array($navMenus) || empty($navMenus)) {
+            $navMenus = [['label' => 'Home', 'url' => '#'], ['label' => 'Shop', 'url' => '#shop']];
+        }
+        $menuCount = count($navMenus);
+        
+        // Logika Breakpoint: Jika menu > 5, paksa jadi hamburger di semua layar.
+        $expandClass = 'navbar-expand-lg'; 
+        if ($menuCount > 5) { $expandClass = ''; } 
+    @endphp
 
-    <nav class="navbar navbar-expand-lg bg-white border-bottom py-4 sticky-top" style="box-shadow: var(--shadow-base)">
-        <div class="container flex-column position-relative">
+    <header class="bg-white border-bottom sticky-top" style="box-shadow: var(--shadow-base)">
+        
+        <div class="container py-3 d-flex align-items-center justify-content-between">
             
-            {{-- LOGO --}}
-            <a class="navbar-brand fw-bold fs-3 mb-3" href="{{ $storeUrl }}">
-                <img src="{{ asset('storage/'.$website->logo) }}" id="logo-image" style="height: 50px; {{ $website->logo ? '' : 'display:none;' }}">
-                <span id="logo-text" style="{{ $website->logo ? 'display:none;' : '' }}">{{ $website->site_name }}</span>
-            </a>
-
-            {{-- 
-                SEARCH BAR DESKTOP (POSISI DI KANAN ATAS ABSOLUTE) 
-                Agar tidak mengganggu layout logo tengah
-            --}}
-            <div class="d-none d-lg-block position-absolute end-0 top-50 translate-middle-y me-3" style="width: 250px;">
-                <div class="position-relative">
-                    <input type="text" id="desktop-search-input" class="form-control form-control-sm border-0 border-bottom rounded-0 ps-0" placeholder="Search..." autocomplete="off">
-                    <i class="bi bi-search position-absolute end-0 top-50 translate-middle-y text-muted small"></i>
-                    
-                    {{-- Dropdown Hasil --}}
-                    <div class="dropdown-menu w-100 shadow border-0 p-0 overflow-hidden search-results-dropdown" id="desktop-search-results">
-                        <div id="desktop-search-loading" class="text-center py-3 d-none"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></div>
+            <div class="header-left d-none d-md-flex" style="flex: 1;">
+                <form action="{{ route('store.products') }}" method="GET" class="d-flex align-items-center border-bottom border-dark pb-1 position-relative" style="max-width: 180px;">
+                    <input type="text" name="search" id="desktop-search-input" placeholder="CARI..." class="border-0 bg-transparent outline-none small text-uppercase w-100" style="font-size: 11px; box-shadow: none;" autocomplete="off">
+                    <button type="submit" class="btn btn-link text-dark p-0 border-0"><i class="bi bi-search"></i></button>
+                    <div id="desktop-search-results" class="search-results-dropdown bg-white mt-2 shadow-sm">
+                        <div id="desktop-search-loading" class="text-center py-3 d-none"><div class="spinner-border spinner-border-sm text-dark"></div></div>
                         <div id="desktop-search-content"></div>
                     </div>
-                </div>
+                </form>
             </div>
 
-            <button class="navbar-toggler mb-3 border-0" type="button" data-bs-toggle="collapse" data-bs-target="#simpleNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="header-center text-center" style="flex: 1;">
+                <a href="/" class="text-decoration-none text-dark">
+                    @if($website->logo)
+                        <img src="{{ Storage::url($website->logo) }}" alt="Logo" class="site-logo" style="max-height: 45px;">
+                    @else
+                        <span class="fs-3 fw-bold text-uppercase serif tracking-widest">{{ $website->site_name }}</span>
+                    @endif
+                </a>
+            </div>
 
-            <div class="collapse navbar-collapse" id="simpleNav">
-                <ul class="nav justify-content-center small text-uppercase gap-4 align-items-center">
-                    
-                    {{-- SEARCH MOBILE (Di dalam menu collapse) --}}
-                    <li class="nav-item d-lg-none w-100 mb-3">
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-0 rounded-0"><i class="bi bi-search"></i></span>
-                            <input type="text" id="mobile-search-input" class="form-control bg-light border-0 rounded-0" placeholder="CARI PRODUK..." autocomplete="off">
-                        </div>
-                        <div id="mobile-search-loading" class="text-center py-2 d-none"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></div>
-                        <div id="mobile-search-results" class="bg-white border mt-1 shadow-sm" style="display:none;"></div>
-                    </li>
+            <div class="header-right d-flex justify-content-end align-items-center gap-2 gap-md-3" style="flex: 1;">
+                
+                @if(Auth::guard('customer')->check())
+                    <a href="{{ route('store.account') }}" class="text-dark d-none d-md-block small fw-bold text-uppercase text-decoration-none" style="font-size: 11px;">
+                        {{ strtok(Auth::guard('customer')->user()->name, ' ') }}
+                    </a>
+                @else
+                    <a href="{{ route('store.login') }}" class="text-dark"><i class="bi bi-person fs-4"></i></a>
+                @endif
 
-                    @php $navMenus = $website->navigation_menu ?? [['label' => 'Home', 'url' => '#'], ['label' => 'Shop', 'url' => '#shop']]; @endphp
-                   @foreach($navMenus as $menu)
-                        <li class="nav-item">
-                            @php
-                                $url = $menu['url'];
-                                $href = $url; // Default untuk link eksternal (https://...)
+                @php
+                    $cartKey = 'cart_' . $website->id;
+                    $cartCount = array_reduce(session()->get($cartKey, []), fn($carry, $item) => $carry + ($item['quantity'] ?? 0), 0);
+                @endphp
+                <a href="{{ route('store.cart') }}" class="text-dark position-relative text-decoration-none me-2">
+                    <i class="bi bi-bag fs-4"></i>
+                    @if($cartCount > 0)
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.55rem;">{{ $cartCount }}</span>
+                    @endif
+                </a>
 
-                                // KASUS 1: Anchor Link (#) - Scroll di halaman Home
-                                if (str_starts_with($url, '#')) {
-                                    if (!request()->routeIs('store.home')) {
-                                        // Jika sedang tidak di home, arahkan ke home dulu + anchor
-                                        $href = route('store.home') . $url; 
-                                    }
-                                } 
-                                // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
-                                elseif (str_starts_with($url, '/')) {
-                                    // FIX: Gunakan helper 'url' manual agar path-nya bersih
-                                    // Hasil: http://domain.com/s/elecjos/blog
-                                    $href = url($url);
-                                }
-                            @endphp
-
-                            <a class="nav-link text-dark" href="{{ $href }}">
-                                {{ $menu['label'] }}
-                            </a>
-                        </li>
-                        @endforeach
-                   
-                   
-                    {{-- Cek apakah pelanggan sudah login menggunakan guard 'customer' --}}
-                        @if(Auth::guard('customer')->check())
-                            
-                            {{-- MENU JIKA SUDAH LOGIN (Berupa Dropdown) --}}
-                            <div class="nav-item dropdown ms-3">
-                                <a class="btn btn-outline-primary dropdown-toggle rounded-pill" href="#" id="customerMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle me-1"></i> Halo, {{ strtok(Auth::guard('customer')->user()->name, ' ') }}
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" aria-labelledby="customerMenu">
-                                    <li>
-                                        <a class="dropdown-item py-2" href="{{ route('store.account') }}">
-                                            <i class="bi bi-bag-check me-2 text-primary"></i> Riwayat Pesanan
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form action="{{ route('store.logout') }}" method="POST" class="m-0">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item py-2 text-danger">
-                                                <i class="bi bi-box-arrow-right me-2"></i> Keluar
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-
-                        @else
-                            <a class="nav-link text-dark" href="{{ route('store.track') }}">
-                                    Cek Pesanan
-                                </a>
-                            {{-- TOMBOL JIKA BELUM LOGIN --}}
-                            <a href="{{ route('store.login') }}" class="btn btn-outline-secondary rounded-pill ms-3 shadow-sm">
-                                <i class="bi bi-person me-1"></i> Masuk / Daftar
-                            </a>
-                        @endif
-                         {{-- CART BUTTON --}}
-                    @php
-                        $cartKey = 'cart_' . $website->id;
-                        $cartSession = session()->get($cartKey, []);
-                        $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
-                    @endphp
-                    <li class="nav-item ms-lg-3 mt-3 mt-lg-0">
-                        <a href="{{ route('store.cart') }}" class="btn btn-primary rounded-pill px-4 btn-sm">
-                            <i class="bi bi-cart"></i> Cart 
-                            @if($cartCount > 0)
-                            <span class="badge bg-white text-primary ms-1 rounded-pill">{{ $cartCount }}</span>
-                            @endif
-                        </a>
-                    </li>
-                </ul>
+                <button class="navbar-toggler border-0 shadow-none p-0 {{ $expandClass ? 'd-lg-none' : 'd-block' }}" 
+                        type="button" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#classicNavContent" 
+                        aria-expanded="false">
+                    <i class="bi bi-list fs-2 text-dark"></i>
+                </button>
             </div>
         </div>
-    </nav>
+
+        <nav class="navbar {{ $expandClass }} p-0">
+            <div class="collapse navbar-collapse border-top" id="classicNavContent">
+                <div class="container">
+                    <ul class="navbar-nav w-100 justify-content-center gap-lg-5 py-3 py-lg-2">
+                        @foreach($navMenus as $menu)
+                            <li class="nav-item text-center">
+                                <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest py-2 py-lg-1" href="{{ url($menu['url']) }}">
+                                    {{ $menu['label'] }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
 
     @if(session('success')) <div class="container mt-4 text-center"><div class="alert alert-success d-inline-block px-5 rounded-0 border-0" style="background-color: var(--secondary-color); color: white;">{{ session('success') }}</div></div> @endif
     @if(session('error')) <div class="container mt-4 text-center"><div class="alert alert-danger d-inline-block px-5 rounded-0 border-0">{{ session('error') }}</div></div> @endif

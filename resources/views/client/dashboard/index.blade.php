@@ -57,11 +57,11 @@
                                 <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-6"></i></span>
                             @endif
                             <h6 class="fw-bold {{ $setupStatus['payment'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">3. Pembayaran</h6>
-                            <p class="small text-muted mb-3">Hubungkan Midtrans agar bisa menerima transfer.</p>
+                            <p class="small text-muted mb-3">Hubungkan Pivot agar bisa menerima transfer.</p>
                             {{-- Tombol Midtrans --}}
                             @if(!$setupStatus['payment'])
                                 <div class="d-flex gap-2">
-                                    <a href="{{ route('client.settings.index', $website->id) }}#midtrans-section" class="btn btn-sm btn-outline-primary flex-grow-1">Hubungkan</a>
+                                    <a href="{{ route('client.settings.index', $website->id) }}#pivot-section" class="btn btn-sm btn-outline-primary flex-grow-1">Hubungkan</a>
                                     <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanMidtrans" title="Cara Setup">
                                         <i class="bi bi-question-circle"></i>
                                     </button>
@@ -697,6 +697,7 @@
         chart.render();
     });
 </script>
+{{-- 
 <div class="modal fade" id="modalPanduanMidtrans" tabindex="-1" aria-labelledby="modalMidtransLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow">
@@ -767,7 +768,7 @@
             textArea.remove();
         }
     }
-</script>
+</script> --}}
 <div class="modal fade" id="modalPanduanAccurate" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">

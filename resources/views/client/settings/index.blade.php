@@ -160,7 +160,7 @@
 
     <hr class="my-5 text-muted">
 
-    <div class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #0052cc !important;">
+    <div class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #0052cc !important;" id="accurate-section">
         <div class="card-header bg-white py-3 fw-bold" style="color: #0052cc;">
             <i class="bi bi-box-seam me-2"></i>Integrasi Accurate Online
             <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalpanduanAccurate" title="Cara Setup">
@@ -218,7 +218,7 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-5" style="border-left: 4px solid #7B2CBF !important;"> <div class="card-header bg-white py-3 fw-bold" style="color: #7B2CBF;">
+    <div class="card border-0 shadow-sm mb-5" style="border-left: 4px solid #7B2CBF !important;"> <div class="card-header bg-white py-3 fw-bold" style="color: #7B2CBF;" id="pivot-section">
             <i class="bi bi-credit-card me-2"></i>Payment Gateway (Pivot)
             <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanPivot" title="Cara Setup">
                 <i class="bi bi-question-circle"></i>

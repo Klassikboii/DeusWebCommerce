@@ -159,50 +159,47 @@
             if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->active_domain . '.localhost:8000'; }
         }
     @endphp
+      @php
+        // 1. AMANKAN DATA MENU
+        $rawMenu = $website->navigation_menu;
+        $navMenus = is_string($rawMenu) ? json_decode($rawMenu, true) : $rawMenu;
+        if (!is_array($navMenus) || empty($navMenus)) {
+            $navMenus = [['label' => 'Home', 'url' => '#'], ['label' => 'Shop', 'url' => '#shop']];
+        }
+        
+        $menuCount = count($navMenus);
+        
+        // 2. LOGIKA BREAKPOINT CLASSIC & OFFCANVAS
+        $expandClass = 'navbar-expand-lg'; 
+        $offcanvasClass = 'offcanvas-lg'; // Sembunyi jadi sidebar HANYA di layar < LG
+        
+        if ($menuCount > 3 && $menuCount <= 5) {
+            $expandClass = 'navbar-expand-xl'; 
+            $offcanvasClass = 'offcanvas-xl'; // Sembunyi jadi sidebar di layar < XL
+        } elseif ($menuCount > 5) {
+            $expandClass = ''; 
+            $offcanvasClass = 'offcanvas'; // SELALU jadi sidebar (Hamburger permanen)
+        }
+    @endphp
 
-    {{-- HEADER CLASSIC BERBASIS BOOTSTRAP --}}
-    <header class="bg-white border-bottom sticky-top py-4" style="box-shadow: var(--shadow-base)">
-        <div class="container d-flex align-items-center justify-content-between">
-            
-             @php $navMenus = $website->navigation_menu ?? [['label' => 'Home', 'url' => '#'], ['label' => 'Shop', 'url' => '#shop']]; @endphp
-                   @foreach($navMenus as $menu)
-                        
-                            @php
-                                $url = $menu['url'];
-                                $href = $url; // Default untuk link eksternal (https://...)
+    {{-- HEADER CLASSIC (DENGAN OFFCANVAS SIDEBAR) --}}
+    <header class="navbar {{ $expandClass }} bg-white shadow-sm border-bottom sticky-top py-4" style="box-shadow: var(--shadow-base)" >
+        <div class="container position-relative d-flex align-items-center">
 
-                                // KASUS 1: Anchor Link (#) - Scroll di halaman Home
-                                if (str_starts_with($url, '#')) {
-                                    if (!request()->routeIs('store.home')) {
-                                        // Jika sedang tidak di home, arahkan ke home dulu + anchor
-                                        $href = route('store.home') . $url; 
-                                    }
-                                } 
-                                // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
-                                elseif (str_starts_with($url, '/')) {
-                                    // FIX: Gunakan helper 'url' manual agar path-nya bersih
-                                    // Hasil: http://domain.com/s/elecjos/blog
-                                    $href = url($url);
-                                }
-                            @endphp
+            <button class="navbar-toggler border-0 shadow-none px-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#classicOffcanvas" aria-controls="classicOffcanvas" style="z-index: 10;">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-                            <a class="text-decoration-none text-secondary hover-dark text-uppercase small fw-bold tracking-widest" href="{{ $href }}">
-                                {{ $menu['label'] }}
-                            </a>
-                        
-                        @endforeach
+            <a href="/" class="navbar-brand position-absolute top-50 start-50 translate-middle m-0 text-center" style="z-index: 5;">
+                @if($website->logo)
+                    <img src="{{ Storage::url($website->logo) }}" alt="Logo" class="site-logo">
+                @else
+                    <span class="fs-2 fw-bold text-uppercase serif tracking-widest">{{ $website->site_name }}</span>
+                @endif
+            </a>
 
-            <div class="text-center">
-                <a href="/" class="text-decoration-none text-dark">
-                    @if($website->logo)
-                        <img src="{{ Storage::url($website->logo) }}" alt="Logo" class="site-logo">
-                    @else
-                        <span class="fs-2 fw-bold text-uppercase serif tracking-widest">{{ $website->site_name }}</span>
-                    @endif
-                </a>
-            </div>
-
-            <div class="d-flex align-items-center gap-4">
+            <div class="d-flex align-items-center justify-content-end gap-3 gap-md-4 ms-auto" style="z-index: 10;">
+                
                 <form action="{{ route('store.products') }}" method="GET" class="d-none d-md-flex align-items-center border-bottom border-dark pb-1 position-relative">
                     <input type="text" name="search" id="desktop-search-input" placeholder="CARI..." class="border-0 bg-transparent outline-none small text-uppercase" style="width: 120px; box-shadow: none;" autocomplete="off">
                     <button type="submit" class="btn btn-link text-dark p-0 border-0"><i class="bi bi-search"></i></button>
@@ -211,49 +208,69 @@
                         <div id="desktop-search-content"></div>
                     </div>
                 </form>
-               @if(Auth::guard('customer')->check())
-                            
-                            {{-- MENU JIKA SUDAH LOGIN (Gaya Classic) --}}
-                            <div class="dropdown ms-3">
-                                <a class="text-decoration-none text-dark fw-bold text-uppercase small tracking-wider dropdown-toggle" href="#" id="customerMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 13px;">
-                                    {{ strtok(Auth::guard('customer')->user()->name, ' ') }}
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 mt-3 border-dark" aria-labelledby="customerMenu">
-                                    <li>
-                                        <a class="dropdown-item py-2 small fw-bold text-uppercase tracking-wider" href="{{ route('store.account') }}">
-                                            <i class="bi bi-bag-check me-2"></i> Riwayat
-                                        </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider border-dark opacity-25"></li>
-                                    <li>
-                                        <form action="{{ route('store.logout') }}" method="POST" class="m-0">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item py-2 small fw-bold text-uppercase tracking-wider text-danger">
-                                                <i class="bi bi-box-arrow-right me-2"></i> Keluar
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
 
-                        @else
-                            {{-- TOMBOL JIKA BELUM LOGIN (Gaya Classic) --}}
-                            <a class="nav-link text-dark text-uppercase small fw-bold tracking-wider ms-3" href="{{ route('store.track') }}" style="font-size: 13px;">
-                                Cek Pesanan
-                            </a>
-                            <a href="{{ route('store.login') }}" class="text-decoration-none text-dark fw-bold text-uppercase small tracking-wider ms-3" style="font-size: 13px;">
-                                Masuk / Daftar
-                            </a>
-                        @endif
+                @if(Auth::guard('customer')->check())
+                    <div class="dropdown ms-md-3">
+                        <a class="text-decoration-none text-dark fw-bold text-uppercase small tracking-wider dropdown-toggle" href="#" id="customerMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 13px;">
+                            {{ strtok(Auth::guard('customer')->user()->name, ' ') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 mt-3 border-dark" aria-labelledby="customerMenu">
+                            <li><a class="dropdown-item py-2 small fw-bold text-uppercase tracking-wider" href="{{ route('store.account') }}"><i class="bi bi-bag-check me-2"></i> Riwayat</a></li>
+                            <li><hr class="dropdown-divider border-dark opacity-25"></li>
+                            <li>
+                                <form action="{{ route('store.logout') }}" method="POST" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item py-2 small fw-bold text-uppercase tracking-wider text-danger"><i class="bi bi-box-arrow-right me-2"></i> Keluar</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                @else
+                    <a class="d-none d-md-block nav-link text-dark text-uppercase small fw-bold tracking-wider ms-3" href="{{ route('store.track') }}" style="font-size: 13px;">Cek Pesanan</a>
+                    <a href="{{ route('store.login') }}" class="d-none d-md-block text-decoration-none text-dark fw-bold text-uppercase small tracking-wider ms-3" style="font-size: 13px;">Masuk / Daftar</a>
+                    <a href="{{ route('store.login') }}" class="d-md-none text-dark"><i class="bi bi-person fs-5"></i></a>
+                @endif
+
                 @php
-                        $cartKey = 'cart_' . $website->id;
-                        $cartSession = session()->get($cartKey, []);
-                        $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
-                    @endphp
+                    $cartKey = 'cart_' . $website->id;
+                    $cartSession = session()->get($cartKey, []);
+                    $cartCount = array_reduce($cartSession, fn($carry, $item) => $carry + ($item['quantity'] ?? $item['qty'] ?? 0), 0);
+                @endphp
                 <a href="{{ route('store.cart') }}" id="cart-icon-btn" class="btn btn-link text-decoration-none text-dark fw-bold text-uppercase p-0 tracking-wider" style="font-size: 13px;">
-                    Cart ({{ $cartCount }})
+                    <span class="d-none d-md-inline">Cart ({{ $cartCount }})</span>
+                    <span class="d-md-none position-relative"><i class="bi bi-bag fs-5"></i><span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">{{$cartCount}}</span></span>
                 </a>
             </div>
+
+            <div class="{{ $offcanvasClass }} offcanvas-start bg-white " data-bs-scroll="true" tabindex="-1" id="classicOffcanvas" aria-labelledby="classicOffcanvasLabel" style="width: 300px; z-index: 1055;">
+                
+                <div class="offcanvas-header border-bottom py-4">
+                    <h5 class="offcanvas-title serif tracking-widest text-uppercase fs-6" id="classicOffcanvasLabel">Menu Navigasi</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                
+                <div class="offcanvas-body d-flex align-items-center">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-3 w-100">
+                        @foreach($navMenus as $menu)
+                            @php
+                                $url = $menu['url'];
+                                $href = $url;
+                                if (str_starts_with($url, '#')) {
+                                    if (!request()->routeIs('store.home')) { $href = route('store.home') . $url; }
+                                } elseif (str_starts_with($url, '/')) {
+                                    $href = url($url);
+                                }
+                            @endphp
+                            <li class="nav-item">
+                                <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest px-0 py-3 py-lg-1 border-bottom border-lg-0" href="{{ $href }}">
+                                    {{ $menu['label'] }}
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+
         </div>
     </header>
 
