@@ -77,16 +77,20 @@ class AccurateService
     /**
      * 2. Mengambil daftar Database (Digunakan di halaman Settings)
      */
-    public function getDatabaseList()
+    public function getDatabaseList($isRetry=false)
     {
         $token = $this->getValidAccessToken();
         if (!$token) return [];
 
         $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+                      // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->get('https://account.accurate.id/api/db-list.do');
-
+// 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->getDatabaseList(true);
+        }
         return $response->successful() ? ($response->json('d') ?? []) : [];
     }
 
@@ -140,7 +144,7 @@ class AccurateService
    /**
      * 4.5. Mencari atau Membuat Pelanggan Baru di Accurate
      */
-    private function findOrCreateCustomer($order, $sessionData)
+    private function findOrCreateCustomer($order, $sessionData, $isRetry=false)
     {
         // 1. GEMBOK ANTI-DUPLIKAT: Cek Database Lokal Dulu!
         // Jika pesanan ini sudah punya ID Accurate, langsung gunakan itu.
@@ -153,13 +157,18 @@ class AccurateService
 
         // 2. CARI DI ACCURATE (Siapa tahu pelanggan ini pernah belanja di nomor order lain)
         $searchResponse = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+                    // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/customer/list.do', [
             'keywords' => $keywords
         ]);
+        // 🚨 AUTO-HEAL
+        if ($searchResponse->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->findOrCreateCustomer($order, $sessionData, true);
+        }
 
         if ($searchResponse->successful()) {
             $data = $searchResponse->json('d');
@@ -170,7 +179,7 @@ class AccurateService
 
         // 3. JIKA BENAR-BENAR BARU, BUATKAN DI ACCURATE
         $createResponse = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+                      // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
@@ -179,6 +188,11 @@ class AccurateService
             'mobilePhone' => $order->customer_whatsapp,
             'shipStreet' => $order->customer_address,
         ]);
+         // 🚨 AUTO-HEAL
+        if ($createResponse->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->findOrCreateCustomer($order, $sessionData, true);
+        }
 
         $createData = $createResponse->json();
 
@@ -206,7 +220,7 @@ class AccurateService
    /**
      * 4. Sinkronisasi Wujud Barang ke Accurate (Dilanjutkan Penyesuaian Stok)
      */
-    public function syncItemToAccurate($item)
+    public function syncItemToAccurate($item, $isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
@@ -231,11 +245,16 @@ class AccurateService
             'unitPrice' => $itemPrice,
         ];
 
-        $response = Http::timeout(30)->retry(3, 1000)
+        $response = Http::timeout(30)
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID' => $sessionData['session_id']
             ])->post($sessionData['host'] . '/accurate/api/item/save.do', $itemData);
+         // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->syncItemToAccurate($item, true);
+        }
 
         $responseData = $response->json();
         $rawBody = $response->body();
@@ -267,7 +286,7 @@ class AccurateService
     /**
      * 5. Mengirim Pesanan (Sales Invoice) ke Accurate
      */
-    public function syncSalesInvoice($order)
+    public function syncSalesInvoice($order, $isRetry = false)
     {
         // 1. Buka pintu database
         $sessionData = $this->openDatabaseSession();
@@ -353,12 +372,16 @@ class AccurateService
         ];
 
         // 4. Tembak API Save Sales Invoice
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)                  // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/sales-invoice/save.do', $invoiceData);
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->syncSalesInvoice($order, true);
+        }
 
         $responseData = $response->json();
 
@@ -384,20 +407,25 @@ class AccurateService
     /**
      * 6. Menghapus / Membatalkan Faktur Penjualan di Accurate
      */
-    public function deleteSalesInvoice($order)
+    public function deleteSalesInvoice($order, $isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
 
         // Tembak API Hapus Faktur menggunakan Nomor Order kita
         $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+                     // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/sales-invoice/delete.do', [
             'number' => $order->order_number // Karena tadi kita set 'number' pakai order_number
         ]);
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->deleteSalesInvoice($order, true);
+        }
 
         $responseData = $response->json();
 
@@ -412,7 +440,7 @@ class AccurateService
    /**
      * 6. Membuat Penerimaan Pelanggan (Versi Cepat & Lengkap)
      */
-    public function syncPaymentReceipt($order)
+    public function syncPaymentReceipt($order, $isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
@@ -438,12 +466,16 @@ class AccurateService
         ];
 
         // Tembak API Pelunasan
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->post($sessionData['host'] . '/accurate/api/sales-receipt/save.do', $paymentData);
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->syncPaymentReceipt($order, true);
+        }
 
         $responseData = $response->json();
         $rawBody = $response->body();
@@ -472,16 +504,21 @@ class AccurateService
     /**
      * 7. Mengintip Data Faktur di Accurate
      */
-    private function getSalesInvoice($orderNumber, $sessionData)
+    private function getSalesInvoice($orderNumber, $sessionData, $isRetry = false)
     {
         $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+                     // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/sales-invoice/list.do', [
             'keywords' => $orderNumber // Cari berdasarkan nomor order
         ]);
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->getSalesInvoice($orderNumber, $sessionData, true);
+        }
 
         if ($response->successful()) {
             $data = $response->json('d');
@@ -501,7 +538,7 @@ class AccurateService
    /**
      * 8. Penyesuaian Persediaan (Inisialisasi & Update Stok + Biaya Satuan)
      */
-    public function syncInventoryAdjustment($sku, $qtyDifference, $unitCost = 1) // 🚨 Tambah parameter $unitCost
+    public function syncInventoryAdjustment($sku, $qtyDifference, $unitCost = 1, $isRetry = false) // 🚨 Tambah parameter $unitCost
     {
         if ($qtyDifference == 0) return true; 
 
@@ -527,12 +564,17 @@ class AccurateService
             ]
         ];
 
-        $response = Http::timeout(30)->retry(3, 1000)
+        $response = Http::timeout(30)
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID' => $sessionData['session_id']
             ])->post($sessionData['host'] . '/accurate/api/item-adjustment/save.do', $adjustmentData);
 
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->syncInventoryAdjustment($sku, $qtyDifference, $unitCost, true);
+        }
         $responseData = $response->json();
 
         if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
@@ -547,19 +589,23 @@ class AccurateService
     /**
      * 9. Mengambil Sisa Stok Langsung dari Accurate (Single Source of Truth)
      */
-    public function getAccurateStock($sku)
+    public function getAccurateStock($sku, $isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return 0;
 
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)                 // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/item/detail.do', [
             'no' => $sku
         ]);
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->getAccurateStock($sku, true);
+        }
 
        if ($response->successful() && isset($response->json()['d'])) {
             $data = $response->json('d');
@@ -580,18 +626,22 @@ class AccurateService
    /**
      * 10. REVERSE ENGINEERING: Mengintip Struktur Penyesuaian Persediaan Accurate
      */
-    public function debugAdjustmentFormat()
+    public function debugAdjustmentFormat($isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return;
 
         // Tarik data TANPA filter apa pun agar Accurate tidak ngambek
         $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+                     // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID' => $sessionData['session_id']
         ])->get($sessionData['host'] . '/accurate/api/item-adjustment/list.do');
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->debugAdjustmentFormat(true);
+        }
 
         // 🚨 TANGKAP TEKS MENTAHNYA (RAW BODY)
         \Illuminate\Support\Facades\Log::info("CCTV 5 (RAW LIST): " . $response->body());
@@ -603,13 +653,18 @@ class AccurateService
             $latestId = $data['d'][0]['id'];
 
             $detailResponse = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+                      // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID' => $sessionData['session_id']
             ])->get($sessionData['host'] . '/accurate/api/item-adjustment/detail.do', [
                 'id' => $latestId
             ]);
+            // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->debugAdjustmentFormat(true);
+        }
             
             \Illuminate\Support\Facades\Log::info("CCTV 6 (RAW DETAIL): " . $detailResponse->body());
         }
@@ -639,10 +694,8 @@ class AccurateService
     /**
      * SINKRONISASI PRODUK DARI ACCURATE KE WEB
      */
-   /**
-     * SINKRONISASI PRODUK DARI ACCURATE KE WEB
-     */
-    public function syncProductsFromAccurate()
+   
+    public function syncProductsFromAccurate($isRetry = false)
     {
         // 1. BUKA PINTU DATABASE (Ini akan otomatis me-refresh token & mengambil Host yang benar)
         $sessionData = $this->openDatabaseSession();
@@ -653,14 +706,22 @@ class AccurateService
 
         // 2. Tembak API Accurate untuk meminta Daftar Barang (Item)
         // Perhatikan penggunaan $sessionData['host'] dan prefix /accurate/api/
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)
-    ->retry(3, 1000)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
+        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
     ->withHeaders([
             'Authorization' => 'Bearer ' . $sessionData['token'],
             'X-Session-ID'  => $sessionData['session_id'],
         ])->get($sessionData['host'] . '/accurate/api/item/list.do', [
             'fields' => 'id,no,name,unitPrice,quantity', // Kolom inti
         ]);
+        if ($response->status() === 401 && !$isRetry) {
+            Log::warning("Token mati saat menarik data produk. Memaksa refresh dan mengulang proses...");
+            
+            // 1. Paksa hapus token yang ada di memori agar getValidAccessToken mengambil yang baru
+            $this->getValidAccessToken(true); 
+            
+            // 2. Panggil ulang fungsi ini DARI AWAL, tapi set $isRetry = true agar tidak looping tanpa batas
+            return $this->syncProductsFromAccurate(true); 
+        }
 
         if (!$response->successful()) {
             Log::error("Gagal menarik produk dari Accurate. RAW: " . $response->body());
@@ -677,7 +738,7 @@ class AccurateService
         // Ambil Limit Langganan
         $limit = $this->website->activeSubscription ? $this->website->activeSubscription->package->max_products : 10;
        // 3. Looping data dari Accurate dan masukkan ke Database Web
-       // 3. Looping data dari Accurate
+     
        foreach ($accurateItems as $item) {
             $sku = $item['no'] ?? null;
             if (!$sku) continue; 
@@ -775,19 +836,23 @@ class AccurateService
     /**
      * TAHAP 2 (SELECTIVE IMPORT): Menyimpan hanya barang yang dicentang user
      */
-    public function syncSelectedProductsFromAccurate(array $selectedSkus)
+    public function syncSelectedProductsFromAccurate(array $selectedSkus, $isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return false;
 
-        $response = Http::timeout(30)->retry(3, 1000)
+        $response = Http::timeout(30)
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID'  => $sessionData['session_id'],
             ])->get($sessionData['host'] . '/accurate/api/item/list.do', [
                 'fields' => 'id,no,name,unitPrice,quantity',
             ]);
-
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->syncSelectedProductsFromAccurate($selectedSkus, true);
+        }
         if (!$response->successful()) return false;
 
         $accurateItems = $response->json()['d'] ?? [];
@@ -883,7 +948,7 @@ class AccurateService
 
         return true;
     }
-    public function getSingleItemDetail($sku)
+    public function getSingleItemDetail($sku, $isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) return null;
@@ -894,6 +959,11 @@ class AccurateService
         ])->get($sessionData['host'] . '/accurate/api/item/detail.do', [
             'no' => $sku // Cari barang spesifik berdasarkan SKU
         ]);
+            // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->getSingleItemDetail($sku, true);
+        }
 
         if ($response->successful() && isset($response->json()['d'])) {
             return $response->json()['d'];
@@ -907,7 +977,7 @@ class AccurateService
     /**
      * 11. Memperpanjang Masa Aktif Webhook (Auto-Renew)
      */
-    public function renewWebhook()
+    public function renewWebhook($isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         
@@ -921,7 +991,11 @@ class AccurateService
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID'  => $sessionData['session_id']
             ])->get($sessionData['host'] . '/api/webhook-renew.do');
-
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->renewWebhook(true);
+        }
         $responseData = $response->json();
 
         if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
@@ -932,7 +1006,7 @@ class AccurateService
         \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Gagal untuk Web ID: {$this->website->id}. Response: " . $response->body());
         return false;
     }
-  public function pushProduct($product, $forceUpdatePrice = false)
+  public function pushProduct($product, $forceUpdatePrice = false, $isRetry = false)
     {
         $session = $this->openDatabaseSession();
         if (!$session) return ['status' => 'error', 'message' => 'Gagal membuka sesi.'];
@@ -954,6 +1028,11 @@ class AccurateService
             'filter.no.op' => 'EQUAL',
             'filter.no.val' => $product->sku
         ]);
+        // 🚨 AUTO-HEAL 1
+        if ($checkResponse->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->pushProduct($product, $forceUpdatePrice, true);
+        }
 
         $checkData = $checkResponse->json('d') ?? [];
         $exists = count($checkData) > 0;
@@ -984,6 +1063,11 @@ class AccurateService
             'Authorization' => $token,
             'X-Session-ID' => $session_id,
         ])->post($host . '/accurate/api/item/save.do', $payload);
+        // 🚨 AUTO-HEAL 2
+        if ($saveResponse->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->pushProduct($product, $forceUpdatePrice, true);
+        }
 
         if ($saveResponse->successful() && $saveResponse->json('s')) {
             
