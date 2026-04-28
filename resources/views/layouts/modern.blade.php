@@ -400,7 +400,7 @@
                             $footerMenus = $website->navigation_menu ?? [
                                 ['label' => 'Beranda', 'url' => '/'],
                                 ['label' => 'Katalog Produk', 'url' => route('store.products')],
-                                ['label' => 'Cek Pesanan', 'url' => '#']
+                                
                             ];
                         @endphp
 

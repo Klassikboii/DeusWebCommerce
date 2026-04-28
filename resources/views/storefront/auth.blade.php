@@ -60,7 +60,13 @@
                                 </div>
                                 <div class="mb-4">
                                     <label class="form-label small fw-bold">Kata Sandi</label>
-                                    <input type="password" name="password" class="form-control bg-light" placeholder="Masukkan kata sandi..." required>
+                                    <div class="input-group">
+                                        <input type="password" name="password" id="password" class="form-control" required placeholder="••••••••">
+                                        {{-- Tombol Toggle --}}
+                                        <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#password" style="border-radius: 0 var(--radius-base) var(--radius-base) 0;">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">
                                     <i class="bi bi-box-arrow-in-right me-1"></i> Masuk Sekarang
@@ -93,13 +99,27 @@
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold">Kata Sandi Baru</label>
-                                    <input type="password" name="password" class="form-control bg-light" placeholder="Minimal 6 karakter" required>
-                                </div>
+                                        <label class="form-label small fw-bold">Kata Sandi Baru</label>
+                                        <div class="input-group">
+                                            {{-- Ubah ID jadi register_password --}}
+                                            <input type="password" name="password" id="register_password" class="form-control" required placeholder="••••••••">
+                                            {{-- Ubah data-target ke #register_password --}}
+                                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#register_password" style="border-radius: 0 var(--radius-base) var(--radius-base) 0;">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 <div class="mb-4">
-                                    <label class="form-label small fw-bold">Ulangi Kata Sandi</label>
-                                    <input type="password" name="password_confirmation" class="form-control bg-light" placeholder="Ketik ulang kata sandi" required>
-                                </div>
+                                        <label class="form-label small fw-bold">Ulangi Kata Sandi</label>
+                                        <div class="input-group">
+                                            {{-- Ubah ID jadi register_password_confirmation --}}
+                                            <input type="password" name="password_confirmation" id="register_password_confirmation" class="form-control" required placeholder="Ketik Ulang Kata Sandi...">
+                                            {{-- Ubah data-target ke #register_password_confirmation --}}
+                                            <button class="btn btn-outline-secondary toggle-password" type="button" data-target="#register_password_confirmation" style="border-radius: 0 var(--radius-base) var(--radius-base) 0;">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </div>
+                                    </div>
                                 <button type="submit" class="btn btn-dark w-100 py-2 fw-bold shadow-sm">
                                     <i class="bi bi-person-plus me-1"></i> Daftar Sekarang
                                 </button>
@@ -113,7 +133,34 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Cari semua tombol yang punya class 'toggle-password'
+    const toggleButtons = document.querySelectorAll('.toggle-password');
 
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Ambil elemen input target berdasarkan data-target
+            const targetId = this.getAttribute('data-target');
+            const inputField = document.querySelector(targetId);
+            const icon = this.querySelector('i');
+
+            if (!inputField) return;
+
+            // Logika Toggle Type & Icon
+            if (inputField.type === 'password') {
+                inputField.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                inputField.type = 'password';
+                icon.classList.remove('bi-eye-slash');
+                icon.classList.add('bi-eye');
+            }
+        });
+    });
+});
+</script>
 {{-- Script ringan agar garis biru navigasi tab ikut bergeser saat diklik --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -132,4 +179,6 @@ document.addEventListener('DOMContentLoaded', function () {
     })
 });
 </script>
+
+
 @endsection
