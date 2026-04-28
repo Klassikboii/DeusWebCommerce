@@ -116,15 +116,19 @@
                                         <form action="{{ route('store.checkout') }}" method="POST">
                                             @csrf
                                             
-                                            {{-- Nama & WA (Tetap) --}}
                                             <div class="mb-3">
-                                                <label class="form-label small fw-bold">Nama Penerima</label>
-                                                <input type="text" name="customer_name" class="form-control" required>
+                                                <label class="form-label">Nama Penerima</label>
+                                                <input type="text" name="customer_name" 
+                                                    value="{{ auth('customer')->check() ? auth('customer')->user()->name : old('customer_name') }}" 
+                                                    class="form-control" required>
                                             </div>
-                                            <div class="mb-3">
-                                                <label class="form-label small fw-bold">WhatsApp</label>
-                                                <input type="number" name="customer_whatsapp" class="form-control" placeholder="08..." required>
-                                            </div>
+                                            {{-- Input WhatsApp --}}
+                                                <div class="mb-3">
+                                                    <label class="form-label">Nomor WhatsApp</label>
+                                                    <input type="number" name="customer_whatsapp" 
+                                                        value="{{ auth('customer')->check() ? auth('customer')->user()->whatsapp : old('customer_whatsapp') }}" 
+                                                        class="form-control" required placeholder="Contoh: 08123456789">
+                                                </div>
 
                                             {{-- ALAMAT LENGKAP (Textarea) --}}
                                             <div class="mb-3">

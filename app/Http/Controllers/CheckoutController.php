@@ -189,6 +189,10 @@ class CheckoutController extends Controller
                 'total_amount'      => $productTotal, 
                 'status'            => 'pending',
             ]);
+            // 🚨 TAMBAHKAN LOGIKA INI: Jika login, suntikkan customer_id
+            if (auth('customer')->check()) {
+                $orderData['customer_id'] = auth('customer')->id();
+            }
 
             // 5. SIMPAN DETAIL ITEM & POTONG STOK
             foreach ($cart as $key => $item) {

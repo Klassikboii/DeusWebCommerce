@@ -25,6 +25,8 @@ class Order extends Model
         'bank_name',
         'snap_token',
         'payment_url', // Kolom Pivot yang baru
+        'customer_id',
+        'accurate_customer_no',
     ];
     // Relasi ke Item Belanja
     public function items()
@@ -41,5 +43,10 @@ class Order extends Model
     {
         return $this->hasMany(OrderHistory::class)->latest(); 
         // ->latest() agar saat dipanggil, urutannya dari yang terbaru (atas) ke terlama (bawah)
+    }
+    // 🚨 TAMBAHKAN RELASI BARU KE CUSTOMER
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
     }
 }

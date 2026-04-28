@@ -182,7 +182,7 @@
                     {{-- Menu Desktop (Hanya muncul di layar besar) --}}
                     <nav class="d-none d-lg-flex gap-4 flex-wrap">
                         @foreach($navMenus as $menu)
-                            <a class="text-decoration-none text-dark hover-dark text-uppercase small fw-bold tracking-widest" href="{{ url($menu['url']) }}">
+                            <a class="text-decoration-none text-dark hover-dark text-uppercase small fw-bold tracking-widest" href="{{ url('/' . ltrim($menu['url'], '/')) }}">
                                 {{ $menu['label'] }}
                             </a>
                         @endforeach
@@ -264,7 +264,7 @@
                 <ul class="navbar-nav w-100 gap-2">
                     @foreach($navMenus as $menu)
                         <li class="nav-item border-bottom border-light">
-                            <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest py-3" href="{{ url($menu['url']) }}">
+                            <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest py-3"href="{{ url('/' . ltrim($menu['url'], '/')) }}">
                                 {{ $menu['label'] }}
                             </a>
                         </li>

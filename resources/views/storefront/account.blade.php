@@ -15,7 +15,10 @@
                     </div>
                     <h5 class="fw-bold mb-1">{{ $customer->name }}</h5>
                     <p class="text-muted small mb-3">{{ $customer->email }}</p>
-                    
+                    {{-- Di account.blade.php, bagian sidebar --}}
+                    <a href="{{ route('store.profile.edit') }}" class="btn btn-outline-primary fw-bold mb-2 d-block shadow-sm">
+                        <i class="bi bi-person-gear me-1"></i> Edit Profil
+                    </a>
                     <form action="{{ route('store.logout') }}" method="POST" class="d-grid">
                         @csrf
                         <button type="submit" class="btn btn-light border text-danger fw-bold shadow-sm">

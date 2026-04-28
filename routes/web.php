@@ -274,6 +274,9 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
         
         // Nanti kita buat Controller untuk ini, sementara arahkan ke view langsung atau biarkan kosong
         // Route::get('/account', [CustomerAccountController::class, 'index'])->name('store.account'); 
+        // --- FITUR EDIT PROFIL (BARU) ---
+    Route::get('/profile', [CustomerAccountController::class, 'edit'])->name('store.profile.edit');
+    Route::put('/profile', [CustomerAccountController::class, 'update'])->name('store.profile.update');
     });
 
     
@@ -306,4 +309,49 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
     Route::get('/blog/{slug}', [App\Http\Controllers\StorefrontController::class, 'blogShow'])->name('storefronts.blog.show');
 
     
+});
+
+Route::get('/seeding-data-lama', function () {
+    // 1. Ambil semua pesanan yang belum punya pemilik (customer_id IS NULL)
+    // Kelompokkan berdasarkan nomor WhatsApp agar tidak terjadi duplikasi akun
+    $ordersGrouped = \App\Models\Order::whereNull('customer_id')
+        ->get()
+        ->groupBy('customer_whatsapp');
+
+    $accountsCreated = 0;
+    $ordersLinked = 0;
+
+    foreach ($ordersGrouped as $whatsapp => $orders) {
+        // Ambil contoh pesanan pertama untuk mendapatkan nama dan website_id
+        $firstOrder = $orders->first();
+        
+        // 2. Cek apakah kustomer ini sebenarnya sudah ada (antisipasi)
+        $customer = \App\Models\Customer::where('website_id', $firstOrder->website_id)
+            ->where('whatsapp', $whatsapp)
+            ->first();
+
+        if (!$customer) {
+            // 3. Buat Akun Kustomer Baru secara otomatis
+            $customer = \App\Models\Customer::create([
+                'website_id' => $firstOrder->website_id,
+                'name'       => $firstOrder->customer_name,
+                'whatsapp'   => $whatsapp,
+                'email'      => $whatsapp . '@mail.com', // Email sementara unik
+                'password'   => \Illuminate\Support\Facades\Hash::make('password'), // Password default
+            ]);
+            $accountsCreated++;
+        }
+
+        // 4. Update semua pesanan milik nomor WA ini dengan ID kustomer yang baru/ditemukan
+        $updatedCount = \App\Models\Order::where('website_id', $firstOrder->website_id)
+            ->where('customer_whatsapp', $whatsapp)
+            ->whereNull('customer_id')
+            ->update(['customer_id' => $customer->id]);
+            
+        $ordersLinked += $updatedCount;
+    }
+
+    return "<h1>SIHIR FASE 4 UPGRADE SELESAI! 🪄</h1>
+            <p>Berhasil membuat <b>{$accountsCreated}</b> akun kustomer baru.</p>
+            <p>Berhasil menjahit <b>{$ordersLinked}</b> riwayat pesanan ke akun mereka.</p>";
 });
