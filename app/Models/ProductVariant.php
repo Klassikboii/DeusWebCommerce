@@ -22,6 +22,7 @@ class ProductVariant extends Model
     protected $casts = [
         'options' => 'array',
         'price' => 'decimal:2',
+        'price_history' => 'array',
     ];
 
     // Relasi Kebalikannya: Varian ini milik Produk siapa?
@@ -40,5 +41,29 @@ class ProductVariant extends Model
         return $this->name 
             ? $this->name 
             : ($this->product->name . ' (' . $optionsString . ')');
+    }
+    // 2. Tambahkan Booted Event (Jurus Ninja)
+    protected static function booted()
+    {
+        static::updating(function ($variant) {
+            if ($variant->isDirty('price')) {
+                
+                $oldPrice = $variant->getOriginal('price'); 
+                $newPrice = $variant->price;                
+
+                if ($oldPrice > 0 && $oldPrice != $newPrice) {
+                    $history = $variant->price_history ?? [];
+                    
+                    array_unshift($history, [
+                        'price' => $oldPrice,
+                        'changed_at' => now()->format('Y-m-d H:i:s'),
+                    ]);
+
+                    $history = array_slice($history, 0, 5);
+
+                    $variant->price_history = $history;
+                }
+            }
+        });
     }
 }

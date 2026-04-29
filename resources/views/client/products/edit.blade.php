@@ -3,6 +3,8 @@
 @section('title', 'Edit Produk')
 
 @section('content')
+{{-- Pindahkan ke bagian paling atas section content --}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="container-fluid p-0" style="max-width: 800px;">
     
     <div class="mb-4">
@@ -129,6 +131,68 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Harga (Rp)</label>
                             <input type="number" name="price" class="form-control" value="{{ old('price', $product->price) }}">
+                            
+                            {{-- LOGIKA HISTORI HARGA GRAFIK (SINGLE) --}}
+                            @if(!empty($product->price_history) && is_array($product->price_history))
+                                @if(count($product->price_history) > 4)
+                                    @php
+                                        $chartHistory = array_reverse($product->price_history);
+                                        $labels = [];
+                                        $data = [];
+                                        foreach($chartHistory as $h) {
+                                            $labels[] = \Carbon\Carbon::parse($h['changed_at'])->format('d M');
+                                            $data[] = $h['price'];
+                                        }
+                                        
+                                        // 🚨 TAMBAHKAN HARGA SEKARANG DI UJUNG GRAFIK
+                                        $labels[] = 'Sekarang';
+                                        $data[] = $product->price;
+                                    @endphp
+                                    <div class="mt-3 p-2 bg-light border rounded">
+                                        <span class="fw-bold d-block mb-1 text-muted" style="font-size: 0.7rem;"><i class="bi bi-graph-up text-primary"></i> Tren Harga Lama:</span>
+                                        <div style="height: 50px; width: 100%;">
+                                            <canvas id="singlePriceChart"></canvas>
+                                        </div>
+                                    </div>
+                                    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                                    {{-- Inisiasi Chart.js untuk Single Product --}}
+                                    <script>
+                                        document.addEventListener("DOMContentLoaded", function() {
+                                            const ctx = document.getElementById('singlePriceChart').getContext('2d');
+                                            new Chart(ctx, {
+                                                type: 'line',
+                                                data: {
+                                                    labels: @json($labels),
+                                                    datasets: [{
+                                                        data: @json($data),
+                                                        borderColor: '#0d6efd', // Warna Biru Primary
+                                                        borderWidth: 2,
+                                                        pointRadius: 3,
+                                                        pointBackgroundColor: '#0d6efd',
+                                                        fill: false,
+                                                        tension: 0.3 // Membuat garis agak melengkung halus
+                                                    }]
+                                                },
+                                                options: {
+                                                    responsive: true,
+                                                    maintainAspectRatio: false,
+                                                    plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                                                    scales: {
+                                                        x: { display: false }, // Sembunyikan garis bawah
+                                                        y: { display: false }  // Sembunyikan garis samping
+                                                    },
+                                                    layout: { padding: 5 }
+                                                }
+                                            });
+                                        });
+                                    </script>
+                                @else
+                                    {{-- Jika hanya 1 riwayat, tampilkan teks biasa agar rapi --}}
+                                    <div class="mt-2 text-muted" style="font-size: 0.7rem;">
+                                        <i class="bi bi-clock-history"></i> Sblmnya: Rp {{ number_format($product->price_history[0]['price'], 0, ',', '.') }}
+                                    </div>
+                                @endif
+                            @endif
                         </div>
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Stok</label>
@@ -265,7 +329,74 @@
                      </button>
                    </div>` 
                 : '';
+         // --- LOGIKA HISTORI HARGA (MINI CHART VARIAN) ---
+                    let historyHtml = '';
+                    let priceHistory = [];
+                    if (data && data.price_history) {
+                        try {
+                            priceHistory = typeof data.price_history === 'string' ? JSON.parse(data.price_history) : data.price_history;
+                        } catch(e) { priceHistory = []; }
+                    }
 
+                    let canvasId = 'chart_variant_' + index;
+
+                    // 🚨 LOGIKA: Hanya muncul jika histori >= 5 (Sesuai permintaan Anda)
+                    if (priceHistory && Array.isArray(priceHistory) && priceHistory.length >= 5) {
+                        historyHtml += `<div class="mt-2 p-1 bg-light border rounded" style="height: 60px; width: 100%;">
+                                            <canvas id="${canvasId}"></canvas>
+                                        </div>`;
+                        
+                        // Gunakan fungsi pengecekan berulang agar tidak Error "Chart is not defined"
+                        let checkChartReady = setInterval(() => {
+                            if (typeof Chart !== 'undefined') {
+                                clearInterval(checkChartReady); // Berhenti cek jika sudah ada
+                                
+                                const ctx = document.getElementById(canvasId).getContext('2d');
+                                let chartHistory = [...priceHistory].reverse();
+                                let labels = chartHistory.map(h => {
+                                    let d = new Date(h.changed_at.replace(' ', 'T'));
+                                    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                                });
+                                let dataPoints = chartHistory.map(h => h.price);
+                                // 🚨 TAMBAHKAN HARGA SEKARANG DI UJUNG GRAFIK
+                                    // (Variabel 'price' di bawah ini sudah otomatis berisi nilai harga varian saat ini dari tabel)
+                                    labels.push('Sekarang');
+                                    dataPoints.push(price);
+
+                                new Chart(ctx, {
+                                    type: 'line',
+                                    data: {
+                                        labels: labels,
+                                        datasets: [{
+                                            data: dataPoints,
+                                            borderColor: '#0d6efd',
+                                            borderWidth: 2,
+                                            pointRadius: 2,
+                                            fill: false,
+                                            tension: 0.3
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                                        scales: { x: { display: false }, y: { display: false } },
+                                        layout: { padding: 3 }
+                                    }
+                                });
+                            }
+                        }, 100); // Cek setiap 100ms
+
+                    } else if (priceHistory && Array.isArray(priceHistory) && priceHistory.length > 0) {
+                        // Jika kurang dari 5, tampilkan daftar teks kecil saja agar tidak sepi
+                        historyHtml += `<div class="mt-2 p-2 bg-light border rounded text-start" style="font-size: 0.65rem;">
+                                            <div class="fw-bold text-muted mb-1">Histori Harga (${priceHistory.length}):</div>`;
+                        priceHistory.forEach(hist => {
+                            let formattedPrice = new Intl.NumberFormat('id-ID').format(hist.price);
+                            historyHtml += `<div class="text-muted lh-1 mb-1">&bull; Rp ${formattedPrice}</div>`;
+                        });
+                        historyHtml += `</div>`;
+                    }
             const row = `
                 <tr>
                     <td>
@@ -279,7 +410,10 @@
                         <input type="file" name="variants[${index}][image]" class="form-control form-control-sm mt-1" accept="image/*" onchange="window.previewVariantImage(this, ${index})">
                         <input type="hidden" name="variants[${index}][remove_image]" value="0" class="remove-image-flag">
                     </td>
-                    <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required></td>
+                    <td class="align-top">
+                        <input type="number" name="variants[${index}][price]" class="form-control form-control-sm" value="${price}" required>
+                        ${historyHtml}
+                    </td>
                     <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
                     <td>
                         <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1 ${skuBgClass}" placeholder="SKU" value="${sku}" ${isSkuLocked}>

@@ -15,6 +15,10 @@ class Product extends Model
         'runway_days',
         'stock_status',
     ];
+    // 🚨 TAMBAHKAN CASTS INI
+    protected $casts = [
+        'price_history' => 'array', 
+    ];
     public function website()
     {
         return $this->belongsTo(Website::class);
@@ -44,5 +48,35 @@ class Product extends Model
             return $this->variants()->min('price');
         }
         return $this->price;
+    }
+    protected static function booted()
+    {
+        static::updating(function ($product) {
+            // Mengecek apakah kolom 'price' sedang berusaha diubah
+            if ($product->isDirty('price')) {
+                
+                $oldPrice = $product->getOriginal('price'); // Harga di DB sekarang
+                $newPrice = $product->price;                // Harga baru yang mau di-save
+
+                // Jika harga lama valid (bukan 0/baru dibuat) dan memang berbeda
+                if ($oldPrice > 0 && $oldPrice != $newPrice) {
+                    
+                    // Tarik history yang ada, atau buat array kosong jika belum ada
+                    $history = $product->price_history ?? [];
+                    
+                    // Masukkan harga lama dan waktu perubahannya ke URUTAN PALING ATAS
+                    array_unshift($history, [
+                        'price' => $oldPrice,
+                        'changed_at' => now()->format('Y-m-d H:i:s'), // Format: 2026-04-28 14:00:00
+                    ]);
+
+                    // BATASI HISTORI: Ambil maksimal 5 histori saja agar database tidak bengkak
+                    $history = array_slice($history, 0, 5);
+
+                    // Simpan kembali ke kolom json
+                    $product->price_history = $history;
+                }
+            }
+        });
     }
 }
