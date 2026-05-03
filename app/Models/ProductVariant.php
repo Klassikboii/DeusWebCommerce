@@ -17,7 +17,8 @@ class ProductVariant extends Model
         'product_id', 'name', 'sku', 'price', 'compare_price', 
         'stock', 'weight', 'options', 
         'is_active', // <--- Tambahkan ini
-        'image'
+        'image',
+        'moving_class'
     ];
     protected $casts = [
         'options' => 'array',

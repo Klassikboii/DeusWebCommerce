@@ -10,62 +10,79 @@ use Carbon\Carbon;
 class AnalyzeStockVelocity extends Command
 {
     protected $signature = 'stock:analyze';
-    protected $description = 'Menganalisis kecepatan penjualan (Velocity) dan prediksi habis stok (Runway).';
+    protected $description = 'Menganalisis kecepatan penjualan (Velocity) dan prediksi habis stok (Runway) berdasarkan Karakteristik Produk.';
 
-   public function handle()
+    public function handle()
     {
-        $this->info('📦 Memulai Analisis Kecepatan Stok...');
+        $this->info('📦 Memulai Otak Analisis Kecepatan Stok...');
 
-        // 🚨 TERSANGKA 2: Ubah dari 30 menjadi 365 hari agar data lama terbaca
-        $days = 365; 
-        $startDate = \Carbon\Carbon::now()->subDays($days);
+        // Kita gunakan 30 hari agar tren yang ditangkap adalah tren terbaru (relevan untuk runway)
+        $days = 30; 
+        $startDate = Carbon::now()->subDays($days);
         $analyzedCount = 0;
 
         Product::chunk(100, function ($products) use ($days, $startDate, &$analyzedCount) {
             foreach ($products as $product) {
                 
+                // 1. Hitung total terjual 30 hari terakhir
                 $totalSold = OrderItem::where('product_id', $product->id)
                     ->whereHas('order', function ($q) use ($startDate) {
-                        // 🚨 TERSANGKA 3: Pastikan ejaan status ini SAMA PERSIS dengan di database Anda
                         $q->whereIn('status', ['processing', 'shipped', 'completed']) 
                           ->where('created_at', '>=', $startDate);
                     })
-                    // 🚨 TERSANGKA 1 (Bagian A): Pastikan nama kolom jumlah beli di order_items adalah 'quantity'
                     ->sum('qty'); 
 
+                // 2. Hitung Velocity (Fakta Data)
                 $velocity = $totalSold / $days;
-                $runway = null;
-                $status = 'Normal';
+                $currentStock = $product->stock;
+                $runway = ($velocity > 0) ? (int) round($currentStock / $velocity) : null;
+                $status = 'Safe';
 
-                // 🚨 TERSANGKA 1 (Bagian B): Ganti 'stock' dengan nama kolom yang benar di tabel products (misal: $product->qty)
-                $currentStock = $product->stock; 
-              // 🚨 STANDAR BARU: Minimal laku 3 barang per 30 hari (0.1 per hari)
-                // Sesuaikan angka 3 ini dengan keinginan standar Klien Anda
-                // Samakan dengan Controller agar tidak berbeda hasil
-                    $minVelocityThreshold = 1 / 30; 
+                // 3. TENTUKAN AMBANG BATAS BERDASARKAN ATURAN KLIEN (Domain Knowledge)
+                $movingClass = $product->moving_class ?? 'normal'; // Ambil data dari database
 
-                    if ($currentStock <= 0) {
-                        $status = 'Empty';
-                    } else {
-                        if ($velocity >= $minVelocityThreshold) {
-                            $runway = (int) round($currentStock / $velocity);
-                            $status = ($runway <= 14) ? 'Critical' : 'Safe';
-                        } else {
-                            // Logika yang sama: stok dikit jangan dibilang overstock
-                            $status = ($currentStock > 5) ? 'Overstock' : 'Safe';
-                        }
+                if ($movingClass === 'fast') {
+                    // Fast moving butuh nafas panjang. Sisa 14 hari sudah harus Kritis!
+                    $criticalDays = 14; 
+                    $warningDays  = 30;
+                } elseif ($movingClass === 'slow') {
+                    // Slow moving santai. Sisa 3 hari baru Kritis.
+                    $criticalDays = 3;  
+                    $warningDays  = 7;
+                } else {
+                    // Standar Normal
+                    $criticalDays = 7;  
+                    $warningDays  = 14;
+                }
+
+                // 4. EKSEKUSI PENENTUAN STATUS
+                if ($currentStock <= 0) {
+                    $status = 'Empty';
+                } elseif ($runway !== null) {
+                    if ($runway <= $criticalDays) {
+                        $status = 'Critical';
+                    } elseif ($runway <= $warningDays) {
+                        $status = 'Warning';
                     }
+                } else {
+                    // Jika velocity 0 (tidak ada penjualan 30 hari terakhir)
+                    $status = ($currentStock > 5) ? 'Dead Stock' : 'Safe';
+                }
 
+                // 5. Simpan Hasil Analisis
                 $product->update([
-                    'velocity' => $velocity,
-                    'runway_days' => $runway,
+                    'velocity'     => $velocity,
+                    'runway_days'  => $runway,
                     'stock_status' => $status
                 ]);
 
                 $analyzedCount++;
+                
+                // CATATAN: Jika Anda ingin menghitung varian juga, Anda bisa melooping $product->variants() 
+                // di sini dengan logika yang persis sama.
             }
         });
 
-        $this->info("✅ Analisis selesai! Total {$analyzedCount} produk berhasil dianalisis.");
+        $this->info("✅ Analisis cerdas selesai! Total {$analyzedCount} produk berhasil diupdate.");
     }
 }

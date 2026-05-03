@@ -207,6 +207,16 @@
                                 <i class="bi bi-info-circle"></i> SKU bersifat permanen dan tidak dapat diubah setelah produk dibuat demi menjaga sinkronisasi dengan Accurate. Jika terjadi kesalahan, silakan hapus dan buat produk baru.
                             </div>
                         </div>
+                        {{-- TAMBAHAN: DROPDOWN MOVING CLASS --}}
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Karakter Jual <i class="bi bi-info-circle text-primary" title="Aturan kecepatan habis barang"></i></label>
+                                <select name="moving_class" class="form-select">
+                                    <option value="fast" {{ old('moving_class', $product->moving_class) == 'fast' ? 'selected' : '' }}>🔥 Fast Moving (Cepat Habis)</option>
+                                    <option value="normal" {{ old('moving_class', $product->moving_class ?? 'normal') == 'normal' ? 'selected' : '' }}>📦 Normal</option>
+                                    <option value="slow" {{ old('moving_class', $product->moving_class) == 'slow' ? 'selected' : '' }}>🐢 Slow Moving (Jarang Laku)</option>
+                                </select>
+                                <div class="form-text small text-muted">Bantu sistem menentukan standar peringatan stok.</div>
+                            </div>
                     </div>
                 </div>
 
@@ -316,6 +326,7 @@
             const stock = data ? data.stock : '';
             const sku = data ? (data.sku || '') : '';
             const isActive = data ? data.is_active : 1;
+            const movingClass = data ? (data.moving_class || 'normal') : 'normal';
 
             // Kunci hanya berlaku untuk SKU
             const isSkuLocked = (data && data.sku) ? 'readonly' : '';
@@ -416,12 +427,23 @@
                     </td>
                     <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" value="${stock}" required></td>
                     <td>
+                        {{-- 1. Input SKU --}}
                         <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1 ${skuBgClass}" placeholder="SKU" value="${sku}" ${isSkuLocked}>
-                        <select name="variants[${index}][is_active]" class="form-select form-select-sm">
-                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Aktif</option>
-                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Mati</option>
+                        
+                        {{-- 2. Dropdown Status (Beri mb-1 agar ada jarak bawah) --}}
+                        <select name="variants[${index}][is_active]" class="form-select form-select-sm mb-1">
+                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Status: Aktif</option>
+                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Status: Mati</option>
+                        </select>
+                        
+                        {{-- 3. Dropdown Karakter Jual --}}
+                        <select name="variants[${index}][moving_class]" class="form-select form-select-sm">
+                            <option value="fast" ${movingClass == 'fast' ? 'selected' : ''}>🔥 Fast Moving</option>
+                            <option value="normal" ${movingClass == 'normal' ? 'selected' : ''}>📦 Normal</option>
+                            <option value="slow" ${movingClass == 'slow' ? 'selected' : ''}>🐢 Slow Moving</option>
                         </select>
                     </td>
+                    
                     <td class="text-center align-middle">
                         <button type="button" class="btn btn-danger btn-sm" onclick="window.removeRow(this)"><i class="bi bi-trash"></i></button>
                     </td>

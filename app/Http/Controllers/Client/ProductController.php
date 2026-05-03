@@ -132,6 +132,9 @@ class ProductController extends Controller
     }
     public function store(Request $request, Website $website)
     {
+        
+        
+        // dd($request->all());
         $this->authorize('create', $website);
 
         // --- 1. TENTUKAN BATAS LIMIT ---
@@ -179,6 +182,10 @@ class ProductController extends Controller
             'image' => 'nullable|image|max:2048',
             'sku' => 'nullable|string|max:50',
             'weight' => 'nullable|numeric|min:0',
+            'moving_class' => 'nullable|string|in:fast,normal,slow',
+    
+    // 🚨 TAMBAHAN UNTUK VARIAN (Jika ada validasi array varian)
+    'variants.*.moving_class' => 'nullable|string|in:fast,normal,slow',
         ];
 
         if (!$hasVariants) {
@@ -202,6 +209,8 @@ class ProductController extends Controller
                 'weight'      => $request->weight ?? 1000,
                 'sku'         => $hasVariants ? null : $mainSku, // 🚨 Gunakan $mainSku di sini                // 🚨 GUNAKAN VARIABEL FINAL DI SINI
                 'is_active'   => $finalIsActive, 
+                // 🚨 INI BARIS YANG HILANG:
+                'moving_class'=> $request->moving_class ?? 'normal',
             ]);
 
             // 2. Simpan Varian (Jika Ada)
@@ -232,6 +241,7 @@ class ProductController extends Controller
                         'image'     => $variantImage, // 🚨 Masukkan variabel gambar varian
                         'sku'       => $variantSku, 
                         'is_active' => $variantIsActive, 
+                        'moving_class' => $variantData['moving_class'] ?? 'normal',
                     ]);
                     
                     $price = (int) ($variantData['price'] ?? 0);
@@ -266,7 +276,8 @@ class ProductController extends Controller
                         'price' => $product->price,
                         'name' => $product->name,
                         'product' => $product,
-                        'stock' => $product->stock 
+                        'stock' => $product->stock ,
+                        'moving_class' => $request->moving_class ?? 'normal',
                     ];
                     $status = $accurateService->syncItemToAccurate($singleItem);
                     if ($status && $product->stock > 0) {
@@ -357,6 +368,8 @@ public function update(Request $request, Website $website, Product $product)
             'description' => 'nullable',
             'sku' => 'nullable|string|max:50',
             'weight' => 'nullable|numeric|min:0',
+            'moving_class' => 'nullable|string|in:fast,normal,slow',
+            'variants.*.moving_class' => 'nullable|string|in:fast,normal,slow',
         ];
 
         if (!$hasVariants) {
@@ -378,6 +391,7 @@ public function update(Request $request, Website $website, Product $product)
                 'weight'      => $request->weight ?? 1000,
                 'sku'         => $hasVariants ? null : $mainSku, // 🚨 Gunakan $mainSku
                 'is_active'   => $finalIsActive, // 🚨 PAKAI VARIABEL FINAL
+                'moving_class' => $request->moving_class ?? 'normal',
             ];
             $product->update($dataToUpdate);
 
@@ -426,6 +440,7 @@ public function update(Request $request, Website $website, Product $product)
                             'price'     => $priceInput,
                             'stock'     => $stockInput,
                             'is_active' => $variantIsActive, // 🚨 PAKAI VARIABEL FINAL
+                            'moving_class' => $variantData['moving_class'] ?? 'normal',
                         ]
                     );
 

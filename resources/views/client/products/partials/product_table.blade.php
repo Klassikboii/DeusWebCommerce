@@ -9,6 +9,7 @@
                 <th class="py-3 border-0" style="width: 15%;">Harga</th>
                 <th class="py-3 border-0" style="width: 10%;">Stok</th>
                 <th class="py-3 border-0" style="width: 15%; text-align: center;">Status</th>
+                <th>Prediksi</th> {{-- 🚨 TAMBAHKAN KOLOM INI --}}
                 <th class="pe-4 py-3 border-0 text-end " style="width: 20%;">Aksi</th>
             </tr>
         </thead>
@@ -103,6 +104,34 @@
                         {{ $product->is_active ? 'Aktif' : 'Draft' }}
                     </small>
                 </td>
+                {{-- 🚨 TAMBAHKAN KOLOM STATUS ANALITIK INI --}}
+                    <td>
+                        @if($product->stock_status == 'Empty')
+                            <span class="badge bg-secondary">Habis</span>
+                        @elseif($product->stock_status == 'Critical')
+                            <span class="badge bg-danger animate__animated animate__pulse animate__infinite">
+                                <i class="bi bi-exclamation-triangle"></i> Kritis
+                            </span>
+                        @elseif($product->stock_status == 'Warning')
+                            <span class="badge bg-warning text-dark">Siap-siap</span>
+                        @elseif($product->stock_status == 'Dead Stock')
+                            <span class="badge bg-dark">Dead Stock</span>
+                        @else
+                            <span class="badge bg-success">Aman</span>
+                        @endif
+
+                        {{-- Tampilkan Runway (Prediksi Habis) jika ada --}}
+                        @if($product->runway_days !== null && $product->stock > 0)
+                            <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                Prediksi habis: <strong>~{{ $product->runway_days }} hari</strong>
+                            </div>
+                        @endif
+                        
+                        {{-- (Opsional) Tampilkan tipe kecepatan jual --}}
+                        <div class="small text-muted" style="font-size: 0.7rem;">
+                            Karakter: {{ ucfirst($product->moving_class) }}
+                        </div>
+                    </td>
                 <td class="pe-4 text-end">
                         {{-- 🚨 UBAH btn-group MENJADI d-flex gap-1 --}}
                         <div class="d-flex justify-content-end align-items-stretch gap-1">

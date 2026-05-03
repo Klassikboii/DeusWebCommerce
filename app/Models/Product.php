@@ -14,6 +14,7 @@ class Product extends Model
         'velocity',
         'runway_days',
         'stock_status',
+        'moving_class'
     ];
     // 🚨 TAMBAHKAN CASTS INI
     protected $casts = [
