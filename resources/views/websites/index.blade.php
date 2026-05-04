@@ -58,9 +58,9 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <form action="{{ route('logout') }}" method="POST">
+                            <form action="{{ route('logout') }}" method="POST" onsubmit="return confirm('Yakin ingin keluar dari akun ini?');">
                                 @csrf
-                                <button type="submit" class="dropdown-item text-danger">
+                                <button type="submit" class="dropdown-item text-danger" >
                                     <i class="bi bi-box-arrow-right me-2"></i> Logout
                                 </button>
                             </form>

@@ -27,4 +27,8 @@ class Customer extends Authenticatable
     {
         return $this->hasMany(Order::class);
     }
+    public function targetedVouchers()
+    {
+        return $this->hasMany(Voucher::class, 'target_customer_id');
+    }
 }

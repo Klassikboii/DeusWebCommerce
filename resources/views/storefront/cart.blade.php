@@ -95,8 +95,8 @@
                             </tbody>
                             <tfoot class="bg-white">
                                 <tr>
-                                    <td colspan="2" class="ps-4 py-3 fw-bold text-uppercase text-muted">Total Bayar</td>
-                                    <td class="pe-4 py-3 text-end fw-bold fs-5 text-primary">
+                                    <td colspan="2" class="ps-4 py-3 fw-bold text-uppercase text-muted">Total Barang</td>
+                                    <td class="pe-4 py-3 text-end fw-bold fs-5 text-primary " id="product-total">
                                         Rp {{ number_format($total) }}
                                     </td>
                                 </tr>
@@ -159,7 +159,15 @@
                                             {{-- Input Hidden untuk menyimpan detail ongkir yang dipilih (Agar masuk ke Controller) --}}
                                             <input type="hidden" name="shipping_cost" id="input_shipping_cost" value="0">
                                             <input type="hidden" name="shipping_courier" id="input_shipping_courier" value="">
+                                            <!-- HTML VOUCHER INPUT -->
+                                            <label class="form-label small fw-bold">Kode Voucher</label>
+                                            <div class="input-group mb-3">
+                                                <input type="text" id="voucher_code" class="form-control" placeholder="Masukkan Kode Voucher">
+                                                <button class="btn btn-outline-secondary" type="button" id="btn-apply-voucher">Gunakan</button>
+                                            </div>
+                                            <small id="voucher-message" class="text-danger mt-1"></small>
 
+                                            
                                             <hr>
 
                                             {{-- TOTAL --}}
@@ -167,11 +175,16 @@
                                                 <span>Subtotal</span>
                                                 <span>Rp {{ number_format($total, 0, ',', '.') }}</span>
                                             </div>
+                                            <!-- ELEMEN TOTAL YANG AKAN BERUBAH -->
+                                            <div class="d-flex justify-content-between mt-2 text-success" id="discount-row" style="display: none !important;">
+                                                <span>Diskon Voucher</span>
+                                                <span id="discount-amount">-Rp 0</span>
+                                            </div>
                                             <div class="d-flex justify-content-between mb-2 text-primary">
                                                 <span>Ongkos Kirim</span>
                                                 <span id="display-ongkir">Rp 0</span>
                                             </div>
-                                            <div class="d-flex justify-content-between mb-4 fs-5 fw-bold">
+                                            <div class="d-flex justify-content-between mb-4 fs-5 fw-bold" id="grand-total">
                                                 <span>Total Bayar</span>
                                                 <span id="display-total">Rp {{ number_format($total, 0, ',', '.') }}</span>
                                             </div>
@@ -185,6 +198,8 @@
                                             @endphp
                                             <input type="hidden" id="total_weight" value="{{ $totalWeight }}">
                                             <input type="hidden" id="subtotal_amount" value="{{ $total }}">
+                                            <!-- 🚨 TAMBAHKAN BARIS INI: -->
+                                            <input type="hidden" id="discount_amount_val" value="0">
 
                                             {{-- CEK APAKAH TOKO BUKA --}}
                                                 @if($website->is_open)
@@ -216,7 +231,181 @@
         @endif
 
     </div>
+<script>
+    const checkShippingUrl = "{{ route('store.cart.checkShipping') }}";
+    const csrfToken = "{{ csrf_token() }}";
 
+    function formatRupiah(amount) {
+        return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+    }
+
+    // 🚨 FUNGSI SAPU JAGAT: Menghitung total kapanpun kurir/voucher diubah
+    function calculateGrandTotal() {
+        let subtotal = parseInt(document.getElementById('subtotal_amount').value) || 0;
+        let shipping = parseInt(document.getElementById('input_shipping_cost').value) || 0;
+        let discount = parseInt(document.getElementById('discount_amount_val').value) || 0;
+
+        let grandTotal = subtotal + shipping - discount;
+        
+        // Cegah total menjadi minus jika diskon lebih besar dari subtotal
+        // (Tetap biarkan pembeli bayar ongkirnya)
+        if (subtotal - discount < 0) {
+            grandTotal = shipping; 
+        }
+
+        document.getElementById('display-total').innerText = formatRupiah(grandTotal);
+    }
+
+    // ==========================================
+    // LOGIKA VOUCHER
+    // ==========================================
+    document.getElementById('btn-apply-voucher').addEventListener('click', function() {
+        let code = document.getElementById('voucher_code').value;
+        let msgBox = document.getElementById('voucher-message');
+        
+        if(!code) {
+            msgBox.innerHTML = "Masukkan kode voucher!"; return;
+        }
+
+        msgBox.innerHTML = "Memeriksa...";
+        msgBox.className = "text-info mt-1";
+
+        fetch("{{ route('store.cart.applyVoucher') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({ voucher_code: code })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                msgBox.innerHTML = data.message;
+                msgBox.className = "text-success mt-1";
+                
+                // Munculkan baris diskon
+                document.getElementById('discount-row').style.display = 'flex';
+                document.getElementById('discount-amount').innerText = data.discount_formatted;
+                
+                // 🚨 SIMPAN NOMINAL DISKON KE HIDDEN INPUT & HITUNG ULANG TOTAL
+                document.getElementById('discount_amount_val').value = data.discount_amount;
+                calculateGrandTotal();
+                
+            } else {
+                msgBox.innerHTML = data.message;
+                msgBox.className = "text-danger mt-1";
+                document.getElementById('discount-row').style.display = 'none';
+                
+                // Reset diskon jika gagal
+                document.getElementById('discount_amount_val').value = 0;
+                calculateGrandTotal();
+            }
+        })
+        .catch(error => {
+            msgBox.innerHTML = "Terjadi kesalahan sistem.";
+            msgBox.className = "text-danger mt-1";
+        });
+    });
+
+    // ==========================================
+    // LOGIKA ONGKOS KIRIM
+    // ==========================================
+    function getShippingRates() {
+        const city = document.getElementById('destination_city').value;
+        const weight = document.getElementById('total_weight').value;
+        const container = document.getElementById('shipping-options-container');
+        const loading = document.getElementById('shipping-loading');
+        const btnCheckout = document.getElementById('btn-checkout');
+
+        // Reset
+        container.innerHTML = '';
+        loading.classList.remove('d-none');
+        btnCheckout.disabled = true;
+        
+        // Kembalikan ongkir ke 0 dan hitung ulang
+        document.getElementById('input_shipping_cost').value = 0;
+        document.getElementById('display-ongkir').innerText = formatRupiah(0);
+        calculateGrandTotal();
+
+        fetch(checkShippingUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json' 
+            },
+            body: JSON.stringify({ destination: city, weight: weight })
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Server sedang sibuk.');
+            return data;
+        })
+        .then(data => {
+            loading.classList.add('d-none');
+
+            if(data.status === 'success') {
+                let html = '<label class="form-label small fw-bold text-success"><i class="bi bi-check-circle me-1"></i>Pilih Pengiriman</label>';
+                
+                data.options.forEach((opt) => {
+                    html += `
+                        <div class="form-check border rounded p-2 mb-2 bg-white shipping-option-hover">
+                            <input class="form-check-input ms-1 mt-2" type="radio" name="selected_shipping" 
+                                   id="ship_${opt.id}" value="${opt.id}" 
+                                   onchange="selectShipping('${opt.courier} ${opt.service}', ${opt.cost})">
+                            <label class="form-check-label w-100 ps-2" for="ship_${opt.id}" style="cursor:pointer">
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold text-uppercase">${opt.courier} <small class="text-muted text-capitalize">${opt.service}</small></span>
+                                    <span class="fw-bold text-primary">Rp ${opt.cost_formatted}</span>
+                                </div>
+                                <div class="small text-muted"><i class="bi bi-clock me-1"></i> ${opt.estimation}</div>
+                            </label>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = `<div class="alert alert-warning small border-warning"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> ${data.message}</div>`;
+            }
+        })
+        .catch(error => {
+            loading.classList.add('d-none');
+            container.innerHTML = `<div class="alert alert-danger small border-danger"><i class="bi bi-x-circle-fill text-danger me-2"></i> Ekspedisi tidak menjangkau area ini.</div>`;
+        });
+    }
+
+    function selectShipping(courierName, cost) {
+        document.getElementById('input_shipping_cost').value = cost;
+        document.getElementById('input_shipping_courier').value = courierName;
+        
+        document.getElementById('display-ongkir').innerText = formatRupiah(cost);
+        
+        // 🚨 HITUNG ULANG TOTAL (Sekarang dia akan otomatis memperhitungkan diskon yang sudah ada)
+        calculateGrandTotal();
+        
+        document.getElementById('btn-checkout').disabled = false;
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (window.self !== window.top) {
+            const allForms = document.querySelectorAll('form');
+            allForms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault(); 
+                    alert('⚠️ Mode Preview: Interaksi keranjang dinonaktifkan di editor ini.');
+                });
+                const btn = form.querySelector('button, input[type="submit"]');
+                if(btn) {
+                    btn.disabled = true;
+                    btn.style.cursor = 'not-allowed';
+                }
+                const input = form.querySelector('input[name="qty"]');
+                if(input) input.disabled = true;
+            });
+        }
+    });
+</script>
     <script>
         // URL API Cek Ongkir
     const checkShippingUrl = "{{ route('store.cart.checkShipping') }}";

@@ -82,6 +82,7 @@ class CheckoutController extends Controller
         return view('storefront.cart', compact('website', 'cart', 'total', 'cities'));
     }
 // 3. PROCESS CHECKOUT
+   // 3. PROCESS CHECKOUT
     public function processCheckout(Request $request)
     {
         $website = $request->get('website');
@@ -114,7 +115,7 @@ class CheckoutController extends Controller
             if (!empty($item['variant_id'])) {
                 $variant = \App\Models\ProductVariant::find($item['variant_id']);
                 if (!$variant) {
-                    unset($cart[$key]); // Produk varian sudah dihapus dari database
+                    unset($cart[$key]); 
                     $isCartChanged = true;
                     continue;
                 }
@@ -123,7 +124,7 @@ class CheckoutController extends Controller
             } else {
                 $product = \App\Models\Product::find($item['product_id']);
                 if (!$product) {
-                    unset($cart[$key]); // Produk induk sudah dihapus dari database
+                    unset($cart[$key]); 
                     $isCartChanged = true;
                     continue;
                 }
@@ -134,33 +135,30 @@ class CheckoutController extends Controller
             // CEK 1: Apakah stoknya tiba-tiba kurang dari yang mau dibeli?
             if ($freshStock < $item['quantity']) {
                 if ($freshStock <= 0) {
-                    unset($cart[$key]); // Hapus dari keranjang jika stok habis total
+                    unset($cart[$key]); 
                 } else {
-                    $cart[$key]['quantity'] = $freshStock; // Turunkan qty sesuai sisa stok asli
+                    $cart[$key]['quantity'] = $freshStock; 
                 }
                 $isCartChanged = true;
             }
 
-            // CEK 2: Apakah harganya tiba-tiba berubah oleh Webhook Accurate?
+            // CEK 2: Apakah harganya tiba-tiba berubah?
             if ($freshPrice != $item['price']) {
-                $cart[$key]['price'] = $freshPrice; // Update ke harga terbaru
+                $cart[$key]['price'] = $freshPrice; 
                 $isCartChanged = true;
             }
         }
 
-        // JIKA ADA YANG BERUBAH: Simpan keranjang yang sudah di-update dan batalkan checkout!
         if ($isCartChanged) {
             session()->put($cartKey, $cart);
             return redirect()->back()->with('error', 'Mohon maaf, terjadi perubahan harga atau stok dari pusat secara tiba-tiba. Kami telah memperbarui isi keranjang Anda. Silakan periksa kembali sebelum melanjutkan.');
         }
-        // =========================================================================
-        // =========================================================================
 
         // 2. TERJEMAHKAN ID KOTA MENJADI NAMA LENGKAP
         $city = \App\Models\City::with('province')->find($request->destination_city);
         $cityName = $city ? $city->type . ' ' . $city->name . ' - Prov. ' . $city->province->name : 'Kota Tidak Diketahui';
 
-        // 3. HITUNG TOTAL PRODUK (Menggunakan harga yang sudah tervalidasi di atas)
+        // 3. HITUNG TOTAL PRODUK
         $productTotal = 0;
         foreach ($cart as $item) {
             $productTotal += $item['price'] * $item['quantity'];
@@ -168,16 +166,54 @@ class CheckoutController extends Controller
 
         $shippingCost = $request->shipping_cost;
 
+        // =========================================================================
+        // 🚨 4. BACA & APLIKASIKAN VOUCHER DARI SESSION SEBELUM DISIMPAN
+        // =========================================================================
+        $appliedVoucher = session()->get("applied_voucher_{$website->id}");
+        $voucherId = null;
+        $discountAmount = 0;
+
+        if ($appliedVoucher) {
+            // Pastikan voucher belum dihapus oleh Admin (opsional tapi aman)
+            $dbVoucher = \App\Models\Voucher::find($appliedVoucher['id']);
+            
+            // Kita harus menghitung ulang diskonnya di sini untuk keamanan tertinggi.
+            // Kenapa? Karena pembeli bisa saja iseng mengganti isi session melalui eksploitasi browser.
+            if ($dbVoucher && $dbVoucher->isValid() && $productTotal >= $dbVoucher->min_purchase) {
+                $voucherId = $dbVoucher->id;
+                
+                if ($dbVoucher->discount_type === 'nominal') {
+                    $discountAmount = $dbVoucher->discount_value;
+                } else {
+                    $discountAmount = $productTotal * ($dbVoucher->discount_value / 100);
+                    if ($dbVoucher->max_discount_amount && $discountAmount > $dbVoucher->max_discount_amount) {
+                        $discountAmount = $dbVoucher->max_discount_amount;
+                    }
+                }
+                
+                // Cegah diskon minus
+                if ($discountAmount > $productTotal) {
+                    $discountAmount = $productTotal;
+                }
+            } else {
+                // Jika tiba-tiba voucher tidak valid (misal: baru saja expired saat dia menekan tombol "Buat Pesanan")
+                session()->forget("applied_voucher_{$website->id}");
+                return redirect()->back()->with('error', 'Voucher yang Anda gunakan sudah tidak valid atau kedaluwarsa. Silakan checkout ulang.');
+            }
+        }
+
+        // KURANGI TOTAL DENGAN DISKON
+        $finalTotal = $productTotal - $discountAmount;
+
         DB::beginTransaction();
 
-        // Membelah "JNE REG" menjadi dua bagian
         $courierParts = explode(' ', $request->shipping_courier, 2);
         $courierName = $courierParts[0] ?? null; 
         $courierService = $courierParts[1] ?? null; 
 
         try {
-           // 4. SIMPAN ORDER (DATA INDUK)
-            $order = Order::create([
+           // 5. SIMPAN ORDER (DATA INDUK)
+            $orderData = [
                 'website_id'        => $website->id,
                 'order_number'      => 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
                 'customer_name'     => $request->customer_name,
@@ -186,18 +222,20 @@ class CheckoutController extends Controller
                 'shipping_cost'     => $shippingCost,
                 'courier_name'      => $courierName,
                 'courier_service'   => $courierService,
-                'total_amount'      => $productTotal, 
+                'total_amount'      => $finalTotal + $shippingCost, // 🚨 SUDAH DIKURANGI DISKON
+                'voucher_id'        => $voucherId, // 🚨 SIMPAN ID VOUCHER
+                'discount_amount'   => $discountAmount, // 🚨 SIMPAN TOTAL DISKON
                 'status'            => 'pending',
-            ]);
-            // 🚨 TAMBAHKAN LOGIKA INI: Jika login, suntikkan customer_id
+            ];
+
             if (auth('customer')->check()) {
                 $orderData['customer_id'] = auth('customer')->id();
             }
 
-            // 5. SIMPAN DETAIL ITEM & POTONG STOK
+            $order = Order::create($orderData);
+
+            // 6. SIMPAN DETAIL ITEM & POTONG STOK
             foreach ($cart as $key => $item) {
-                
-                // Potong Stok
                 if (!empty($item['variant_id'])) {
                     $variant = \App\Models\ProductVariant::find($item['variant_id']);
                     if($variant) {
@@ -211,7 +249,6 @@ class CheckoutController extends Controller
                     }
                 }
 
-                // Simpan Riwayat Item
                 \App\Models\OrderItem::create([
                     'order_id'      => $order->id,
                     'product_id'    => $item['product_id'],
@@ -224,10 +261,16 @@ class CheckoutController extends Controller
                 ]);
             }
 
+            // 🚨 7. UPDATE KUOTA VOUCHER
+            if ($voucherId) {
+                \App\Models\Voucher::where('id', $voucherId)->increment('used_count');
+            }
+
             DB::commit();
             
-            // Bersihkan Keranjang Setelah Berhasil Checkout
+            // Bersihkan Keranjang & Session Voucher Setelah Berhasil Checkout
             session()->forget($cartKey);
+            session()->forget("applied_voucher_{$website->id}"); // 🚨 BERSIHKAN SESSION VOUCHER
 
             // Redirect ke Halaman Pembayaran
             return redirect()->route('store.payment', [
@@ -453,5 +496,127 @@ public function checkShipping(Request $request, )
         }
 
         return response()->json(['status' => 'success', 'options' => $options]);
+    }
+   public function applyVoucher(\Illuminate\Http\Request $request)
+    {
+       try {
+            // =========================================================
+            // 1. DETEKSI WEBSITE (TENANT) DARI URL BROWSER SECARA PAKSA
+            // =========================================================
+            $host = $request->getHost(); // Contoh: 'elecjoss.deusserver.test' atau 'domain.com'
+            $subdomain = explode('.', $host)[0]; // Mengambil kata pertama: 'elecjoss'
+
+            // Cari website berdasarkan subdomain ATAU custom domain
+            $website = $request->attributes->get('tenant_website') 
+                       ?? \App\Models\Website::where('subdomain', $subdomain)->first()
+                       ?? \App\Models\Website::where('custom_domain', $host)->first();
+
+            if (!$website) {
+                throw new \Exception("Website Tenant tidak ditemukan untuk host: " . $host);
+            }
+
+            $code = strtoupper($request->voucher_code);
+            
+            // ... (lanjutkan ke // 2. Ambil Total Keranjang) ...
+            
+            // 2. Ambil Total Keranjang (Sesuaikan key session-nya jika perlu)
+            $cart = session()->get("cart_{$website->id}", []);
+            $cartTotal = collect($cart)->sum(fn($item) => $item['price'] * $item['quantity']);
+
+            if ($cartTotal <= 0) {
+                return response()->json(['success' => false, 'message' => 'Keranjang Anda masih kosong.']);
+            }
+
+            // 3. Cari Voucher
+            $voucher = \App\Models\Voucher::where('website_id', $website->id)
+                ->where('code', $code)
+                ->first();
+
+            if (!$voucher) {
+                return response()->json(['success' => false, 'message' => 'Kode voucher tidak ditemukan.']);
+            }
+
+            // 4. Validasi Dasar (Aktif, Kuota, Expired)
+            if (!$voucher->isValid()) {
+                return response()->json(['success' => false, 'message' => 'Voucher tidak aktif, kuota habis, atau sudah kedaluwarsa.']);
+            }
+
+            // 5. Validasi Minimal Belanja
+            if ($cartTotal < $voucher->min_purchase) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Minimal belanja untuk voucher ini adalah Rp ' . number_format($voucher->min_purchase, 0, ',', '.')
+                ]);
+            }
+
+            // =========================================================
+            // 6. VALIDASI PRIVILEGE (DATA SCIENCE RFM)
+            // =========================================================
+            if ($voucher->target_rfm_segment) {
+                // Cek apakah pembeli sudah login
+                $customer = \Illuminate\Support\Facades\Auth::guard('customer')->user();
+                
+                if (!$customer) {
+                    return response()->json(['success' => false, 'message' => 'Anda harus login untuk menggunakan voucher eksklusif ini.']);
+                }
+
+                // Cek apakah Model CustomerRfm (atau CustomerRFM) benar-benar ada
+                if (!class_exists(\App\Models\CustomerRfm::class)) {
+                    throw new \Exception('Model CustomerRfm tidak ditemukan. Apakah namanya CustomerRFM?');
+                }
+
+                // Ambil data RFM pelanggan ini berdasarkan nomor WhatsApp-nya
+                $rfm = \App\Models\CustomerRfm::where('website_id', $website->id)
+                    ->where('customer_whatsapp', $customer->whatsapp)
+                    ->first();
+
+                // Tolak jika dia tidak punya data RFM atau segmennya tidak cocok
+                if (!$rfm || $rfm->segment !== $voucher->target_rfm_segment) {
+                    return response()->json([
+                        'success' => false, 
+                        'message' => 'Maaf, voucher ini eksklusif hanya untuk pelanggan dengan status: ' . $voucher->target_rfm_segment
+                    ]);
+                }
+            }
+
+            // 7. Hitung Diskon
+            $discountAmount = 0;
+            if ($voucher->discount_type === 'nominal') {
+                $discountAmount = $voucher->discount_value;
+            } else {
+                $discountAmount = $cartTotal * ($voucher->discount_value / 100);
+                if ($voucher->max_discount_amount && $discountAmount > $voucher->max_discount_amount) {
+                    $discountAmount = $voucher->max_discount_amount;
+                }
+            }
+
+            // Cegah diskon melebihi total belanja
+            if ($discountAmount > $cartTotal) {
+                $discountAmount = $cartTotal;
+            }
+
+            // 8. Simpan ke Session
+            session()->put("applied_voucher_{$website->id}", [
+                'id' => $voucher->id,
+                'code' => $voucher->code,
+                'discount_amount' => $discountAmount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Voucher berhasil digunakan!',
+                'discount_amount' => $discountAmount,
+                'discount_formatted' => '-Rp ' . number_format($discountAmount, 0, ',', '.'),
+                'final_total' => $cartTotal - $discountAmount,
+                'final_total_formatted' => 'Rp ' . number_format($cartTotal - $discountAmount, 0, ',', '.')
+            ]);
+
+        } catch (\Exception $e) {
+            // 🚨 TANGKAP ERROR 500 DAN TAMPILKAN KE LAYAR
+            return response()->json([
+                'success' => false,
+                'message' => 'Error PHP: ' . $e->getMessage() . ' (Baris ' . $e->getLine() . ')'
+            ]);
+        }
     }
 }

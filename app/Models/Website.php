@@ -225,6 +225,9 @@ class Website extends Model
         // Gabungkan: Timpa nilai default dengan nilai yang disimpan user
         return array_merge($defaults, $savedPreferences);
     }
-
+    public function vouchers()
+    {
+        return $this->hasMany(Voucher::class);
+    }
     
 }

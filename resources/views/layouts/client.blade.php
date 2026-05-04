@@ -229,6 +229,11 @@
                         <i class="bi bi-truck nav-icon"></i>
                         <span class="nav-link-text">Pengiriman</span>
                     </a>
+                    <a href="{{ route('client.vouchers.index', $website->id) }}" 
+                    class="nav-link {{ request()->routeIs('client.vouchers.*') ? 'active' : '' }}">
+                        <i class="bi bi-ticket-perforated nav-icon"></i>
+                        <span class="nav-link-text">Voucher</span>
+                    </a>
                 <a href="{{ route('client.posts.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.posts.*') ? 'active' : '' }}">
                     <i class="bi bi-journal-text"></i> Blog / Artikel
@@ -362,9 +367,9 @@
                     }
                 @endphp
             
-            <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 d-flex align-items-center">
+            <form action="{{ route('logout') }}" method="POST" class="m-0 p-0 d-flex align-items-center" onsubmit="return confirm('Yakin ingin keluar dari akun ini?');">
                 @csrf
-                <button type="submit" class="btn btn-sm btn-light text-danger fw-bold border-0 d-flex align-items-center gap-2 px-2">
+                <button type="submit" class="btn btn-sm btn-light text-danger fw-bold border-0 d-flex align-items-center gap-2 px-2" >
                     <i class="bi bi-box-arrow-right"></i> 
                     <span>Logout</span>
                 </button>

@@ -54,7 +54,7 @@
             <a href="{{ route('profile.edit') }}" class="btn btn-outline-light btn-sm w-100 mb-2">Edit Profil</a>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
-                <button class="btn btn-danger btn-sm w-100">Logout</button>
+                <button class="btn btn-danger btn-sm w-100" onsubmit="return confirm('Yakin ingin keluar dari akun ini?');">Logout</button>
             </form>
         </div>
     </div>

@@ -178,6 +178,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/billing', [App\Http\Controllers\Client\BillingController::class, 'store'])->name('client.billing.store');
 
         // ... di dalam group manage/{website} ...
+        Route::resource('/vouchers', \App\Http\Controllers\Client\VoucherController::class)->names('client.vouchers');
 
         // SHIPPING RATES ROUTES
         
@@ -292,6 +293,8 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
     Route::delete('/cart/remove/{id}', [App\Http\Controllers\CheckoutController::class, 'removeFromCart'])->name('store.cart.remove');
         // Route untuk AJAX Cek Ongkir (Ditaruh di group Storefront)
     Route::post('/cart/check-shipping', [App\Http\Controllers\CheckoutController::class, 'checkShipping'])->name('store.cart.checkShipping');
+    // --- FITUR VOUCHER (STOREFRONT) ---
+    Route::post('/cart/apply-voucher', [App\Http\Controllers\CheckoutController::class, 'applyVoucher'])->name('store.cart.applyVoucher');
     // Batasi maksimal 5 request per 1 menit per IP
     Route::middleware(['throttle:5,1'])->group(function () {
         Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'processCheckout'])->name('store.checkout');
@@ -310,7 +313,9 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
 
     
 });
-
+// Rute terbuka untuk menerima sinyal dari Pivot/Midtrans
+Route::post('/pivot/webhook', [\App\Http\Controllers\WebhookController::class, 'handlePivotWebhook']);
+Route::post('/webhook/payment', [\App\Http\Controllers\WebhookController::class, 'handlePaymentWebhook']);
 // Route::get('/seeding-data-lama', function () {
 //     // 1. Ambil semua pesanan yang belum punya pemilik (customer_id IS NULL)
 //     // Kelompokkan berdasarkan nomor WhatsApp agar tidak terjadi duplikasi akun

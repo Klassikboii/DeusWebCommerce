@@ -70,8 +70,11 @@ class PivotService implements PaymentGatewayInterface
             return ['status' => 'error', 'token' => null, 'redirect_url' => null];
         }
 
-        $totalBayar = (int) ($order->total_amount + $order->shipping_cost);
+        $totalBayar = (int) ($order->total_amount);
         $returnUrl = url()->route('store.payment', ['order_number' => $order->order_number]);
+        // 🚨 GANTI DENGAN URL NGROK ANDA YANG SEDANG JALAN
+        $ngrokUrl = 'https://nontraversable-magan-nonpulsating.ngrok-free.dev'; // <-- Isi dengan URL Ngrok asli Anda!
+        $webhookUrl = $ngrokUrl . '/pivot/webhook';
 
         // Merakit Payload sesuai format v2/payments Pivot
         $payload = [
@@ -83,6 +86,10 @@ class PivotService implements PaymentGatewayInterface
             'paymentType' => 'SINGLE',
             'mode' => 'REDIRECT', 
             'bypassStatusPage' => false,
+            'webhookUrl' => $webhookUrl,
+            'notificationUrl' => $webhookUrl,
+            'callbackUrl' => $webhookUrl,
+            'serverCallbackUrl' => $webhookUrl,
             'redirectUrl' => [
                 'successReturnUrl' => $returnUrl,
                 'failureReturnUrl' => $returnUrl,
