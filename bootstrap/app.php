@@ -26,7 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'feature' => \App\Http\Middleware\CheckPackageFeature::class,
         ]);
         $middleware->validateCsrfTokens(except: [
-            'webhook/*', // 🚨 Bebaskan semua rute yang diawali dengan /webhook/
+            // 🚨 BEBASKAN RUTE PIVOT DI SINI
+            'pivot/webhook',
+            'pivot/*',
+            'webhook/*'
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

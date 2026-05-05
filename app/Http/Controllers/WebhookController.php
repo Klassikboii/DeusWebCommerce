@@ -13,45 +13,62 @@ use App\Models\AccurateIntegration;
 
 class WebhookController extends Controller
 {
-
 public function handlePivotWebhook(Request $request)
-{
-    // 1. Cari data website. Karena ini API, kita perlu tahu ini website siapa.
-    // Opsional: Jika Pivot mengirimkan clientReferenceId, kita bisa cari ordernya dulu
-    $order = \App\Models\Order::where('order_number', $request->clientReferenceId)->first();
-    
-    if (!$order) {
-        return response()->json(['status' => 'error', 'message' => 'Order not found'], 404);
-    }
+    {
+        $payload = $request->all();
+        \Illuminate\Support\Facades\Log::info('📥 WEBHOOK PIVOT MASUK:', $payload);
+        // 🚨 TAMBAHKAN BARIS INI UNTUK MENGINTIP SEMUA HEADER YANG DIKIRIM PIVOT
+        \Illuminate\Support\Facades\Log::info('🔍 SEMUA HEADER PIVOT:', $request->headers->all());
 
-    $website = $order->website;
+        // Jaring Pengaman: Cari ID Pesanan
+        $orderNumber = $request->input('clientReferenceId') 
+                    ?? $request->input('data.clientReferenceId') 
+                    ?? $request->input('referenceId');
 
-    // 2. Gunakan PivotService untuk memproses data
-    $paymentService = new \App\Services\Payment\PivotService($website);
-    $result = $paymentService->handleWebhook($request);
-
-    // 3. Jika valid, update status pesanan
-    if ($result['is_valid']) {
-        if ($result['status'] === 'paid') {
-            $order->update([
-                'status' => 'processing', // Sesuaikan dengan alur toko Anda
-                'payment_status' => 'paid',
-                'bank_name' => $result['payment_method']
-            ]);
-            
-            // Catat history (jika ada sistem history)
-            \App\Models\OrderHistory::create([
-                'order_id' => $order->id,
-                'status' => 'paid',
-                'description' => 'Pembayaran lunas via Pivot (' . $result['payment_method'] . ')'
-            ]);
+        // =========================================================================
+        // 🚨 DETEKSI PING / URL VALIDATION DARI DASHBOARD PIVOT 🚨
+        // Jika orderNumber kosong, ATAU berisi kata "TEST"/"DUMMY", ini cuma ping!
+        // =========================================================================
+        if (empty($orderNumber) || str_contains(strtoupper($orderNumber), 'TEST')) {
+            \Illuminate\Support\Facades\Log::info("Merespons Ping/Tes Koneksi dari Dashboard Pivot.");
+            // WAJIB balas 200 OK agar Pivot mau menyimpan URL ini!
+            return response()->json(['status' => 'success', 'message' => 'Webhook URL Verified'], 200);
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Webhook Processed']);
-    }
+        $order = \App\Models\Order::where('order_number', $orderNumber)->first();
+        
+        if (!$order) {
+            \Illuminate\Support\Facades\Log::error("Webhook Gagal: Pesanan {$orderNumber} tidak ditemukan di DB.");
+            // Ubah dari 404 menjadi 200. Kenapa? Agar Pivot tidak mencoba mengirim (retry) 
+            // webhook yang sama terus-menerus jika memang ordernya sudah dihapus di DB kita.
+            return response()->json(['status' => 'error', 'message' => "Order not found: {$orderNumber}"], 200);
+        }
 
-    return response()->json(['status' => 'error', 'message' => 'Invalid Signature'], 403);
-}
+        $website = $order->website;
+        $paymentService = new \App\Services\Payment\PivotService($website);
+        $result = $paymentService->handleWebhook($request);
+
+        // ... (lanjutan kode if ($result['is_valid']) dan proses update status) ...
+        if ($result['is_valid']) {
+            if ($result['status'] === 'paid') {
+                $order->update([
+                    'status' => 'processing', 
+                    'payment_status' => 'paid',
+                    'bank_name' => $result['payment_method']
+                ]);
+                
+                \App\Models\OrderHistory::create([
+                    'order_id' => $order->id,
+                    'status' => 'processing',
+                    'note' => 'Pembayaran lunas via Pivot (' . $result['payment_method'] . ')'
+                ]);
+            }
+
+            return response()->json(['status' => 'success', 'message' => 'Webhook Processed'], 200);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Invalid Signature'], 403);
+    }
    public function handlePaymentWebhook(Request $request)
     {
         $payload = $request->all();

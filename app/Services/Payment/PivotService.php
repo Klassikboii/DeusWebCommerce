@@ -146,33 +146,48 @@ class PivotService implements PaymentGatewayInterface
         }
     }
 
-    public function handleWebhook(Request $request): array
+  public function handleWebhook(Request $request): array
     {
-        // ... (Kode Webhook biarkan sama persis seperti aslinya, kita akan urus ini nanti setelah checkout sukses)
         $payload = $request->all();
-        $signatureFromPivot = $request->header('X-PIVOT-SIGNATURE'); 
         
-        $orderId = $payload['clientReferenceId'] ?? null;
-        $status = $payload['status'] ?? null;
+        // 1. Jaring Pengaman Variabel
+        $orderId = $payload['clientReferenceId'] ?? ($payload['data']['clientReferenceId'] ?? null);
+        $status = $payload['status'] ?? ($payload['data']['status'] ?? null);
         
-        $stringToSign = $request->getContent(); 
-        $calculatedSignature = hash_hmac('sha512', $stringToSign, $this->merchantSecret);
+        // =========================================================================
+        // 🚨 VERIFIKASI KEAMANAN ASLI PIVOT (MENGGUNAKAN x-api-key)
+        // =========================================================================
+        $apiKeyFromPivot = $request->header('x-api-key'); 
+        
+        // Ganti dengan Callback API Key asli dari Dashboard Pivot Anda
+        $callbackApiKey = 'Vr4BBX9q7xSUU4gDlLFWh7yg4H0YTNBs'; 
 
-        if (!hash_equals($calculatedSignature, $signatureFromPivot ?? '')) {
-            Log::error("Pivot Webhook Error: Signature tidak valid untuk order {$orderId}");
+        // Verifikasi: Cocokkan langsung kunci dari header dengan kunci rahasia kita
+        $isValid = ($apiKeyFromPivot === $callbackApiKey);
+
+        if (!$isValid) {
+            \Illuminate\Support\Facades\Log::error("Pivot Webhook Error: x-api-key tidak cocok atau kosong untuk order {$orderId}");
             return ['is_valid' => false]; 
         }
+        // =========================================================================
 
         $finalStatus = 'pending';
-        if (in_array($status, ['SUCCESS', 'PAID', 'SETTLED'])) {
+        $statusUpper = strtoupper($status ?? '');
+
+        if (in_array($statusUpper, ['SUCCESS', 'PAID', 'SETTLED'])) {
             $finalStatus = 'paid';
-        } elseif (in_array($status, ['FAILED', 'EXPIRED', 'CANCELED'])) {
+        } elseif (in_array($statusUpper, ['FAILED', 'EXPIRED', 'CANCELED'])) {
             $finalStatus = 'failed';
         }
 
+        // Penanganan Payment Method (Object ke String)
         $paymentMethod = 'Pivot Payment Gateway';
-        if (isset($payload['paymentMethod'])) {
-            $paymentMethod = str_replace('_', ' ', $payload['paymentMethod']); 
+        $rawPaymentMethod = $payload['data']['paymentMethod'] ?? ($payload['paymentMethod'] ?? null);
+        
+        if (is_array($rawPaymentMethod)) {
+            $paymentMethod = $rawPaymentMethod['type'] ?? 'QRIS/E-Wallet';
+        } elseif (is_string($rawPaymentMethod)) {
+            $paymentMethod = str_replace('_', ' ', $rawPaymentMethod); 
         }
 
         return [
