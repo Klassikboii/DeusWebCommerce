@@ -157,6 +157,10 @@ public function update(Request $request, Website $website, Order $order)
 
     $order->update($updateData);
 
+    if ($request->status === 'completed') {
+            $order->releaseFundToWallet();
+        }
+
    // ====================================================
     // PELATUK ACCURATE: BIKIN FAKTUR & LUNASI
     // ====================================================

@@ -142,6 +142,34 @@
                     @endforeach
                 </div>
             </div>
+
+            <!-- WIDGET PENDING PENARIKAN DANA -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 fw-bold">Request Penarikan Dana</h6>
+                    <a href="{{ route('admin.withdrawals.index') }}" class="btn btn-sm btn-link text-decoration-none">Lihat Semua</a>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        @forelse($pendingWithdrawals as $wd)
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div>
+                                    <h6 class="mb-1 text-dark fw-bold">{{ $wd->website->name ?? 'Toko Tidak Diketahui' }}</h6>
+                                    <small class="text-muted">{{ $wd->created_at->diffForHumans() }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold text-danger d-block">Rp {{ number_format($wd->amount, 0, ',', '.') }}</span>
+                                    <a href="{{ route('admin.withdrawals.index') }}" class="badge bg-warning text-dark text-decoration-none">Proses</a>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="list-group-item text-center text-muted py-4">
+                                Tidak ada request penarikan tertunda.
+                            </li>
+                        @endforelse
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 </div>

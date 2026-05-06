@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Website;
 use Illuminate\Http\Request;
 use App\Models\Transaction; // <--- Jangan lupa import ini
+use App\Models\Withdrawal; // <--- Import model Withdrawal untuk ambil data penarikan
 
 class DashboardController extends Controller
 {
@@ -27,10 +28,16 @@ class DashboardController extends Controller
 
         // 3. Ambil 5 Website Terbaru
         $latestWebsites = Website::with('user')->latest()->take(5)->get();
+        // 🚨 AMBIL 5 REQUEST PENARIKAN TERBARU YANG BERSTATUS 'PENDING'
+        $pendingWithdrawals = Withdrawal::with('website')
+                                ->where('status', 'pending')
+                                ->latest()
+                                ->take(5)
+                                ->get();
 
         return view('admin.dashboard', compact(
             'totalUsers', 'totalWebsites', 'totalRevenue', 
-            'pendingTransactions', 'latestTransactions', 'latestWebsites'
+            'pendingTransactions', 'latestTransactions', 'latestWebsites', 'pendingWithdrawals'
         ));
     }
 }

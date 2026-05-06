@@ -229,5 +229,12 @@ class Website extends Model
     {
         return $this->hasMany(Voucher::class);
     }
+    public function walletMutations() {
+        return $this->hasMany(WalletMutation::class);
+    }
+
+    public function withdrawals() {
+        return $this->hasMany(Withdrawal::class);
+    }
     
 }

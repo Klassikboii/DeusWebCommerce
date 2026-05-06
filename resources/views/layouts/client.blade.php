@@ -252,6 +252,10 @@
                 class="nav-link {{ request()->routeIs('client.reports.*') ? 'active' : '' }}">
                     <i class="bi bi-clipboard-data"></i> Laporan
                 </a>
+                <a href="{{ route('client.wallet.index', $website->id) }}" 
+                class="nav-link {{ request()->routeIs('client.wallet.*') ? 'active' : '' }}">
+                    <i class="bi bi-wallet"></i> Wallet & Pencairan
+                </a>
                 @if($website->hasFeature('has_ai_insights'))
                        
                             <a class="nav-link" href="{{ route('client.insights.index', $website) }}">

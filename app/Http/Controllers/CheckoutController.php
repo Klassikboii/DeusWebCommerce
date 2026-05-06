@@ -174,12 +174,53 @@ class CheckoutController extends Controller
         $discountAmount = 0;
 
         if ($appliedVoucher) {
-            // Pastikan voucher belum dihapus oleh Admin (opsional tapi aman)
             $dbVoucher = \App\Models\Voucher::find($appliedVoucher['id']);
             
-            // Kita harus menghitung ulang diskonnya di sini untuk keamanan tertinggi.
-            // Kenapa? Karena pembeli bisa saja iseng mengganti isi session melalui eksploitasi browser.
-            if ($dbVoucher && $dbVoucher->isValid() && $productTotal >= $dbVoucher->min_purchase) {
+            // 🚨 RE-VALIDASI KETAT (PINTU BELAKANG DIKUNCI)
+            $customerId = auth('customer')->id();
+            $isVoucherValid = true;
+            $voucherErrorMessage = '';
+
+            // Cek Eksistensi & Expired
+            if (!$dbVoucher || !$dbVoucher->isValid()) {
+                $isVoucherValid = false;
+                $voucherErrorMessage = 'Voucher sudah tidak valid atau kedaluwarsa.';
+            } 
+            // Cek Minimal Belanja
+            elseif ($productTotal < $dbVoucher->min_purchase) {
+                $isVoucherValid = false;
+                $voucherErrorMessage = 'Total belanja tidak memenuhi syarat minimal voucher.';
+            } 
+            // Cek RFM Privilege (Jika Ada)
+            elseif ($dbVoucher->target_rfm_segment) {
+                if (!$customerId) {
+                    $isVoucherValid = false;
+                    $voucherErrorMessage = 'Anda harus login untuk menggunakan voucher eksklusif ini.';
+                } else {
+                    $rfm = \App\Models\CustomerRfm::where('website_id', $website->id)
+                        ->where('customer_whatsapp', auth('customer')->user()->whatsapp)
+                        ->first();
+                    if (!$rfm || $rfm->segment !== $dbVoucher->target_rfm_segment) {
+                        $isVoucherValid = false;
+                        $voucherErrorMessage = 'Voucher eksklusif tidak berlaku untuk akun Anda.';
+                    }
+                }
+            }
+            
+            // 🚨 CEK PENGGUNAAN BERULANG (PROPOSAL 1)
+            if ($isVoucherValid && $customerId) {
+                $alreadyUsed = \App\Models\Order::where('customer_id', $customerId)
+                                    ->where('voucher_id', $dbVoucher->id) 
+                                    ->whereNotIn('status', ['canceled', 'failed']) 
+                                    ->exists();
+                if ($alreadyUsed) {
+                    $isVoucherValid = false;
+                    $voucherErrorMessage = 'Anda sudah pernah menggunakan voucher ini pada pesanan sebelumnya.';
+                }
+            }
+
+            // JIKA SEMUA VALIDASI LOLOS, HITUNG DISKON
+            if ($isVoucherValid) {
                 $voucherId = $dbVoucher->id;
                 
                 if ($dbVoucher->discount_type === 'nominal') {
@@ -191,14 +232,14 @@ class CheckoutController extends Controller
                     }
                 }
                 
-                // Cegah diskon minus
+                // Cegah diskon melebihi harga produk
                 if ($discountAmount > $productTotal) {
                     $discountAmount = $productTotal;
                 }
             } else {
-                // Jika tiba-tiba voucher tidak valid (misal: baru saja expired saat dia menekan tombol "Buat Pesanan")
+                // 🚨 JIKA KETAHUAN CURANG, HAPUS DARI SESSION & BATALKAN CHECKOUT!
                 session()->forget("applied_voucher_{$website->id}");
-                return redirect()->back()->with('error', 'Voucher yang Anda gunakan sudah tidak valid atau kedaluwarsa. Silakan checkout ulang.');
+                return redirect()->back()->with('error', 'Gagal memproses pesanan: ' . $voucherErrorMessage);
             }
         }
 
@@ -344,6 +385,7 @@ class CheckoutController extends Controller
                     'payment_url' => $paymentUrl // 🚨 SIMPAN KE DATABASE
                 ]);
             } else {
+                \Illuminate\Support\Facades\Log::error('PIVOT REJECTED:', $paymentData);
                 // Beri pesan error ke pembeli jika Gateway Pivot sedang gangguan
                 \Illuminate\Support\Facades\Session::flash('error', 'Sistem pembayaran sedang sibuk atau kunci API toko salah. Silakan hubungi admin toko.');
             }
@@ -578,6 +620,33 @@ public function checkShipping(Request $request, )
                     ]);
                 }
             }
+           // ====================================================================
+            // 🚨 PROPOSAL 1: CEK APAKAH CUSTOMER SUDAH PERNAH PAKAI VOUCHER INI
+            // ====================================================================
+            
+            $customerId = \Illuminate\Support\Facades\Auth::guard('customer')->id(); 
+
+            // 1. Paksa Login (Voucher yang dibatasi penggunanya WAJIB mewajibkan user login)
+            if (!$customerId) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Anda harus login terlebih dahulu untuk menggunakan kode voucher ini.'
+                ]);
+            }
+
+            // 2. Cek Riwayat Pesanan
+            $alreadyUsed = \App\Models\Order::where('customer_id', $customerId)
+                                ->where('voucher_id', $voucher->id) 
+                                ->whereNotIn('status', ['canceled', 'failed']) 
+                                ->exists();
+
+            if ($alreadyUsed) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Maaf, Anda sudah pernah menggunakan kode voucher ini pada pesanan sebelumnya.'
+                ]);
+            }
+            // ====================================================================
 
             // 7. Hitung Diskon
             $discountAmount = 0;

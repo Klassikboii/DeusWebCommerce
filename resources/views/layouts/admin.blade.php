@@ -39,6 +39,11 @@
                 <i class="bi bi-cash-stack"></i> Transaksi
             </a>
             
+
+            <a href="{{ route('admin.withdrawals.index') }}" class="nav-link {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
+                <i class="bi bi-cash-coin"></i> Penarikan Dana
+            </a>
+
         </nav>
 
         <div class="p-3 border-top border-secondary">

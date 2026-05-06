@@ -20,8 +20,8 @@ class PivotService implements PaymentGatewayInterface
     {
         $this->website = $website;
         
-        $this->merchantId = $this->website->pivot_client_key; 
-        $this->merchantSecret = $this->website->pivot_server_key;
+        $this->merchantId = env('PIVOT_CLIENT_ID'); 
+        $this->merchantSecret = env('PIVOT_SERVER_KEY');
         
         $this->baseUrl = $this->website->pivot_is_production 
             ? 'https://api.pivot-payment.com' 
@@ -157,10 +157,9 @@ class PivotService implements PaymentGatewayInterface
         // =========================================================================
         // 🚨 VERIFIKASI KEAMANAN ASLI PIVOT (MENGGUNAKAN x-api-key)
         // =========================================================================
+        // 🚨 VERIFIKASI KEAMANAN MENGGUNAKAN CALLBACK KEY DEUS
         $apiKeyFromPivot = $request->header('x-api-key'); 
-        
-        // Ganti dengan Callback API Key asli dari Dashboard Pivot Anda
-        $callbackApiKey = 'Vr4BBX9q7xSUU4gDlLFWh7yg4H0YTNBs'; 
+        $callbackApiKey = env('PIVOT_CALLBACK_KEY');
 
         // Verifikasi: Cocokkan langsung kunci dari header dengan kunci rahasia kita
         $isValid = ($apiKeyFromPivot === $callbackApiKey);

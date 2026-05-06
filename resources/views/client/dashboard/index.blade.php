@@ -712,7 +712,7 @@
                     <li>Anda akan melihat <strong>Client Key</strong> dan <strong>Server Key</strong>. Salin (Copy) kedua kunci tersebut.</li>
                     
                     {{-- TAMBAHAN LANGKAH WEBHOOK --}}
-                    <li>Masih di menu Settings, pindah ke bagian <strong>Configuration</strong> (Konfigurasi).</li>
+                    {{-- <li>Masih di menu Settings, pindah ke bagian <strong>Configuration</strong> (Konfigurasi).</li>
                     <li>Temukan kolom <strong>Payment Notification URL</strong>, lalu masukkan (Paste) alamat web khusus di bawah ini:
                         <div class="d-flex align-items-center mt-2 mb-3 p-2 bg-light border rounded">
                             <code id="webhookUrlText" class="flex-grow-1 text-dark fs-6">{{ url('/api/webhook/midtrans') }}</code>
@@ -731,7 +731,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> --}}
 <script>
     function copyWebhookUrl() {
         var copyText = document.getElementById("webhookUrlText").innerText;

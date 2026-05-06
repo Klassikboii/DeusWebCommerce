@@ -184,6 +184,9 @@ Route::middleware(['auth'])->group(function () {
         
         Route::get('/shipping', [App\Http\Controllers\Client\ShippingController::class, 'index'])->name('client.shipping.index');
 
+        Route::get('/wallet', [\App\Http\Controllers\Client\WalletController::class, 'index'])->name('client.wallet.index');
+        Route::post('/wallet/withdraw', [\App\Http\Controllers\Client\WalletController::class, 'withdraw'])->name('client.wallet.withdraw');
+
         
         Route::post('/shipping', [App\Http\Controllers\Client\ShippingController::class, 'store'])->name('client.shipping.store');
                 // Di dalam group 'client' ...
@@ -245,6 +248,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
         Route::delete('/websites/{website}', [App\Http\Controllers\Admin\WebsiteController::class, 'destroy'])->name('websites.destroy');
         Route::get('/users/{id}/impersonate', [App\Http\Controllers\Admin\UserController::class, 'impersonate'])->name('users.impersonate');
         Route::delete('/users/{id}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
+
+        // Rute Kelola Penarikan Dana Klien
+        Route::get('/withdrawals', [\App\Http\Controllers\Admin\WithdrawalController::class, 'index'])->name('withdrawals.index');
+        Route::post('/withdrawals/{withdrawal}/approve', [\App\Http\Controllers\Admin\WithdrawalController::class, 'approve'])->name('withdrawals.approve');
+        Route::post('/withdrawals/{withdrawal}/reject', [\App\Http\Controllers\Admin\WithdrawalController::class, 'reject'])->name('withdrawals.reject');
     });
 
 });

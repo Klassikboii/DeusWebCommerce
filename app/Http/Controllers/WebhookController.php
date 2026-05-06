@@ -54,6 +54,7 @@ public function handlePivotWebhook(Request $request)
                 $order->update([
                     'status' => 'processing', 
                     'payment_status' => 'paid',
+                    'payment_method' => 'pivot',
                     'bank_name' => $result['payment_method']
                 ]);
                 
@@ -62,6 +63,7 @@ public function handlePivotWebhook(Request $request)
                     'status' => 'processing',
                     'note' => 'Pembayaran lunas via Pivot (' . $result['payment_method'] . ')'
                 ]);
+                // $order->releaseFundToWallet();
             }
 
             return response()->json(['status' => 'success', 'message' => 'Webhook Processed'], 200);

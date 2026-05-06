@@ -27,6 +27,7 @@ class Order extends Model
         'payment_url', // Kolom Pivot yang baru
         'customer_id',
         'accurate_customer_no',
+        'payment_method',
     ];
     // Relasi ke Item Belanja
     public function items()
@@ -52,5 +53,43 @@ class Order extends Model
     public function voucher()
     {
         return $this->belongsTo(Voucher::class);
+    }
+    /**
+     * Cairkan dana ke dompet Klien
+     */
+    public function releaseFundToWallet()
+    {
+        // 1. Cek apakah ini transaksi Manual Transfer?
+        // Jika Manual, uang sudah ditransfer langsung ke rekening Klien oleh pembeli. Jangan tambah saldo!
+        if (strtolower($this->payment_method) === 'transfer' || strtolower($this->payment_method) === 'manual') {
+            return false; 
+        }
+
+        // 2. Mencegah Uang Dobel (Cek apakah pesanan ini sudah pernah cair ke saldo?)
+        $alreadyReleased = \App\Models\WalletMutation::where('order_id', $this->id)
+                            ->where('type', 'credit')
+                            ->exists();
+
+        if ($alreadyReleased) {
+            return false;
+        }
+
+        // 3. Hitung Nominal (Di sini Anda bisa menambahkan logika potongan Fee Deus jika mau)
+        // Contoh: $feeDeus = $this->total_amount * 0.02; (Potong 2%)
+        $amountToRelease = $this->total_amount;
+
+        // 4. Catat di Buku Tabungan (Mutasi)
+        \App\Models\WalletMutation::create([
+            'website_id' => $this->website_id,
+            'order_id' => $this->id,
+            'type' => 'credit',
+            'amount' => $amountToRelease,
+            'description' => "Dana pesanan {$this->order_number} telah masuk ke saldo."
+        ]);
+
+        // 5. Tambah Saldo Tersedia milik Klien di tabel Websites
+        $this->website->increment('wallet_balance', $amountToRelease);
+
+        return true;
     }
 }
