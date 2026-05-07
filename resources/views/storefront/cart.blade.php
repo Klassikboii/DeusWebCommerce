@@ -232,7 +232,7 @@
 
     </div>
 <script>
-    const checkShippingUrl = "{{ route('store.cart.checkShipping') }}";
+    var checkShippingUrl = "{{ route('store.cart.checkShipping') }}";
     const csrfToken = "{{ csrf_token() }}";
 
     function formatRupiah(amount) {

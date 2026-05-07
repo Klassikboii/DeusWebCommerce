@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Voucher extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'website_id', 'code', 'discount_type', 'discount_value', 
@@ -42,14 +44,29 @@ class Voucher extends Model
     // --- Helper Function (Otomatis cek validitas voucher) ---
     public function isValid()
     {
-        if (!$this->is_active) return false;
-        
-        if ($this->max_uses !== null && $this->used_count >= $this->max_uses) return false;
-        
-        $now = now();
-        if ($this->valid_from && $now->lt($this->valid_from)) return false;
-        if ($this->valid_until && $now->gt($this->valid_until)) return false;
-        
-        return true;
+        // 1. Cek apakah statusnya nonaktif
+        if (!$this->is_active) {
+            return false;
+        }
+
+        $now = now(); // Mengambil waktu server saat ini
+
+        // 2. Cek apakah waktu MULAI (valid_from) sudah terlewati
+        if ($this->valid_from && $now->lessThan($this->valid_from)) {
+            return false; // Ditolak: Event diskon belum mulai
+        }
+
+        // 3. Cek apakah waktu BERAKHIR (valid_until) sudah kelewat
+        if ($this->valid_until && $now->greaterThan($this->valid_until)) {
+            return false; // Ditolak: Sudah expired
+        }
+
+        // 4. Cek apakah kuota sudah habis
+        // (Pastikan kolom database Anda bernama max_uses, bukan quota. Sesuaikan jika beda)
+        if ($this->max_uses > 0 && $this->used_count >= $this->max_uses) {
+            return false; // Ditolak: Kuota habis
+        }
+
+        return true; // Jika lolos semua, berarti valid!
     }
 }

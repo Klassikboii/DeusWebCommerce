@@ -19,7 +19,7 @@
                     <a href="{{ route('store.profile.edit') }}" class="btn btn-outline-primary fw-bold mb-2 d-block shadow-sm">
                         <i class="bi bi-person-gear me-1"></i> Edit Profil
                     </a>
-                    <form action="{{ route('store.logout') }}" method="POST" class="d-grid">
+                    <form action="{{ route('store.logout') }}" method="POST" class="d-grid"  onsubmit="return confirm('Yakin ingin keluar dari akun ini?');">
                         @csrf
                         <button type="submit" class="btn btn-light border text-danger fw-bold shadow-sm">
                             <i class="bi bi-box-arrow-right me-1"></i> Keluar

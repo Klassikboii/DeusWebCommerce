@@ -13,7 +13,7 @@ class CalculateRFM extends Command
     protected $signature = 'rfm:calculate';
     protected $description = 'Menghitung skor RFM dan mensegmentasi pelanggan untuk setiap toko (Data Science Engine)';
 
-    public function handle()
+   public function handle()
     {
         $this->info('🚀 Memulai Proses Analisis RFM...');
 
@@ -23,30 +23,30 @@ class CalculateRFM extends Command
         foreach ($websites as $website) {
             $this->info("Menganalisis Toko: {$website->site_name}");
 
-            // 1. Ambil semua order yang valid (Sudah dibayar/selesai)
+            // 1. Ambil order yang valid DAN WAJIB punya customer_id (Abaikan Guest)
             $orders = Order::where('website_id', $website->id)
+                ->whereNotNull('customer_id') // 🚨 PENTING: Hanya pelanggan terdaftar
                 ->whereIn('status', ['processing', 'shipped', 'completed'])
                 ->get();
 
             if ($orders->isEmpty()) continue;
 
-            // 2. Kelompokkan berdasarkan Nomor WhatsApp (Grup Pelanggan)
-            $customerGroups = $orders->groupBy('customer_whatsapp');
+            // 2. Kelompokkan berdasarkan Customer ID (Bukan WA lagi)
+            $customerGroups = $orders->groupBy('customer_id');
             $rawData = [];
 
-            foreach ($customerGroups as $whatsapp => $custOrders) {
-                $lastOrderDate = $custOrders->max('created_at');
+            foreach ($customerGroups as $customerId => $custOrders) {
+                $lastOrderDate = Carbon::parse($custOrders->max('created_at'));
                 
                 $rawData[] = [
-                    'whatsapp' => $whatsapp,
-                    'name'     => $custOrders->first()->customer_name,
-                    'recency'  => $now->diffInDays($lastOrderDate), // Jarak hari
-                    'frequency'=> $custOrders->count(),             // Jumlah transaksi
-                    'monetary' => $custOrders->sum('total_amount')  // Total uang
+                    'customer_id' => $customerId,
+                    // 🚨 Gunakan ABS() agar jika ada dummy order dari masa depan, angkanya tidak minus
+                    'recency'  => abs($now->diffInDays($lastOrderDate)), 
+                    'frequency'=> $custOrders->count(),
+                    'monetary' => $custOrders->sum('total_amount')
                 ];
             }
 
-            // 3. Hitung Skor 1-5 menggunakan Distribusi Kuantil (Statistika Terapan)
             $this->scoreAndSegmentCustomers($website->id, $rawData);
         }
 
@@ -55,29 +55,24 @@ class CalculateRFM extends Command
 
     private function scoreAndSegmentCustomers($websiteId, $rawData)
     {
-        // Ekstrak array untuk mencari nilai Max & Min
         $recencies = array_column($rawData, 'recency');
         $frequencies = array_column($rawData, 'frequency');
         $monetaries = array_column($rawData, 'monetary');
 
-        // Fungsi Helper untuk membagi ke dalam 5 level skor (1 terburuk, 5 terbaik)
         $getScore = function($val, $arr, $isRecency = false) {
             $min = min($arr);
             $max = max($arr);
-            if ($max == $min) return 5; // Jika data terlalu sedikit, beri nilai maksimal
+            if ($max == $min) return 5; 
             
-            // Rumus Normalisasi 1-5
             $score = ceil((($val - $min) / ($max - $min)) * 5);
-            $score = max(1, min(5, $score)); // Pastikan tidak keluar dari 1-5
+            $score = max(1, min(5, $score)); 
 
-            // Untuk Recency (Keterbaruan), nilai terkecil (0 hari) adalah yang TERBAIK (Skor 5)
             if ($isRecency) {
-                return 6 - $score; // Dibalik: 1 jadi 5, 5 jadi 1
+                return 6 - $score; 
             }
             return $score;
         };
 
-        // 4. Hitung Skor dan Tentukan Segmen
         foreach ($rawData as $data) {
             $r = $getScore($data['recency'], $recencies, true);
             $f = $getScore($data['frequency'], $frequencies);
@@ -85,11 +80,10 @@ class CalculateRFM extends Command
 
             $segment = $this->determineSegment($r, $f, $m);
 
-            // Simpan hasil ke Database
+            // 🚨 Simpan menggunakan Customer ID
             CustomerRfm::updateOrCreate(
-                ['website_id' => $websiteId, 'customer_whatsapp' => $data['whatsapp']],
+                ['website_id' => $websiteId, 'customer_id' => $data['customer_id']],
                 [
-                    'customer_name'   => $data['name'],
                     'recency_days'    => $data['recency'],
                     'frequency_count' => $data['frequency'],
                     'monetary_value'  => $data['monetary'],

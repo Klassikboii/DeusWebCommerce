@@ -179,6 +179,9 @@ Route::middleware(['auth'])->group(function () {
 
         // ... di dalam group manage/{website} ...
         Route::resource('/vouchers', \App\Http\Controllers\Client\VoucherController::class)->names('client.vouchers');
+        Route::put('/vouchers/{voucher}', [\App\Http\Controllers\Client\VoucherController::class, 'update'])->name('client.vouchers.update');
+        Route::delete('/vouchers/{voucher}', [\App\Http\Controllers\Client\VoucherController::class, 'destroy'])->name('client.vouchers.destroy');
+        Route::patch('/vouchers/{voucher}/toggle', [\App\Http\Controllers\Client\VoucherController::class, 'toggleStatus'])->name('client.vouchers.toggle');
 
         // SHIPPING RATES ROUTES
         

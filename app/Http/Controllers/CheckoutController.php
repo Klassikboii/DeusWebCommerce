@@ -197,9 +197,10 @@ class CheckoutController extends Controller
                     $isVoucherValid = false;
                     $voucherErrorMessage = 'Anda harus login untuk menggunakan voucher eksklusif ini.';
                 } else {
-                    $rfm = \App\Models\CustomerRfm::where('website_id', $website->id)
-                        ->where('customer_whatsapp', auth('customer')->user()->whatsapp)
-                        ->first();
+                    // Ambil data RFM pelanggan ini berdasarkan ID-nya yang absolut
+                $rfm = \App\Models\CustomerRfm::where('website_id', $website->id)
+                    ->where('customer_id', $customerId) // 🚨 SUDAH MENGGUNAKAN ID
+                    ->first();
                     if (!$rfm || $rfm->segment !== $dbVoucher->target_rfm_segment) {
                         $isVoucherValid = false;
                         $voucherErrorMessage = 'Voucher eksklusif tidak berlaku untuk akun Anda.';
@@ -607,11 +608,11 @@ public function checkShipping(Request $request, )
                     throw new \Exception('Model CustomerRfm tidak ditemukan. Apakah namanya CustomerRFM?');
                 }
 
-                // Ambil data RFM pelanggan ini berdasarkan nomor WhatsApp-nya
+                // 🚨 PERBAIKAN DI SINI:
+                // Kita sekarang mencari berdasarkan customer_id, bukan customer_whatsapp
                 $rfm = \App\Models\CustomerRfm::where('website_id', $website->id)
-                    ->where('customer_whatsapp', $customer->whatsapp)
+                    ->where('customer_id', $customer->id) 
                     ->first();
-
                 // Tolak jika dia tidak punya data RFM atau segmennya tidak cocok
                 if (!$rfm || $rfm->segment !== $voucher->target_rfm_segment) {
                     return response()->json([

@@ -56,16 +56,84 @@ class VoucherController extends Controller
         return redirect()->route('client.vouchers.index', $website->id)
             ->with('success', 'Voucher baru berhasil ditambahkan!');
     }
-    public function destroy(Website $website, Voucher $voucher)
+    // 1. FUNGSI UPDATE (EDIT)
+       public function update(Request $request, $websiteId, \App\Models\Voucher $voucher)
     {
-        // Pastikan voucher ini benar-benar milik toko yang sedang aktif
+       // 🚨 SOLUSI: Langsung tembak ke database menggunakan $websiteId dari URL
+        $website = \App\Models\Website::find($websiteId);
+
+        // Jaring pengaman tambahan
+        if (!$website) {
+            abort(404, 'Data Toko tidak ditemukan.');
+        }
+
+        // Keamanan tambahan: Pastikan voucher ini benar-benar milik toko klien
         if ($voucher->website_id !== $website->id) {
             abort(403, 'Unauthorized action.');
         }
 
+        // Validasi input
+        $request->validate([
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                // Pastikan kode unik di toko ini, tapi abaikan kode milik voucher ini sendiri
+                \Illuminate\Validation\Rule::unique('vouchers')->where(function ($query) use ($website) {
+                    return $query->where('website_id', $website->id)->whereNull('deleted_at');
+                })->ignore($voucher->id),
+            ],
+            'discount_type' => 'required|in:nominal,percent',
+            'discount_value' => 'required|numeric|min:1',
+            'min_purchase' => 'nullable|numeric|min:0',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'quota' => 'nullable|integer|min:1',
+            'target_rfm_segment' => 'nullable|string',
+            'valid_until' => 'nullable|date',
+            'is_active' => 'required|boolean',
+        ]);
+
+        // Update data
+        $voucher->update($request->all());
+
+        return redirect()->back()->with('success', 'Voucher berhasil diperbarui!');
+    }
+
+    // 2. FUNGSI HAPUS (SOFT DELETE)
+        public function destroy($websiteId, \App\Models\Voucher $voucher)
+    {
+        
+
+        // 🚨 SOLUSI: Langsung tembak ke database menggunakan $websiteId dari URL
+        $website = \App\Models\Website::find($websiteId);
+
+        // Jaring pengaman tambahan
+        if (!$website) {
+            abort(404, 'Data Toko tidak ditemukan.');
+        }
+
+        // Keamanan tambahan: Pastikan voucher ini benar-benar milik toko klien
+        if ($voucher->website_id !== $website->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        // Karena kita menggunakan SoftDeletes, perintah delete() di bawah ini 
+        // TIDAK AKAN menghapus baris di database, melainkan hanya mengisi tanggal di kolom 'deleted_at'.
+        // Voucher ini otomatis akan hilang dari daftar index() dan tidak bisa di-apply lagi!
         $voucher->delete();
 
-        return redirect()->route('client.vouchers.index', $website->id)
-            ->with('success', 'Voucher berhasil dihapus.');
+        return redirect()->back()->with('success', 'Voucher berhasil dihapus!');
+    }
+    // FUNGSI UNTUK MEMATIKAN/MENGHIDUPKAN VOUCHER DENGAN 1 KLIK
+    public function toggleStatus($websiteId, \App\Models\Voucher $voucher)
+    {
+        // Ubah status menjadi kebalikannya (Jika true jadi false, jika false jadi true)
+        $voucher->update([
+            'is_active' => !$voucher->is_active
+        ]);
+
+        $statusText = $voucher->is_active ? 'diaktifkan' : 'dinonaktifkan';
+        
+        return redirect()->back()->with('success', "Voucher berhasil {$statusText}!");
     }
 }

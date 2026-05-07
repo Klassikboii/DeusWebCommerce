@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CustomerRfm extends Model
 {
     protected $fillable = [
-        'website_id', 'customer_whatsapp', 'customer_name',
+        'website_id', 'customer_id', 
         'recency_days', 'frequency_count', 'monetary_value',
         'r_score', 'f_score', 'm_score', 'segment'
     ];
