@@ -34,7 +34,14 @@
                     
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Nilai Diskon</label>
-                        <input type="number" name="discount_value" class="form-control" placeholder="Contoh: 50000" required>
+                        <input 
+                            type="number" 
+                            name="discount_value" 
+                            id="discountValue"
+                            class="form-control" 
+                            placeholder="Contoh: 50000" 
+                            required
+                        >
                     </div>
 
                     {{-- Batasan --}}
@@ -96,14 +103,32 @@
 </div>
 
 <script>
-    // Script sederhana untuk menyembunyikan/menampilkan kolom "Maksimal Potongan"
-    document.getElementById('discountType').addEventListener('change', function() {
-        const maxContainer = document.getElementById('maxDiscountContainer');
-        if (this.value === 'percent') {
+    const discountType = document.getElementById('discountType');
+    const discountValue = document.getElementById('discountValue');
+    const maxContainer = document.getElementById('maxDiscountContainer');
+
+    function handleDiscountType() {
+        if (discountType.value === 'percent') {
             maxContainer.style.display = 'block';
+
+            // Limit percentage between 0 - 100
+            discountValue.min = 0;
+            discountValue.max = 100;
+            discountValue.placeholder = 'Contoh: 20';
         } else {
             maxContainer.style.display = 'none';
+
+            // Remove limit for nominal
+            discountValue.removeAttribute('min');
+            discountValue.removeAttribute('max');
+            discountValue.placeholder = 'Contoh: 50000';
         }
-    });
+    }
+
+    // Run when select changes
+    discountType.addEventListener('change', handleDiscountType);
+
+    // Run on first load
+    handleDiscountType();
 </script>
 @endsection

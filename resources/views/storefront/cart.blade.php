@@ -159,13 +159,66 @@
                                             {{-- Input Hidden untuk menyimpan detail ongkir yang dipilih (Agar masuk ke Controller) --}}
                                             <input type="hidden" name="shipping_cost" id="input_shipping_cost" value="0">
                                             <input type="hidden" name="shipping_courier" id="input_shipping_courier" value="">
-                                            <!-- HTML VOUCHER INPUT -->
-                                            <label class="form-label small fw-bold">Kode Voucher</label>
-                                            <div class="input-group mb-3">
-                                                <input type="text" id="voucher_code" class="form-control" placeholder="Masukkan Kode Voucher">
-                                                <button class="btn btn-outline-secondary" type="button" id="btn-apply-voucher">Gunakan</button>
+                                            <div class="mb-4">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <label class="form-label fw-bold mb-0">Kode Voucher / Promo</label>
+                                                    
+                                                    @if(count($availableVouchers) > 0)
+                                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#voucherModal">
+                                                            Lihat Promo <span class="badge bg-danger ms-1">{{ count($availableVouchers) }}</span>
+                                                        </button>
+                                                    @endif
+                                                </div>
+
+                                                <div class="input-group">
+                                                    <input type="text" class="form-control" id="voucherCodeInput" placeholder="Ketik atau pilih voucher..." 
+                                                        value="{{ session("applied_voucher_{$website->id}")['code'] ?? '' }}" 
+                                                        {{ session()->has("applied_voucher_{$website->id}") ? 'readonly' : '' }}>
+                                                    
+                                                    <button class="btn btn-primary" id="btnApplyVoucher" type="button" 
+                                                            style="display: {{ session()->has("applied_voucher_{$website->id}") ? 'none' : 'block' }};">
+                                                        Gunakan
+                                                    </button>
+                                                    <button class="btn btn-danger" id="btnCancelVoucher" type="button" 
+                                                            style="display: {{ session()->has("applied_voucher_{$website->id}") ? 'block' : 'none' }};">
+                                                        Batalkan
+                                                    </button>
+                                                </div>
+                                                <small id="voucherMessage" class="d-block mt-2"></small>
                                             </div>
-                                            <small id="voucher-message" class="text-danger mt-1"></small>
+
+                                            <div class="modal fade" id="voucherModal" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header bg-light">
+                                                            <h6 class="modal-title fw-bold">Pilih Voucher Tersedia</h6>
+                                                            <button type="button" class="btn-close" id="closeVoucherModalBtn" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body p-2">
+                                                            @forelse($availableVouchers as $v)
+                                                                <div class="card mb-2 border-1 shadow-sm voucher-card">
+                                                                    <div class="card-body p-3 d-flex justify-content-between align-items-center">
+                                                                        <div>
+                                                                            <h6 class="fw-bold mb-1 text-primary">{{ $v->code }}</h6>
+                                                                            <p class="mb-1 text-sm">
+                                                                                Diskon {{ $v->discount_type == 'percent' ? $v->discount_value.'%' : 'Rp '.number_format($v->discount_value,0,',','.') }}
+                                                                                @if($v->min_purchase > 0) <br><small class="text-muted">Min. Blj Rp {{ number_format($v->min_purchase,0,',','.') }}</small> @endif
+                                                                            </p>
+                                                                            @if($v->target_rfm_segment)
+                                                                                <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">Khusus {{ $v->target_rfm_segment }}</span>
+                                                                            @endif
+                                                                        </div>
+                                                                        <button type="button" class="btn btn-sm btn-outline-primary px-3" 
+                                                                                onclick="selectVoucherFromModal('{{ $v->code }}')">Pakai</button>
+                                                                    </div>
+                                                                </div>
+                                                            @empty
+                                                                <div class="text-center text-muted p-4">Tidak ada promo saat ini.</div>
+                                                            @endforelse
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
                                             
                                             <hr>
@@ -256,15 +309,27 @@
         document.getElementById('display-total').innerText = formatRupiah(grandTotal);
     }
 
-    // ==========================================
+   // ==========================================
     // LOGIKA VOUCHER
     // ==========================================
-    document.getElementById('btn-apply-voucher').addEventListener('click', function() {
-        let code = document.getElementById('voucher_code').value;
-        let msgBox = document.getElementById('voucher-message');
+    document.getElementById('btnApplyVoucher').addEventListener('click', function() {
+        
+        // 🚨 MENGGUNAKAN ID YANG BARU (voucherCodeInput & voucherMessage)
+        let codeInput = document.getElementById('voucherCodeInput');
+        let msgBox = document.getElementById('voucherMessage');
+        
+        // Anti-error check: memastikan elemennya ada
+        if(!codeInput || !msgBox) {
+            console.error("Elemen form voucher tidak ditemukan!");
+            return;
+        }
+
+        let code = codeInput.value;
         
         if(!code) {
-            msgBox.innerHTML = "Masukkan kode voucher!"; return;
+            msgBox.innerHTML = "Masukkan kode voucher!"; 
+            msgBox.className = "text-danger mt-1";
+            return;
         }
 
         msgBox.innerHTML = "Memeriksa...";
@@ -282,20 +347,25 @@
         .then(data => {
             if(data.success) {
                 msgBox.innerHTML = data.message;
-                msgBox.className = "text-success mt-1";
+                msgBox.className = "text-success mt-1 fw-bold";
                 
-                // Munculkan baris diskon
-                document.getElementById('discount-row').style.display = 'flex';
+                // Munculkan baris diskon di struk
+                document.getElementById('discount-row').style.setProperty('display', 'flex', 'important');
                 document.getElementById('discount-amount').innerText = data.discount_formatted;
                 
-                // 🚨 SIMPAN NOMINAL DISKON KE HIDDEN INPUT & HITUNG ULANG TOTAL
+                // 🚨 KUNCI INPUT & TUKAR TOMBOL (Gunakan -> Batalkan)
+                codeInput.readOnly = true;
+                document.getElementById('btnApplyVoucher').style.display = 'none';
+                document.getElementById('btnCancelVoucher').style.display = 'block';
+
+                // Simpan nominal diskon ke hidden input & hitung ulang total
                 document.getElementById('discount_amount_val').value = data.discount_amount;
                 calculateGrandTotal();
                 
             } else {
                 msgBox.innerHTML = data.message;
                 msgBox.className = "text-danger mt-1";
-                document.getElementById('discount-row').style.display = 'none';
+                document.getElementById('discount-row').style.setProperty('display', 'none', 'important');
                 
                 // Reset diskon jika gagal
                 document.getElementById('discount_amount_val').value = 0;
@@ -303,11 +373,11 @@
             }
         })
         .catch(error => {
-            msgBox.innerHTML = "Terjadi kesalahan sistem.";
+            msgBox.innerHTML = "Terjadi kesalahan sistem saat mengecek voucher.";
             msgBox.className = "text-danger mt-1";
+            console.error(error);
         });
     });
-
     // ==========================================
     // LOGIKA ONGKOS KIRIM
     // ==========================================
@@ -406,10 +476,73 @@
         }
     });
 </script>
+
+<script>
+    // ==========================================
+    // 1. FUNGSI PILIH VOUCHER DARI MODAL
+    // ==========================================
+    function selectVoucherFromModal(code) {
+     // 1. Isi inputan
+     document.getElementById('voucherCodeInput').value = code;
+
+     // 2. Tutup modal dengan cara mengklik tombol silangnya
+     document.getElementById('closeVoucherModalBtn').click();
+
+     // 3. Otomatis tekan tombol "Gunakan"
+     document.getElementById('btnApplyVoucher').click();
+ }
+
+    // ==========================================
+    // 2. FUNGSI BATALKAN VOUCHER (AJAX)
+    // ==========================================
+    // Bungkus dengan DOMContentLoaded agar Javascript menunggu HTML selesai digambar!
+    document.addEventListener("DOMContentLoaded", function() {
+        
+        let btnCancel = document.getElementById('btnCancelVoucher');
+        
+        // Pengecekan keamanan (Mencegah error 'null')
+        if (btnCancel) {
+            btnCancel.addEventListener('click', function() {
+                let btn = this;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
+                btn.disabled = true;
+
+                fetch('{{ route("store.cart.remove_voucher") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    btn.innerHTML = 'Batalkan';
+                    btn.disabled = false;
+
+                    if(data.success) {
+                        // Cara paling aman dan instan untuk me-reset total diskon & ongkir
+                        window.location.reload(); 
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    btn.innerHTML = 'Batalkan';
+                    btn.disabled = false;
+                    alert('Terjadi kesalahan koneksi jaringan.');
+                });
+            });
+        }
+
+    });
+</script>
     <script>
         // URL API Cek Ongkir
-    const checkShippingUrl = "{{ route('store.cart.checkShipping') }}";
-    const csrfToken = "{{ csrf_token() }}";
+   
+    
 
     function formatRupiah(amount) {
         return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
@@ -556,4 +689,6 @@
         });
     });
 </script>
+
+
 @endsection

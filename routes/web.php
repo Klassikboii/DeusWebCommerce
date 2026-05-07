@@ -306,6 +306,7 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
     Route::post('/cart/check-shipping', [App\Http\Controllers\CheckoutController::class, 'checkShipping'])->name('store.cart.checkShipping');
     // --- FITUR VOUCHER (STOREFRONT) ---
     Route::post('/cart/apply-voucher', [App\Http\Controllers\CheckoutController::class, 'applyVoucher'])->name('store.cart.applyVoucher');
+    Route::post('/cart/remove-voucher', [\App\Http\Controllers\CheckoutController::class, 'removeVoucher'])->name('store.cart.remove_voucher');
     // Batasi maksimal 5 request per 1 menit per IP
     Route::middleware(['throttle:5,1'])->group(function () {
         Route::post('/checkout', [App\Http\Controllers\CheckoutController::class, 'processCheckout'])->name('store.checkout');

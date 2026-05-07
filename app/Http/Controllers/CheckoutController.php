@@ -78,8 +78,19 @@ class CheckoutController extends Controller
         }
         // Tarik semua data kota, sertakan nama provinsinya agar jelas
      $cities = \App\Models\City::with('province')->orderBy('name', 'asc')->get();
+     // 🚨 TAMBAHAN: Ambil voucher yang masih aktif dan belum kedaluwarsa
+        $now = now();
+        $availableVouchers = \App\Models\Voucher::where('website_id', $website->id)
+            ->where('is_active', true)
+            ->where(function($q) use ($now) {
+                $q->whereNull('valid_from')->orWhere('valid_from', '<=', $now);
+            })
+            ->where(function($q) use ($now) {
+                $q->whereNull('valid_until')->orWhere('valid_until', '>=', $now);
+            })
+            ->get();
 
-        return view('storefront.cart', compact('website', 'cart', 'total', 'cities'));
+        return view('storefront.cart', compact('website', 'cart', 'total', 'cities', 'availableVouchers'));
     }
 // 3. PROCESS CHECKOUT
    // 3. PROCESS CHECKOUT
@@ -686,6 +697,33 @@ public function checkShipping(Request $request, )
             return response()->json([
                 'success' => false,
                 'message' => 'Error PHP: ' . $e->getMessage() . ' (Baris ' . $e->getLine() . ')'
+            ]);
+        }
+    }
+    public function removeVoucher(Request $request)
+    {
+        try {
+            $website = $request->get('website');
+            
+            // Hapus session voucher
+            session()->forget("applied_voucher_{$website->id}");
+
+            // Hitung ulang total tanpa diskon
+            $cartKey = 'cart_' . $website->id;
+            $cart = session()->get($cartKey, []);
+            $cartTotal = collect($cart)->sum(fn($item) => $item['price'] * $item['quantity']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Voucher berhasil dibatalkan.',
+                'original_total' => $cartTotal,
+                'original_total_formatted' => 'Rp ' . number_format($cartTotal, 0, ',', '.')
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
             ]);
         }
     }
