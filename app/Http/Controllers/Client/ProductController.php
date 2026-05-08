@@ -131,9 +131,7 @@ class ProductController extends Controller
         return view('client.products.create', compact('website', 'categories'));
     }
     public function store(Request $request, Website $website)
-    {
-        
-        
+    {  
         // dd($request->all());
         $this->authorize('create', $website);
 
@@ -254,7 +252,7 @@ class ProductController extends Controller
             
             DB::commit();
 
-            // =========================================================
+           // =========================================================
             // 3. SINKRONISASI KE ACCURATE 
             // =========================================================
             $accurateSyncFailed = false; 
@@ -264,10 +262,9 @@ class ProductController extends Controller
 
                 if ($hasVariants && $product->variants->count() > 0) {
                     foreach ($product->variants as $variant) {
+                        // Cukup panggil ini saja, karena di dalamnya sudah ada fungsi Adjustment otomatis
                         $status = $accurateService->syncItemToAccurate($variant);
-                        if ($status && $variant->stock > 0) {
-                            $accurateService->syncInventoryAdjustment($variant->sku, $variant->stock);
-                        }
+                        
                         if (!$status) $accurateSyncFailed = true;
                     }
                 } else {
@@ -276,13 +273,13 @@ class ProductController extends Controller
                         'price' => $product->price,
                         'name' => $product->name,
                         'product' => $product,
-                        'stock' => $product->stock ,
+                        'stock' => $product->stock,
                         'moving_class' => $request->moving_class ?? 'normal',
                     ];
+                    
+                    // Cukup panggil ini saja
                     $status = $accurateService->syncItemToAccurate($singleItem);
-                    if ($status && $product->stock > 0) {
-                        $accurateService->syncInventoryAdjustment($product->sku, $product->stock);
-                    }
+                    
                     if (!$status) $accurateSyncFailed = true;
                 }
             } catch (\Exception $e) {
@@ -919,5 +916,46 @@ $penjualantotal = OrderItem::where('product_id', $product->id)->sum('qty');
         } while ($existsInProducts || $existsInVariants);
 
         return $sku;
+    }
+    public function resolveStock(Request $request, Website $website, \App\Models\Product $product)
+    {
+        $action = $request->input('action');
+        $accurateService = new \App\Services\AccurateService($website);
+
+        try {
+            // JIKA KLIEN MEMILIH: [⬇️ IKUTI ACCURATE]
+            if ($action === 'pull') {
+                $product->update([
+                    'stock' => $product->accurate_stock,
+                    'last_sync_at' => now()
+                ]);
+                return response()->json(['status' => 'success', 'message' => 'Stok web diperbarui mengikuti Accurate.']);
+            } 
+            
+            // JIKA KLIEN MEMILIH: [⬆️ PAKSA WEB]
+            elseif ($action === 'push') {
+                $selisih = $product->stock - $product->accurate_stock;
+                
+                // Gunakan harga sebagai biaya satuan (minimal 1)
+                $cost = $product->price > 0 ? $product->price : 1;
+                
+                // Tembak API Adjustment ke Accurate!
+                $syncStatus = $accurateService->syncInventoryAdjustment($product->sku, $selisih, $cost);
+                
+                if ($syncStatus) {
+                    // Jika sukses di Accurate, perbarui bayangan stok di Web
+                    $product->update([
+                        'accurate_stock' => $product->stock,
+                        'last_sync_at' => now()
+                    ]);
+                    return response()->json(['status' => 'success', 'message' => 'Stok Accurate berhasil disesuaikan.']);
+                } else {
+                    return response()->json(['status' => 'error', 'message' => 'Gagal mengirim penyesuaian ke Accurate.'], 500);
+                }
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Resolve Stock Error: " . $e->getMessage());
+            return response()->json(['status' => 'error', 'message' => 'Terjadi kesalahan sistem.'], 500);
+        }
     }
 }

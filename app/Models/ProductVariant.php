@@ -18,7 +18,8 @@ class ProductVariant extends Model
         'stock', 'weight', 'options', 
         'is_active', // <--- Tambahkan ini
         'image',
-        'moving_class'
+        'moving_class',
+        'accurate_stock'
     ];
     protected $casts = [
         'options' => 'array',

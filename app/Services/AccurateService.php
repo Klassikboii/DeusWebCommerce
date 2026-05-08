@@ -694,61 +694,80 @@ class AccurateService
     /**
      * SINKRONISASI PRODUK DARI ACCURATE KE WEB
      */
-   
-    public function syncProductsFromAccurate($isRetry = false)
+   public function syncProductsFromAccurate($isRetry = false)
     {
-        // 1. BUKA PINTU DATABASE (Ini akan otomatis me-refresh token & mengambil Host yang benar)
+        // 1. BUKA PINTU DATABASE
         $sessionData = $this->openDatabaseSession();
         if (!$sessionData) {
-            Log::error("Gagal membuka sesi Accurate untuk toko: " . $this->website->site_name);
+            \Illuminate\Support\Facades\Log::error("Gagal membuka sesi Accurate untuk toko: " . $this->website->site_name);
             return false;
         }
 
-        // 2. Tembak API Accurate untuk meminta Daftar Barang (Item)
-        // Perhatikan penggunaan $sessionData['host'] dan prefix /accurate/api/
-        $response = Http::timeout(30)          // Tunggu sampai 30 detik (jangan 10 detik)                   // Jika gagal/timeout, coba lagi maksimal 3 kali, dengan jeda 1 detik (1000ms) antar percobaan
-    ->withHeaders([
-            'Authorization' => 'Bearer ' . $sessionData['token'],
-            'X-Session-ID'  => $sessionData['session_id'],
-        ])->get($sessionData['host'] . '/accurate/api/item/list.do', [
-            'fields' => 'id,no,name,unitPrice,quantity', // Kolom inti
-        ]);
-        if ($response->status() === 401 && !$isRetry) {
-            Log::warning("Token mati saat menarik data produk. Memaksa refresh dan mengulang proses...");
-            
-            // 1. Paksa hapus token yang ada di memori agar getValidAccessToken mengambil yang baru
-            $this->getValidAccessToken(true); 
-            
-            // 2. Panggil ulang fungsi ini DARI AWAL, tapi set $isRetry = true agar tidak looping tanpa batas
-            return $this->syncProductsFromAccurate(true); 
+        $accurateItems = [];
+        $page = 1;
+        $hasMorePages = true;
+
+        // 🚨 2. PERULANGAN PAGINASI (SAPU BERSIH SEMUA HALAMAN)
+        while ($hasMorePages) {
+            $response = \Illuminate\Support\Facades\Http::timeout(30)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $sessionData['token'],
+                    'X-Session-ID'  => $sessionData['session_id'],
+                ])->get($sessionData['host'] . '/accurate/api/item/list.do', [
+                    'fields' => 'id,no,name,unitPrice,quantity', // Kolom inti
+                    'sp.page' => $page // 👈 SANGAT PENTING: Pindah halaman
+                ]);
+
+            if ($response->status() === 401 && !$isRetry) {
+                \Illuminate\Support\Facades\Log::warning("Token mati saat menarik data produk. Memaksa refresh...");
+                $this->getValidAccessToken(true); 
+                return $this->syncProductsFromAccurate(true); 
+            }
+
+            if (!$response->successful()) {
+                \Illuminate\Support\Facades\Log::error("Gagal menarik produk dari Accurate. RAW: " . $response->body());
+                return false;
+            }
+
+            $data = $response->json();
+            $items = $data['d'] ?? [];
+
+            // Jika ada isinya, gabungkan ke array utama
+            if (count($items) > 0) {
+                $accurateItems = array_merge($accurateItems, $items);
+                
+                // Cek apakah halaman yang kita buka sekarang sudah mencapai batas akhir halaman Accurate
+                $pageCount = $data['sp']['pageCount'] ?? 1;
+                if ($page >= $pageCount) {
+                    $hasMorePages = false; // Stop! Sudah sampai halaman terakhir
+                } else {
+                    $page++; // Lanjut ke halaman berikutnya
+                }
+            } else {
+                $hasMorePages = false; // Stop jika kosong
+            }
         }
 
-        if (!$response->successful()) {
-            Log::error("Gagal menarik produk dari Accurate. RAW: " . $response->body());
-            return false;
-        }
-
-        $accurateItems = $response->json()['d'] ?? [];
+        // =========================================================
+        // DATA SUDAH LENGKAP (MISAL: 42 PRODUK). LANJUT KE DATABASE!
+        // =========================================================
         $syncedSkus = [];
-
-                // 🚨 LOGIKA SAAS FREEMIUM: Hitung produk yang sudah aktif
+        
+        // LOGIKA SAAS FREEMIUM
         $activeCount = \App\Models\Product::where('website_id', $this->website->id)
                                             ->where('is_active', true)
                                             ->count();
-        // Ambil Limit Langganan
         $limit = $this->website->activeSubscription ? $this->website->activeSubscription->package->max_products : 10;
-       // 3. Looping data dari Accurate dan masukkan ke Database Web
-     
-       foreach ($accurateItems as $item) {
+
+        // 3. Looping data dari Accurate dan masukkan ke Database Web
+        foreach ($accurateItems as $item) {
             $sku = $item['no'] ?? null;
             if (!$sku) continue; 
 
-            // 🚨 TAMBAHKAN BLOKIRAN INI
             if ($sku === 'ONGKIR-Deus' || $sku === 'ONGKIR') {
                 continue; 
             }
             
-            // ... (Blokir SKU Khusus tetap sama) ...
             $syncedSkus[] = $sku;
             $price = $item['unitPrice'] ?? 0;
             $stock = $item['quantity'] ?? 0;
@@ -762,26 +781,22 @@ class AccurateService
                 })->where('sku', $sku)->first();
 
                 if ($variant) {
-                    // 1. Update harga & stok varian
-                    $variant->update(['price' => $price, 'stock' => $stock]);
+                    $variant->update([
+                        'price' => $price, 
+                        'stock' => $stock, 
+                        'accurate_stock' => $stock, 
+                        'last_sync_at' => now()     
+                    ]);
 
-                    // 2. Re-kalkulasi stok induk
                     $totalVariantStock = \Illuminate\Support\Facades\DB::table('product_variants')
                         ->where('product_id', $variant->product_id)
                         ->sum('stock');
+                        
                     \Illuminate\Support\Facades\DB::table('products')
                         ->where('id', $variant->product_id)
                         ->update(['stock' => $totalVariantStock]);
 
-                    // 🚨 3. LOGIKA GAMBAR VARIAN (MANDIRI)
-                    // Taruh kode narik gambar dari Accurate khusus Varian di sini!
-                    if (empty($variant->image)) {
-                        // PASTE KODE DOWNLOAD GAMBAR DARI ACCURATE DI SINI
-                        // Contoh: $url = $item['detailGroup'][0]['updFileName'] ...
-                        // $variant->update(['image' => $path]);
-                    }
-
-                    continue; // Selesai urusan Varian, langsung lompat ke SKU Accurate berikutnya!
+                    continue; 
                 }
             }
 
@@ -800,6 +815,8 @@ class AccurateService
                 'name'  => $item['name'] ?? ('Produk ' . $sku), 
                 'price' => $price,
                 'stock' => $stock,
+                'accurate_stock' => $stock,
+                'last_sync_at' => now()
             ]);
 
             if ($isNewProduct) {
@@ -815,21 +832,7 @@ class AccurateService
                 }
             }
             $product->save();
-
-            // 🚨 LOGIKA GAMBAR PRODUK INDUK (MANDIRI)
-            // Karena Varian sudah di-bypass pakai "continue" di atas, 
-            // kode yang sampai ke titik ini PASTI hanyalah Produk Induk.
-            if (empty($product->image)) {
-                // PASTE KODE DOWNLOAD GAMBAR DARI ACCURATE DI SINI
-                // Contoh: $url = $item['detailGroup'][0]['updFileName'] ...
-                // $product->update(['image' => $path]);
-            }
         }
-
-        // 4. NONAKTIFKAN BARANG YANG DIHAPUS DI ACCURATE
-        // \App\Models\Product::where('website_id', $this->website->id)
-        //     ->whereNotIn('sku', $syncedSkus)
-        //     ->update(['is_active' => false]);
 
         return true;
     }
@@ -1006,6 +1009,7 @@ class AccurateService
         \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Gagal untuk Web ID: {$this->website->id}. Response: " . $response->body());
         return false;
     }
+
   public function pushProduct($product, $forceUpdatePrice = false, $isRetry = false)
     {
         $session = $this->openDatabaseSession();
@@ -1098,5 +1102,71 @@ class AccurateService
 
         \Illuminate\Support\Facades\Log::error("Gagal push SKU {$product->sku}. RAW: " . $saveResponse->body());
         return ['status' => 'failed', 'message' => 'Gagal push.'];
+    }
+    public function syncShadowStockFromAccurate($isRetry = false)
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return false;
+
+        $accurateItems = [];
+        $page = 1;
+        $hasMorePages = true;
+
+        // Tarik data dengan Pagination (seperti yang baru saja kita pelajari)
+        while ($hasMorePages) {
+            $response = \Illuminate\Support\Facades\Http::timeout(30)
+                ->withHeaders([
+                    'Authorization' => 'Bearer ' . $sessionData['token'],
+                    'X-Session-ID'  => $sessionData['session_id'],
+                ])->get($sessionData['host'] . '/accurate/api/item/list.do', [
+                    'fields' => 'id,no,quantity', // HANYA AMBIL SKU DAN STOK (Super Ringan)
+                    'sp.page' => $page
+                ]);
+
+            if ($response->status() === 401 && !$isRetry) {
+                $this->getValidAccessToken(true); 
+                return $this->syncShadowStockFromAccurate(true); 
+            }
+
+            if (!$response->successful()) return false;
+
+            $data = $response->json();
+            $items = $data['d'] ?? [];
+
+            if (count($items) > 0) {
+                $accurateItems = array_merge($accurateItems, $items);
+                $pageCount = $data['sp']['pageCount'] ?? 1;
+                if ($page >= $pageCount) $hasMorePages = false;
+                else $page++;
+            } else {
+                $hasMorePages = false;
+            }
+        }
+
+        // Looping untuk Update Kolom accurate_stock
+        foreach ($accurateItems as $item) {
+            $sku = $item['no'] ?? null;
+            if (!$sku || $sku === 'ONGKIR-Deus' || $sku === 'ONGKIR') continue; 
+            $stock = $item['quantity'] ?? 0;
+
+            // Update Varian (Jika ada)
+            if (class_exists('\App\Models\ProductVariant')) {
+                $variant = \App\Models\ProductVariant::whereHas('product', function($q) {
+                    $q->where('website_id', $this->website->id);
+                })->where('sku', $sku)->first();
+
+                if ($variant) {
+                    $variant->update(['accurate_stock' => $stock, 'last_sync_at' => now()]);
+                    continue; 
+                }
+            }
+
+            // Update Produk Induk
+            \App\Models\Product::where('website_id', $this->website->id)
+                ->where('sku', $sku)
+                ->update(['accurate_stock' => $stock, 'last_sync_at' => now()]);
+        }
+
+        return true;
     }
 }

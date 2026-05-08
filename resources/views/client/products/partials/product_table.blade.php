@@ -67,15 +67,37 @@
                 </td>
                {{-- KOLOM STOK --}}
                       {{-- Ini contoh kolom stok Anda saat ini --}}
-                        <td>
-                            <span class="fw-bold fs-5">{{ $product->stock }}</span>
-                            <br>
-                            {{-- 🚨 TAMBAHKAN BADGE AI INI DI BAWAH ANGKA STOK --}}
-                            @if($product->stock_status === 'Critical')
-                                <span class="badge bg-danger mt-1" title="Kecepatan: {{ number_format($product->velocity, 1) }} item/hari">
-                                    <i class="bi bi-exclamation-octagon-fill"></i> Sisa {{ $product->runway_days }} Hari
-                                </span>
-                            @elseif($product->stock_status === 'Safe')
+                       <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold fs-5">{{ $product->stock }}</span>
+                        
+                        {{-- 🚨 LOGIKA SELISIH STOK ACCURATE (Tampil jika beda) 🚨 --}}
+                        @if($product->accurate_stock !== null && $product->stock !== $product->accurate_stock)
+                            <div class="alert alert-danger py-1 px-2 m-0 d-flex flex-column" style="font-size: 0.7rem; line-height: 1.2;">
+                                <strong><i class="bi bi-exclamation-triangle-fill"></i> Accurate: {{ $product->accurate_stock }}</strong>
+                                <div class="d-flex gap-1 mt-1">
+                                    <button class="btn btn-sm btn-outline-danger px-1 py-0" style="font-size: 0.65rem;" 
+                                            onclick="resolveStock({{ $product->id }}, 'pull')" 
+                                            title="Tarik & ikuti angka stok dari Accurate">
+                                        <i class="bi bi-download"></i> Ikuti Accurate
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary px-1 py-0" style="font-size: 0.65rem;" 
+                                            onclick="resolveStock({{ $product->id }}, 'push')" 
+                                            title="Paksa Accurate mengikuti angka stok Web">
+                                        <i class="bi bi-upload"></i> Paksa Web
+                                    </button>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Badge AI (Sudah Anda buat sebelumnya, biarkan di sini) --}}
+                    <div class="mt-2">
+                        @if($product->stock_status === 'Critical')
+                            <span class="badge bg-danger mt-1" title="Kecepatan: {{ number_format($product->velocity ?? 0, 1) }} item/hari">
+                                <i class="bi bi-exclamation-octagon-fill"></i> Sisa {{ $product->runway_days }} Hari
+                            </span>
+                        @elseif($product->stock_status === 'Safe')
                             <span class="badge bg-success mt-1">
                                 <i class="bi bi-check-circle-fill"></i> 
                                 @if($product->runway_days > 90)
@@ -84,14 +106,15 @@
                                     Aman ({{ $product->runway_days }} Hari)
                                 @endif
                             </span>
-                            @elseif($product->stock_status === 'Overstock')
-                                <span class="badge bg-warning text-dark mt-1">
-                                    <i class="bi bi-box-seam"></i> Overstock (Macet)
-                                </span>
-                            @else
-                                <span class="badge bg-secondary mt-1">Kosong</span>
-                            @endif
-                        </td>
+                        @elseif($product->stock_status === 'Overstock')
+                            <span class="badge bg-warning text-dark mt-1">
+                                <i class="bi bi-box-seam"></i> Overstock (Macet)
+                            </span>
+                        @else
+                            <span class="badge bg-secondary mt-1">Kosong</span>
+                        @endif
+                    </div>
+                </td>
                 <td class="align-middle text-center">
                     <div class="form-check form-switch d-flex justify-content-center">
                         <input class="form-check-input toggle-active-switch" type="checkbox" role="switch" 
@@ -172,6 +195,44 @@
         {{ $products->links() }}
     </div>
 @endif
+<script>
+// Fungsi untuk menyelesaikan selisih stok (Resolusi)
+async function resolveStock(productId, action) {
+    let actionText = action === 'pull' ? 'MENARIK stok dari Accurate ke Web' : 'MENGIRIM stok Web ke Accurate';
+    
+    if (!confirm(`Anda yakin ingin ${actionText}?`)) {
+        return;
+    }
+
+    // Ubah kursor jadi loading agar user tahu sedang diproses
+    document.body.style.cursor = 'wait';
+
+    try {
+        const response = await fetch(`/manage/{{ $website->id }}/products/${productId}/resolve-stock`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ action: action })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.status === 'success') {
+            alert('Stok berhasil disinkronkan!');
+            window.location.reload(); // Refresh untuk melihat hilangnya alert merah
+        } else {
+            alert('Gagal menyinkronkan stok: ' + (result.message || 'Terjadi kesalahan di Accurate.'));
+        }
+    } catch (error) {
+        alert('Gagal menghubungi server. Pastikan koneksi internet Anda stabil.');
+        console.error(error);
+    } finally {
+        document.body.style.cursor = 'default';
+    }
+}
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Gunakan Event Delegation karena tabelnya sering di-reload oleh fitur Search/Pagination AJAX

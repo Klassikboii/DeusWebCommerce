@@ -91,6 +91,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/products/create', [ProductController::class, 'create'])->name('client.products.create');
         Route::post('/products', [ProductController::class, 'store'])->name('client.products.store');
         Route::get('products/{product}/insight', [App\Http\Controllers\Client\ProductController::class, 'insight'])->name('client.products.insight');
+        Route::post('products/{product}/resolve-stock', [\App\Http\Controllers\Client\ProductController::class, 'resolveStock'])->name('client.products.resolve_stock');
 
     // Nanti kita tambah route POST store, edit, delete disini
         // ... route produk yang sudah ada ...

@@ -18,4 +18,4 @@ Schedule::command('orders:cancel-unpaid')->hourly();
 Schedule::command('stock:analyze')->everyThreeHours();
 
 Schedule::command('accurate:renew-webhooks')->cron('0 2 */3 * *');
-
+Schedule::command('accurate:sync-shadow')->hourly();

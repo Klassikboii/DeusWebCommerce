@@ -147,7 +147,7 @@
                             <button class="btn btn-outline-secondary" type="button" onclick="adjustQty(-1)">
                                 <i class="bi bi-dash"></i>
                             </button>
-                            <input type="number" name="quantity" class="form-control" value="1" @guest('customer') disabled @endguest>
+                            <input type="text" oninput="this.value = this.value.replace(/[^0-9]/g, '');" inputmode="numeric" pattern="[0-9]*" name="quantity" class="form-control desktop-qty"  style="text-align: center;" value="1" @guest('customer') disabled @endguest>
                             <button class="btn btn-outline-secondary" type="button" onclick="adjustQty(1)">
                                 <i class="bi bi-plus"></i>
                             </button>
