@@ -20,7 +20,7 @@ class PivotService implements PaymentGatewayInterface
     {
         $this->website = $website;
         
-        $this->merchantId = env('PIVOT_CLIENT_ID'); 
+        $this->merchantId = env('PIVOT_CLIENT_KEY'); 
         $this->merchantSecret = env('PIVOT_SERVER_KEY');
         
         $this->baseUrl = $this->website->pivot_is_production 

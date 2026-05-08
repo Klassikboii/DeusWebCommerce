@@ -37,5 +37,11 @@ return [
         'client_secret' => env('ACCURATE_CLIENT_SECRET'),
         'redirect_uri' => env('ACCURATE_REDIRECT_URI'),
     ],
+    'pivot' => [
+        'client_id' => env('PIVOT_CLIENT_KEY'),
+        'server_key' => env('PIVOT_SERVER_KEY'),
+        'callback_key' => env('PIVOT_CALLBACK_KEY'),
+        'is_production' => env('PIVOT_IS_PRODUCTION', false),
+    ],
 
 ];
