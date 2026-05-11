@@ -8,16 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('vouchers', function (Blueprint $table) {
-            // Ini akan membuat kolom 'deleted_at'
-            $table->softDeletes(); 
-        });
+        // Only add deleted_at if it doesn't exist
+        if (!Schema::hasColumn('vouchers', 'deleted_at')) {
+            Schema::table('vouchers', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('vouchers', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        // Only drop deleted_at if it exists
+        if (Schema::hasColumn('vouchers', 'deleted_at')) {
+            Schema::table('vouchers', function (Blueprint $table) {
+                $table->dropSoftDeletes();
+            });
+        }
     }
 };

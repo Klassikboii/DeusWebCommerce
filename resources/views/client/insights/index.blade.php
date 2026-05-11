@@ -66,37 +66,54 @@
                                 <h6 class="fw-bold mb-3">Tindakan Lanjutan (Actionable Insights)</h6>
                                 <div class="table-responsive">
                                     <table class="table table-borderless table-sm mb-0">
-                                        <tbody>
-                                           <tr class="border-bottom">
-                                        <td style="width: 30px;"><span class="badge bg-success"><i class="bi bi-star-fill"></i></span></td>
-                                        <td class="fw-bold text-success">Champions</td>
-                                        <td class="text-muted small">Sering belanja, bayar mahal, transaksi masih baru. <strong>Kirim pesan WA apresiasi sebagai pelanggan VIP. Informasikan produk baru secara eksklusif sebelum di-upload ke toko!</strong></td>
-                                    </tr>
-                                    <tr class="border-bottom">
-                                        <td><span class="badge bg-info"><i class="bi bi-heart-fill"></i></span></td>
-                                        <td class="fw-bold text-info">Loyal Customers</td>
-                                        <td class="text-muted small">Pelanggan setia yang responsif. <strong>Sapa via WA untuk menanyakan kepuasan mereka. Jadikan masukan mereka sebagai bahan evaluasi toko.</strong></td>
-                                    </tr>
-                                    <tr class="border-bottom">
-                                        <td><span class="badge bg-primary"><i class="bi bi-person-plus-fill"></i></span></td>
-                                        <td class="fw-bold text-primary">New Customers</td>
-                                        <td class="text-muted small">Baru bergabung dan belanja. <strong>Follow-up via WA untuk memastikan pesanan sampai dengan aman dan tawarkan bantuan jika ada kendala.</strong></td>
-                                    </tr>
-                                    <tr class="border-bottom">
-                                        <td><span class="badge bg-dark"><i class="bi bi-eye-fill"></i></span></td>
-                                        <td class="fw-bold text-dark">Potential / Needs Attention</td>
-                                        <td class="text-muted small">Membeli rata-rata, tapi baru-baru ini. <strong>Lihat riwayat belanjanya, lalu tawarkan produk pelengkap (Cross-sell) secara manual via WA.</strong></td>
-                                    </tr>
-                                    <tr class="border-bottom">
-                                        <td><span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle-fill"></i></span></td>
-                                        <td class="fw-bold text-warning">At Risk</td>
-                                        <td class="text-muted small">Dulu belanja uang besar, tapi sekarang menghilang. <strong>Kirim pesan WA personal untuk menanyakan kabar, tawarkan potongan harga khusus (manual via transfer) untuk menarik mereka kembali.</strong></td>
-                                    </tr>
-                                    <tr>
-                                        <td><span class="badge bg-secondary"><i class="bi bi-moon-stars-fill"></i></span></td>
-                                        <td class="fw-bold text-secondary">Hibernating</td>
-                                        <td class="text-muted small">Belanja kecil dan sudah sangat lama pergi. Tidak perlu memprioritaskan waktu Anda untuk grup ini.</td>
-                                    </tr>
+                                      <tbody>
+                                            <tr class="border-bottom">
+                                                <td style="width: 30px;"><span class="badge bg-success"><i class="bi bi-star-fill"></i></span></td>
+                                                <td class="fw-bold text-success">Champions</td>
+                                                <td class="text-muted small">
+                                                    Sering belanja, bayar mahal, transaksi masih baru. 
+                                                    <strong>Reward mereka! Buat <a href="{{ route('client.vouchers.create', $website->id) }}?segment=Champions" class="text-success text-decoration-underline">Voucher Eksklusif</a> (Diskon/Gratis Ongkir) yang dikunci khusus untuk segmen ini.</strong> Anda bisa membagikan kode vouchernya sebagai ucapan terima kasih VIP via WA.
+                                                </td>
+                                            </tr>
+                                            <tr class="border-bottom">
+                                                <td><span class="badge bg-info"><i class="bi bi-heart-fill"></i></span></td>
+                                                <td class="fw-bold text-info">Loyal Customers</td>
+                                                <td class="text-muted small">
+                                                    Pelanggan setia yang responsif. Pertahankan mereka dengan <strong>Promo Upsell</strong>. 
+                                                    Tawarkan akses belanja lebih awal untuk produk baru dengan memberikan <a href="{{ route('client.vouchers.create', $website->id) }}?segment=Loyal+Customers" class="text-info text-decoration-underline">Voucher Potongan Harga</a> khusus segmen Loyal.
+                                                </td>
+                                            </tr>
+                                            <tr class="border-bottom">
+                                                <td><span class="badge bg-primary"><i class="bi bi-person-plus-fill"></i></span></td>
+                                                <td class="fw-bold text-primary">New Customers</td>
+                                                <td class="text-muted small">
+                                                    Baru bergabung dan belanja. Pastikan mereka kembali berbelanja untuk kedua kalinya! 
+                                                    <strong>Buat <a href="{{ route('client.vouchers.create', $website->id) }}?segment=New+/+Recent+Customers" class="text-primary text-decoration-underline">Voucher Diskon Welcome Back</a></strong> dan kirimkan via WA saat *follow-up* pesanan tiba.
+                                                </td>
+                                            </tr>
+                                            <tr class="border-bottom">
+                                                <td><span class="badge bg-dark"><i class="bi bi-eye-fill"></i></span></td>
+                                                <td class="fw-bold text-dark">Potential / Needs Attention</td>
+                                                <td class="text-muted small">
+                                                    Membeli rata-rata, tapi baru-baru ini. Pancing agar belanja lebih banyak dengan strategi <strong>Voucher Minimal Belanja</strong>. 
+                                                    (Contoh: Buat <a href="{{ route('client.vouchers.create', $website->id) }}?segment=Potential+/+Needs+Attention" class="text-dark text-decoration-underline">Voucher Diskon 15%</a>, tapi set Minimal Belanja Rp 500.000).
+                                                </td>
+                                            </tr>
+                                            <tr class="border-bottom">
+                                                <td><span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle-fill"></i></span></td>
+                                                <td class="fw-bold text-warning">At Risk</td>
+                                                <td class="text-muted small">
+                                                    Dulu belanja uang besar, kini menghilang. <strong>Tarik mereka kembali!</strong> 
+                                                    Buat <a href="{{ route('client.vouchers.create', $website->id) }}?segment=At+Risk" class="text-warning text-decoration-underline">Voucher Win-Back (Nominal Diskon Besar)</a> yang hanya bisa digunakan oleh segmen ini, lalu infokan lewat pesan WA personal.
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-secondary"><i class="bi bi-moon-stars-fill"></i></span></td>
+                                                <td class="fw-bold text-secondary">Hibernating</td>
+                                                <td class="text-muted small">
+                                                    Belanja kecil dan sudah sangat lama pergi. Anda bisa menawarkan <a href="{{ route('client.vouchers.create', $website->id) }}?segment=Hibernating" class="text-secondary text-decoration-underline">Voucher Cuci Gudang</a> (Diskon ekstrim) jika benar-benar ingin mengaktifkan mereka kembali, atau abaikan saja segmen ini.
+                                                </td>
+                                            </tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -125,8 +142,10 @@
                                 <tbody>
                                     @foreach($rfmData as $rfm)
                                         <tr>
-                                            <td class="fw-bold">{{ $rfm->customer_name ?? 'Tanpa Nama' }}</td>
-                                            <td>{{ $rfm->customer_whatsapp }}</td>
+                                            {{-- 🚨 Panggil relasi ->customer->name --}}
+                                            <td class="fw-bold">{{ optional($rfm->customer)->name ?? 'Tanpa Nama' }}</td>
+                                            {{-- 🚨 Panggil relasi ->customer->whatsapp --}}
+                                            <td>{{ optional($rfm->customer)->whatsapp ?? '-' }}</td>
                                             <td class="text-center">
                                                 {{ $rfm->recency_days }} hr<br>
                                                 <small class="text-muted">Skor: {{ $rfm->r_score }}/5</small>
@@ -153,7 +172,7 @@
                                                 <span class="badge {{ $badgeClass }} px-2 py-1">{{ $rfm->segment }}</span>
                                             </td>
                                             <td>
-                                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $rfm->customer_whatsapp) }}" target="_blank" class="btn btn-sm btn-outline-success" title="Hubungi via WhatsApp">
+                                               <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', optional($rfm->customer)->whatsapp ?? '') }}" target="_blank" class="btn btn-sm btn-outline-success" title="Hubungi via WhatsApp">
                                                     <i class="bi bi-whatsapp"></i>
                                                 </a>
                                             </td>

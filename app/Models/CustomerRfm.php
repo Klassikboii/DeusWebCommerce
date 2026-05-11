@@ -16,4 +16,10 @@ class CustomerRfm extends Model
     {
         return $this->belongsTo(Website::class);
     }
+    // 🚨 TAMBAHKAN RELASI INI 
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+    
 }

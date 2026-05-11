@@ -18,6 +18,7 @@ class CustomerInsightController extends Controller
         // 1. DATA RFM (SEGMEN PELANGGAN)
         // ==========================================
         $rfmData = \App\Models\CustomerRfm::where('website_id', $website->id)
+            ->with('customer') // 🚨 TAMBAHKAN BARIS INI
             ->orderBy('monetary_value', 'desc')
             ->get();
 

@@ -101,7 +101,61 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Tangkap parameter '?segment=' dari URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetSegment = urlParams.get('segment');
 
+    if (targetSegment) {
+        // 2. Pilih otomatis Dropdown Segmen Pelanggan
+        const segmentSelect = document.getElementById('target_rfm_segment') || document.querySelector('select[name="target_rfm_segment"]');
+        
+        if (segmentSelect) {
+            for (let i = 0; i < segmentSelect.options.length; i++) {
+                // Cari opsi yang nilainya sama dengan parameter URL
+                if (segmentSelect.options[i].value === targetSegment || segmentSelect.options[i].text === targetSegment) {
+                    segmentSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        // 3. Otomatiskan Pengisian Kode Voucher (Sebagai Identifier)
+        const codeInput = document.getElementById('code') || document.querySelector('input[name="code"]');
+        
+        if (codeInput && !codeInput.value) {
+            const date = new Date();
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGS", "SEP", "OKT", "NOV", "DES"];
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear().toString().substr(-2); // Ambil 2 digit tahun (contoh: 26)
+
+            let promoCodePrefix = "";
+
+            // Atur Prefix Kode berdasarkan Segmen
+            if (targetSegment === 'Champions') {
+                promoCodePrefix = 'VIP';
+            } else if (targetSegment === 'Loyal Customers') {
+                promoCodePrefix = 'LOYAL';
+            } else if (targetSegment === 'New / Recent Customers') {
+                promoCodePrefix = 'NEW';
+            } else if (targetSegment === 'Potential / Needs Attention') {
+                promoCodePrefix = 'PROMO';
+            } else if (targetSegment === 'At Risk') {
+                promoCodePrefix = 'COMEBACK';
+            } else {
+                promoCodePrefix = 'SALE';
+            }
+
+            // Hasilkan kombinasi 3 karakter acak di belakang
+            const randomString = Math.random().toString(36).substring(2, 5).toUpperCase();
+            
+            // Format Final (Contoh: VIP-MEI26-8XY)
+            codeInput.value = `${promoCodePrefix}-${month}${year}-${randomString}`;
+        }
+    }
+});
+</script>
 <script>
     const discountType = document.getElementById('discountType');
     const discountValue = document.getElementById('discountValue');
