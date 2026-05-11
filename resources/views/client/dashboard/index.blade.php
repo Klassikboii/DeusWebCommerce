@@ -50,22 +50,16 @@
                         </div>
                     </div>
 
-                    {{-- Langkah 3: Midtrans --}}
+                    {{-- Langkah 3: Pengiriman (Menggantikan Pivot) --}}
                     <div class="col-md-6 col-lg-3">
-                        <div class="p-3 border rounded {{ $setupStatus['payment'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
-                            @if($setupStatus['payment'])
+                        <div class="p-3 border rounded {{ $setupStatus['shipping'] ?? false ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
+                            @if($setupStatus['shipping'] ?? false)
                                 <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-6"></i></span>
                             @endif
-                            <h6 class="fw-bold {{ $setupStatus['payment'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">3. Pembayaran</h6>
-                            <p class="small text-muted mb-3">Hubungkan Pivot agar bisa menerima transfer.</p>
-                            {{-- Tombol Midtrans --}}
-                            @if(!$setupStatus['payment'])
-                                <div class="d-flex gap-2">
-                                    <a href="{{ route('client.settings.index', $website->id) }}#pivot-section" class="btn btn-sm btn-outline-primary flex-grow-1">Hubungkan</a>
-                                    <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanMidtrans" title="Cara Setup">
-                                        <i class="bi bi-question-circle"></i>
-                                    </button>
-                                </div>
+                            <h6 class="fw-bold {{ $setupStatus['shipping'] ?? false ? 'text-muted text-decoration-line-through' : 'text-dark' }}">3. Pengiriman</h6>
+                            <p class="small text-muted mb-3">Pilih kurir yang akan digunakan toko Anda.</p>
+                            @if(!($setupStatus['shipping'] ?? false))
+                                <a href="{{ route('client.shipping.index', $website->id) }}" class="btn btn-sm btn-outline-primary w-100">Atur Kurir</a>
                             @endif
                         </div>
                     </div>
@@ -140,6 +134,7 @@
         'show_stat_transactions' => 'stat_transactions',
         'show_stat_pending'      => 'stat_pending',
         'show_stat_products'     => 'stat_products',
+        'show_stat_wallet'       => 'stat_wallet', // 🚨 Opsi Baru
     ];
 
     // 2. Filter mana yang benar-benar aktif (preferences == true)
@@ -151,10 +146,13 @@
 
     // 3. Tentukan lebar kolom secara otomatis
     // Jika 1 widget = col-12, 2 = col-6, 3 = col-4, 4 = col-3
+    // 3. Tentukan lebar kolom secara otomatis (Dukungan untuk 5 Kotak Sejajar)
     $colClass = match($count) {
         1 => 'col-12',
         2 => 'col-md-6',
         3 => 'col-md-4',
+        4 => 'col-lg-3 col-md-6',
+        5 => 'col-xl col-lg-4 col-md-6', // 🚨 Kunci Rahasianya di 'col-xl': Memaksa 5 kotak berbagi ruang sama rata di layar besar!
         default => 'col-md-3',
     };
 @endphp
@@ -233,7 +231,9 @@
                         </div>
                     </div>
                     <h3 class="fw-bold text-warning">{{ $pendingOrders }}</h3>
-                    <a href="{{ route('client.orders.index', $website->id) }}" class="small text-decoration-none stretched-link">Lihat Pesanan &rarr;</a>
+                    <a href="{{ route('client.wallet.index', $website->id) }}" class="btn btn-light btn-sm text-dark fw-bold w-100 mt-auto bg-warning">
+                        Lihat Pesanan <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
                 </div>
                
             </div>
@@ -254,6 +254,26 @@
                     <span class="text-muted small">Item aktif dijual</span>
                 </div>
                
+            </div>
+        </div>
+        @endif
+        {{-- WIDGET SALDO MASTER WALLET (BARU) --}}
+        @if($preferences['show_stat_wallet'] ?? true)
+        <div class="{{ $colClass }}">
+            <div class="card border-0 shadow-sm h-100 bg-primary text-white" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7);">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-white-50 small fw-bold text-uppercase">Saldo Wallet (Pivot)</span>
+                        <div class="bg-white bg-opacity-25 text-white rounded p-1">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-3">Rp {{ number_format($website->wallet_balance ?? 0, 0, ',', '.') }}</h3>
+                    
+                    <a href="{{ route('client.wallet.index', $website->id) }}" class="btn btn-light btn-sm text-primary fw-bold w-100 mt-auto">
+                        Cairkan Dana <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
             </div>
         </div>
         @endif
@@ -697,41 +717,7 @@
         chart.render();
     });
 </script>
-{{-- 
-<div class="modal fade" id="modalPanduanMidtrans" tabindex="-1" aria-labelledby="modalMidtransLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h6 class="modal-title fw-bold" id="modalMidtransLabel"><i class="bi bi-credit-card me-2"></i>Panduan Setup Midtrans</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <ol class="mb-0 text-muted" style="line-height: 1.8;">
-                    <li>Daftar atau Login ke akun <a href="https://dashboard.midtrans.com/" target="_blank" class="fw-bold text-primary text-decoration-none">Dashboard Midtrans</a> Anda.</li>
-                    <li>Di menu sebelah kiri, masuk ke bagian <strong>Settings</strong> (Pengaturan) ➔ <strong>Access Keys</strong>.</li>
-                    <li>Anda akan melihat <strong>Client Key</strong> dan <strong>Server Key</strong>. Salin (Copy) kedua kunci tersebut.</li>
-                    
-                    {{-- TAMBAHAN LANGKAH WEBHOOK --}}
-                    {{-- <li>Masih di menu Settings, pindah ke bagian <strong>Configuration</strong> (Konfigurasi).</li>
-                    <li>Temukan kolom <strong>Payment Notification URL</strong>, lalu masukkan (Paste) alamat web khusus di bawah ini:
-                        <div class="d-flex align-items-center mt-2 mb-3 p-2 bg-light border rounded">
-                            <code id="webhookUrlText" class="flex-grow-1 text-dark fs-6">{{ url('/api/webhook/midtrans') }}</code>
-                            <button type="button" class="btn btn-sm btn-outline-primary ms-2 shadow-sm" onclick="copyWebhookUrl()">
-                                <i class="bi bi-clipboard"></i> Salin URL
-                            </button>
-                        </div>
-                    </li>
-                    
-                    <li>Kembali ke halaman Dashboard ini, klik tombol "Hubungkan" dan <em>Paste</em> kunci-kunci yang sudah disalin tadi ke form yang tersedia.</li>
-                    <li>Selesai! Uang dari pembeli akan langsung masuk ke akun Midtrans Anda dan status pesanan akan ter-<em>update</em> secara otomatis.</li>
-                </ol>
-            </div>
-            <div class="modal-footer bg-light">
-                <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Saya Mengerti</button>
-            </div>
-        </div>
-    </div>
-</div> --}}
+
 <script>
     function copyWebhookUrl() {
         var copyText = document.getElementById("webhookUrlText").innerText;
@@ -835,6 +821,11 @@
                                 <input class="form-check-input me-2" type="checkbox" name="show_stat_products" value="1" {{ ($preferences['show_stat_products'] ?? true) ? 'checked' : '' }}>
                                 <i class="bi bi-box-seam-fill text-info me-2"></i>
                                 <span>Total Produk Aktif</span>
+                            </label>
+                            <label class="form-check form-switch mb-2 d-flex align-items-center" style="cursor: pointer;">
+                                <input class="form-check-input me-2" type="checkbox" name="show_stat_wallet" value="1" {{ ($preferences['show_stat_wallet'] ?? true) ? 'checked' : '' }}>
+                                <i class="bi bi-wallet2 text-primary me-2"></i>
+                                <span>Saldo Wallet (Pivot)</span>
                             </label>
                         </div>
 

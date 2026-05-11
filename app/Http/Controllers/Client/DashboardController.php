@@ -23,7 +23,9 @@ class DashboardController extends Controller
         $setupStatus = [
             'profile'  => !empty($website->address) && !empty($website->city_id), // Syarat Komerce
             'product'  => $website->products()->count() > 0,                      // Syarat jualan
-            'payment'  => !empty($website->midtrans_server_key),                  // Syarat terima uang
+            // 3. Pengiriman (PENGGANTI PIVOT): 
+            // Selesai jika Klien sudah memilih kurir RajaOngkir ATAU punya 1 tarif ongkir manual
+            'shipping' => !empty($website->active_couriers) || $website->shippingRates()->count() > 0,
             'accurate' => $website->accurateIntegration && $website->accurateIntegration->access_token ? true : false, // Opsional tapi direkomendasikan
         ];
 

@@ -176,4 +176,20 @@ class ShippingController extends Controller
             return back()->with('error', 'Gagal import: ' . $e->getMessage());
         }
     }
+    // app/Http/Controllers/Client/ShippingController.php
+
+        public function updateCouriers(Request $request, Website $website)
+    {
+        // Validasi input (Daftar semua kurir yang diperbolehkan)
+        $request->validate([
+            'active_couriers' => 'nullable|array',
+            'active_couriers.*' => 'string|in:jne,pos,tiki,sicepat,jnt,anteraja,ninja,lion,ide,sap'
+        ]);
+
+        $website->update([
+            'active_couriers' => $request->input('active_couriers', [])
+        ]);
+
+        return redirect()->back()->with('success', 'Daftar kurir otomatis berhasil diperbarui.');
+    }
 }

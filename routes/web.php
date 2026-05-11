@@ -187,6 +187,7 @@ Route::middleware(['auth'])->group(function () {
         // SHIPPING RATES ROUTES
         
         Route::get('/shipping', [App\Http\Controllers\Client\ShippingController::class, 'index'])->name('client.shipping.index');
+          Route::put('shipping/couriers', [App\Http\Controllers\Client\ShippingController::class, 'updateCouriers'])->name('client.shipping.update_couriers');
 
         Route::get('/wallet', [\App\Http\Controllers\Client\WalletController::class, 'index'])->name('client.wallet.index');
         Route::post('/wallet/withdraw', [\App\Http\Controllers\Client\WalletController::class, 'withdraw'])->name('client.wallet.withdraw');
@@ -198,6 +199,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/shipping/clear', [App\Http\Controllers\Client\ShippingController::class, 'clear'])->name('client.shipping.clear');
 
         Route::delete('/shipping/{rate}', [App\Http\Controllers\Client\ShippingController::class, 'destroy'])->name('client.shipping.destroy');
+        // routes/web.php
+      
 
         // IMPORT & TEMPLATE
         Route::get('/shipping/template', [App\Http\Controllers\Client\ShippingController::class, 'downloadTemplate'])->name('client.shipping.template');

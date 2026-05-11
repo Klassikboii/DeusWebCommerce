@@ -201,7 +201,8 @@ class Website extends Model
     {
         // Nilai bawaan: Semua widget menyala (true)
         $defaults = [
-            // Kelompok 1: Ringkasan Atas
+            // Kelompok 1: Ringkasan 
+            'show_stat_wallet'       => true,
             'show_stat_revenue'      => true,
             'show_stat_transactions' => true,
             'show_stat_pending'      => true,

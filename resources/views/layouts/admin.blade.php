@@ -57,9 +57,9 @@
                 </div>
             </div>
             <a href="{{ route('profile.edit') }}" class="btn btn-outline-light btn-sm w-100 mb-2">Edit Profil</a>
-            <form action="{{ route('logout') }}" method="POST">
+            <form action="{{ route('logout') }}" method="POST"  onsubmit="return confirm('Yakin ingin keluar dari akun ini?');">
                 @csrf
-                <button class="btn btn-danger btn-sm w-100" onsubmit="return confirm('Yakin ingin keluar dari akun ini?');">Logout</button>
+                <button class="btn btn-danger btn-sm w-100">Logout</button>
             </form>
         </div>
     </div>
@@ -68,5 +68,38 @@
         @yield('content')
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. Cari SEMUA formulir di halaman ini
+    // (Kita kecualikan form dengan class 'no-loader' jika sewaktu-waktu Anda tidak ingin form tertentu dikunci)
+    const forms = document.querySelectorAll('form:not(.no-loader)');
+
+    forms.forEach(form => {
+        form.addEventListener('submit', function (e) {
+            
+            // 2. Cek apakah form sudah lolos validasi HTML bawaan (misal: atribut 'required')
+            // Jika belum valid, jangan kunci tombolnya agar browser bisa memunculkan peringatan merah.
+            if (!form.checkValidity()) {
+                return; 
+            }
+
+            // 3. Cari tombol Submit di dalam form yang sedang diklik ini
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            if (submitBtn && !submitBtn.disabled) {
+                // 4. Kunci tombol agar tidak bisa di-klik ganda (Double Submit Prevention)
+                submitBtn.disabled = true;
+
+                // 5. Ubah visual tombol menjadi efek Loading (Spinner Bootstrap)
+                // Simpan tinggi tombol agar tidak "berkedut" saat teksnya diganti
+                const btnHeight = submitBtn.offsetHeight; 
+                submitBtn.style.height = btnHeight + 'px'; 
+                
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Memproses...';
+            }
+        });
+    });
+});
+</script>
 </body>
 </html>

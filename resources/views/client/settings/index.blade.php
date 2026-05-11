@@ -121,34 +121,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card border-0 shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-truck me-2"></i>Pengaturan Kurir Pengiriman</h6>
-                    <p class="text-muted small">Pilih ekspedisi apa saja yang ingin Anda aktifkan untuk pembeli.</p>
-                    
-                    @php
-                        // Ambil array kurir aktif milik klien dari database, default 3 kurir
-                        $activeCouriers = $website->active_couriers ?? ['jne', 'sicepat', 'jnt'];
-                    @endphp
-
-                    {{-- 🚨 LOOPING DINAMIS DARI CONTROLLER --}}
-                    <div class="row">
-                        @foreach($supportedCouriers as $code => $name)
-                            <div class="col-md-4 mb-2">
-                                <div class="form-check">
-                                    {{-- Cek apakah kode kurir ini ada di dalam array pilihan klien --}}
-                                    <input class="form-check-input" type="checkbox" name="active_couriers[]" 
-                                        value="{{ $code }}" id="kurir_{{ $code }}" 
-                                        {{ in_array($code, $activeCouriers) ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-bold" for="kurir_{{ $code }}">{{ $name }}</label>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    <div class="form-text mt-2 text-warning"><i class="bi bi-info-circle"></i> Minimal harus ada 1 kurir yang dicentang agar checkout tidak error.</div>
-                </div>
-            </div>
+            
             
             <div class="card-footer bg-light p-3 text-end">
                 <button type="submit" class="btn btn-primary px-4">
@@ -158,7 +131,7 @@
         </div>
     </form>
 
-    <hr class="my-5 text-muted">
+   
 
     <div class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #0052cc !important;" id="accurate-section">
         <div class="card-header bg-white py-3 fw-bold" style="color: #0052cc;">
@@ -218,56 +191,38 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-5" style="border-left: 4px solid #7B2CBF !important;"> <div class="card-header bg-white py-3 fw-bold" style="color: #7B2CBF;" id="pivot-section">
-            <i class="bi bi-credit-card me-2"></i>Payment Gateway (Pivot)
-            <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanPivot" title="Cara Setup">
-                <i class="bi bi-question-circle"></i>
-            </button>
-        </div>
-        <div class="card-body p-4">
-            <div class="alert bg-light border text-muted small mb-4">
-                <i class="bi bi-info-circle me-1"></i> Masukkan kredensial dari akun Pivot Anda agar pembeli dapat membayar dengan VA, QRIS, E-Wallet, dll.
+    {{-- resources/views/client/settings/index.blade.php --}}
+
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-0 py-3">
+        <h6 class="fw-bold mb-0"><i class="bi bi-wallet2 me-2"></i> Pengaturan Pembayaran</h6>
+    </div>
+    <div class="card-body pt-0">
+        {{-- Banner Informasi Master Wallet --}}
+        <div class="alert alert-success border-success bg-success bg-opacity-10 d-flex align-items-start mb-4">
+            <i class="bi bi-shield-check text-success fs-4 me-3"></i>
+            <div>
+                <h6 class="fw-bold text-success-emphasis mb-1">Metode Pembayaran Otomatis Aktif</h6>
+                <p class="mb-2 small text-muted">
+                    Toko Anda saat ini menggunakan <strong>Deus Master Wallet</strong>. Pembeli dapat membayar via QRIS, VA, dan E-Wallet tanpa Anda perlu mendaftar ke Payment Gateway sendiri.
+                </p>
+                <a href="{{ route('client.wallet.index', $website->id) }}" class="btn btn-sm btn-success rounded-pill px-3" style="font-size: 0.75rem;">
+                    Lihat Saldo & Penarikan <i class="bi bi-arrow-right ms-1"></i>
+                </a>
             </div>
+        </div>
 
-            <form action="{{ route('client.settings.payment.update', $website->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Lingkungan (Environment)</label>
-                    <div class="form-check form-switch fs-5">
-                        <input class="form-check-input cursor-pointer" type="checkbox" role="switch" id="pivot_is_production" name="pivot_is_production" value="1" {{ $website->pivot_is_production ? 'checked' : '' }}>
-                        <label class="form-check-label ms-2 fs-6 mt-1" for="pivot_is_production">
-                            Gunakan <strong>Production</strong> (Live / Uang Asli)
-                        </label>
-                    </div>
-                    <div class="form-text mt-2">Biarkan mati (off) jika Anda masih dalam tahap testing (Sandbox).</div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Merchant ID (Client Key)</label>
-                    <input type="text" name="pivot_client_key" class="form-control" value="{{ old('pivot_client_key', $website->pivot_client_key) }}" placeholder="Contoh: PIVOT-MID-12345">
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Merchant Secret (Server Key)</label>
-                    <div class="input-group">
-                        <input type="password" name="pivot_server_key" id="server_key_input" class="form-control" value="{{ old('pivot_server_key', $website->pivot_server_key) }}" placeholder="Masukkan Secret Key rahasia...">
-                        <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('server_key_input').type = document.getElementById('server_key_input').type === 'password' ? 'text' : 'password'">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                    </div>
-                    <div class="form-text text-danger"><i class="bi bi-shield-lock"></i> Jaga kerahasiaan Merchant Secret Anda!</div>
-                </div>
-
-                <div class="text-end">
-                    <button type="submit" class="btn text-white px-4" style="background-color: #7B2CBF;">
-                        <i class="bi bi-key me-1"></i> Simpan Kunci Pivot
-                    </button>
-                </div>
-            </form>
+        {{-- Kita hapus input Pivot Client ID & Server Key --}}
+        {{-- Hanya sisakan toggle Status Produksi jika Anda ingin klien tahu --}}
+        <div class="row">
+            <div class="col-md-6">
+                <label class="form-label fw-bold small">Status Gateway</label>
+                <input type="text" class="form-control bg-light" value="{{ $website->pivot_is_production ? 'Production (Live)' : 'Sandbox (Testing)' }}" readonly disabled>
+                <small class="text-muted">Status koneksi ke server Pivot Payment.</small>
+            </div>
         </div>
     </div>
+</div>
 
 </div>
 
