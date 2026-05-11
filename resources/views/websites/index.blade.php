@@ -90,6 +90,31 @@
         
         <div class="row g-4">
             @forelse($websites as $website)
+            {{-- 🚨 LOGIKA HEALTH BAR SAAS 🚨 --}}
+                       @php
+                        $rawDaysLeft = $website->subscription_remaining_days;
+
+                        // Rounded value ONLY for display
+                        $daysLeft = $rawDaysLeft !== null ? round($rawDaysLeft) : null;
+
+                        $healthPct = $website->subscription_health_percentage;
+
+                        $barColor = 'success';
+                        $statusText = "Sisa {$daysLeft} Hari";
+
+                        // Use RAW value for condition checking
+                        if ($rawDaysLeft === null || $rawDaysLeft <= 0) {
+                            $barColor = 'danger';
+                            $healthPct = 100;
+                            $statusText = "Masa Aktif Habis";
+
+                        } elseif ($rawDaysLeft <= 3) {
+                            $barColor = 'danger';
+
+                        } elseif ($rawDaysLeft <= 7) {
+                            $barColor = 'warning';
+                        }
+                    @endphp
                 <div class="col-md-6 col-lg-4">
                     <div class="card card-website h-100 p-3 bg-white rounded-3 shadow-sm">
                         <div class="d-flex justify-content-between align-items-start mb-3">
@@ -120,6 +145,25 @@
                                     {{ $website->subdomain }}.deusserver.ashop.asia <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                                 @endif
+                                <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-end mb-1">
+                                <span class="text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;">Status Toko</span>
+                                <span class="text-{{ $daysLeft > 7 ? 'muted' : $barColor }} fw-bold" style="font-size: 0.75rem;">
+                                    {{ $statusText }}
+                                </span>
+                            </div>
+                            
+                            {{-- Visual Health Bar --}}
+                            <div class="progress shadow-sm" style="height: 6px; background-color: #f0f0f0;">
+                                <div class="progress-bar bg-{{ $barColor }} {{ $daysLeft > 0 && $daysLeft <= 3 ? 'progress-bar-striped progress-bar-animated' : '' }}" 
+                                     role="progressbar" 
+                                     style="width: {{ $healthPct }}%;" 
+                                     aria-valuenow="{{ $healthPct }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
                             </div>
                             <span class="badge bg-light text-dark border">
                                 {{ ucfirst($website->active_template) }}

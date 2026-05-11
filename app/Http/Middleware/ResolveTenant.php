@@ -42,6 +42,26 @@ class ResolveTenant
     // 🚨 PERHATIKAN: Kita MENGHAPUS URL::defaults(['any_domain' => ...])
     // karena kita sudah tidak butuh parameter URL lagi!
 
+    // ==============================================================
+        // 🚨 5. SABUK PENGAMAN SAAS: CEK MASA AKTIF LANGGANAN TOKO
+        // ==============================================================
+        // Kita ambil data langganan yang aktif. Jika null, artinya habis/belum bayar.
+        $subscription = $website->activeSubscription;
+
+        if (!$subscription) {
+            // Kita langsung "Bypass" request dan merender tampilan toko suspend
+            // (Menggunakan response(view(...)) agar tidak perlu bikin route baru)
+            return response(view('errors.suspended', ['website' => $website]), 403);
+        }
+
+        // ==============================================================
+        // 🚨 6. FITUR TAMBAHAN: JIKA KLIEN MENUTUP TOKONYA SENDIRI
+        // ==============================================================
+        // (Dari kolom is_open di database)
+        if (!$website->is_open) {
+            return response(view('errors.closed', ['website' => $website]), 403);
+        }
+
     // 5. Suntikkan Data Website ke Request dan View
     $request->merge(['website' => $website]);
     View::share('website', $website);

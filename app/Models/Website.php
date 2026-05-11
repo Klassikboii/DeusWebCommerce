@@ -236,5 +236,29 @@ class Website extends Model
     public function withdrawals() {
         return $this->hasMany(Withdrawal::class);
     }
+    public function getSubscriptionRemainingDaysAttribute()
+{
+    $subscription = $this->activeSubscription;
+    if (!$subscription || !$subscription->ends_at) {
+        return null;
+    }
+    
+    return now()->diffInDays($subscription->ends_at, false); // false agar bisa minus jika expired
+}
+// 2. Menghitung Persentase "Health Bar"
+    public function getSubscriptionHealthPercentageAttribute()
+    {
+        $subscription = $this->activeSubscription;
+        if (!$subscription || !$subscription->starts_at || !$subscription->ends_at) return 0;
+
+        $totalDays = $subscription->starts_at->diffInDays($subscription->ends_at);
+        if ($totalDays <= 0) return 0;
+
+        $remainingDays = $this->subscription_remaining_days;
+        if ($remainingDays <= 0) return 0; // Nyawa habis
+
+        $percentage = ($remainingDays / $totalDays) * 100;
+        return min(100, max(0, $percentage)); // Pastikan mentok di 100% dan 0%
+    }
     
 }
