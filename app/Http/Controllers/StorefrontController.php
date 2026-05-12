@@ -174,18 +174,43 @@ public function product(Request $request, $slug)
             ->take(4)
             ->get();
         
+        // =========================================================
+        // 🚨 3. RAK BUNDLING CERDAS (Berdasarkan Nilai Lift MBA)
+        // =========================================================
+        // Ambil rekomendasi dengan lift minimal 1.5 (Abaikan Hubungan Wajar / Lift < 1.5)
         $bundles = \App\Models\ProductRecommendation::with('recommendedProduct')
-        ->where('product_id', $product->id)
-        ->whereHas('recommendedProduct', function($query) {
-            // Pastikan produk rekomendasinya aktif dan stoknya masih ada
-            $query->where('is_active', true)->where('stock', '>', 0);
-        })
-        ->orderBy('lift', 'desc')
-        ->take(2)
-        ->get();
+            ->where('product_id', $product->id)
+            ->whereHas('recommendedProduct', function($query) {
+                // Pastikan produk rekomendasinya aktif dan stoknya masih ada
+                $query->where('is_active', true)->where('stock', '>', 0);
+            })
+            ->where('lift', '>=', 1.5) // 🚨 FITUR BARU: Buang Lift yang terlalu rendah
+            ->orderBy('lift', 'desc')
+            ->take(2)
+            ->get();
+
+        // Siapkan variabel untuk dikirim ke UI Blade
+        $isDiscountBundle = false;
+        $bundleDiscountPercentage = 0; // Misalnya kita atur diskon 10%
+        $bundleType = 'none';
+
+        if ($bundles->count() > 0) {
+            // Cek kekuatan produk rekomendasi yang paling tinggi (ranking 1)
+            $topLift = $bundles->first()->lift;
+
+            if ($topLift >= 3) {
+                // Kategori "Kombinasi Sempurna" -> Beri Diskon
+                $isDiscountBundle = true;
+                $bundleDiscountPercentage = 10; // Diskon 10% untuk keseluruhan paket
+                $bundleType = 'perfect';
+            } else {
+                // Kategori "Potensi Cross-Selling" (Lift 1.5 s/d 2.99) -> Harga Normal
+                $bundleType = 'cross_sell';
+            }
+        }
 
         // Lempar dua variabel terpisah ke view
-        return view('storefront.product.show', compact('website', 'product', 'aiProducts', 'categoryProducts','bundles'));
+        return view('storefront.product.show', compact('website', 'product', 'aiProducts', 'categoryProducts','bundles', 'isDiscountBundle', 'bundleDiscountPercentage', 'bundleType'));
 }
 
 // --- FITUR CEK PESANAN (TRACK ORDER) ---

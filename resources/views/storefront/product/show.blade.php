@@ -322,18 +322,28 @@
                         <div class="mt-2 text-dark fw-bold small">Rp {{ number_format($product->price, 0, ',', '.') }}</div>
                     </div>
 
+                  {{-- PERHITUNGAN HARGA BUNDLING --}}
                     @php 
-                        $bundleTotalPrice = $product->price; 
+                        $bundleOriginalPrice = $product->price; 
                         $bundleItems = [$product->id]; // Array untuk JS Add to Cart
+                        
+                        foreach($bundles as $bundle) {
+                            $recProduct = $bundle->recommendedProduct; 
+                            $bundleOriginalPrice += $recProduct->price;
+                            $bundleItems[] = $recProduct->id;
+                        }
+
+                        // Logika Diskon (Didapat dari Tahap 1 Controller)
+                        $bundleFinalPrice = $bundleOriginalPrice;
+                        if(isset($isDiscountBundle) && $isDiscountBundle) {
+                            $discountAmount = $bundleOriginalPrice * ($bundleDiscountPercentage / 100);
+                            $bundleFinalPrice = $bundleOriginalPrice - $discountAmount;
+                        }
                     @endphp
 
                     {{-- 2. Looping Produk Rekomendasi MBA --}}
                     @foreach($bundles as $bundle)
-                        @php 
-                            $recProduct = $bundle->recommendedProduct; 
-                            $bundleTotalPrice += $recProduct->price;
-                            $bundleItems[] = $recProduct->id;
-                        @endphp
+                        @php $recProduct = $bundle->recommendedProduct; @endphp
                         
                         {{-- Ikon Plus --}}
                         <div class="text-center text-muted">
@@ -357,7 +367,7 @@
                 </div>
             </div>
 
-            {{-- Ikon Sama Dengan (Hanya muncul di Desktop) --}}
+            {{-- Ikon Sama Dengan --}}
             <div class="col-auto text-center d-none d-lg-block">
                 <i class="bi bi-pause fs-2 text-muted" style="transform: rotate(90deg); display: inline-block;"></i>
             </div>
@@ -365,13 +375,28 @@
             {{-- BAGIAN KANAN: TOTAL & TOMBOL --}}
             <div class="col-12 col-lg-3 text-center text-lg-start mt-4 mt-lg-0 ps-lg-4 border-start-lg">
                 <p class="text-muted mb-1 text-uppercase fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">Total Harga Paket:</p>
-                <h3 class="fw-bold text-primary mb-3">Rp {{ number_format($bundleTotalPrice, 0, ',', '.') }}</h3>
                 
-                {{-- Tombol Beli Paket (Trigger JS) --}}
-                <button onclick="addBundleToCart({{ json_encode($bundleItems) }})" class="btn btn-primary w-100 fw-bold shadow-sm py-2" id="btn-add-bundle">
+                {{-- 🚨 LOGIKA VISUAL DISKON TAMPIL DI SINI --}}
+                @if(isset($isDiscountBundle) && $isDiscountBundle)
+                    <div class="mb-1 d-flex align-items-center justify-content-center justify-content-lg-start">
+                        <span class="text-decoration-line-through text-muted small me-2">Rp {{ number_format($bundleOriginalPrice, 0, ',', '.') }}</span>
+                        <span class="badge bg-danger rounded-pill shadow-sm">Hemat {{ $bundleDiscountPercentage }}%</span>
+                    </div>
+                @endif
+
+                <h3 class="fw-bold text-primary mb-3">Rp {{ number_format($bundleFinalPrice, 0, ',', '.') }}</h3>
+                
+                {{-- Tombol Beli Paket --}}
+                <button onclick="addBundleToCart({{ json_encode($bundleItems) }}, {{ isset($isDiscountBundle) && $isDiscountBundle ? 'true' : 'false' }})" class="btn btn-primary w-100 fw-bold shadow-sm py-2" id="btn-add-bundle">
                     <i class="bi bi-cart-plus me-1"></i> Beli {{ count($bundleItems) }} Barang
                 </button>
-                <p class="small text-success mt-2 mb-0"><i class="bi bi-check2-circle me-1"></i>Kombinasi teruji algoritma</p>
+                
+                {{-- Teks Bawah Tombol --}}
+                @if(isset($isDiscountBundle) && $isDiscountBundle)
+                    <p class="small text-danger fw-bold mt-2 mb-0"><i class="bi bi-fire me-1"></i>Kombinasi Sempurna (Promo)</p>
+                @else
+                    <p class="small text-success mt-2 mb-0"><i class="bi bi-check2-circle me-1"></i>Kombinasi teruji algoritma</p>
+                @endif
             </div>
             
         </div>
