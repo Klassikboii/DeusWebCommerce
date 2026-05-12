@@ -173,9 +173,19 @@ public function product(Request $request, $slug)
             ->inRandomOrder() 
             ->take(4)
             ->get();
+        
+        $bundles = \App\Models\ProductRecommendation::with('recommendedProduct')
+        ->where('product_id', $product->id)
+        ->whereHas('recommendedProduct', function($query) {
+            // Pastikan produk rekomendasinya aktif dan stoknya masih ada
+            $query->where('is_active', true)->where('stock', '>', 0);
+        })
+        ->orderBy('lift', 'desc')
+        ->take(2)
+        ->get();
 
         // Lempar dua variabel terpisah ke view
-        return view('storefront.product.show', compact('website', 'product', 'aiProducts', 'categoryProducts'));
+        return view('storefront.product.show', compact('website', 'product', 'aiProducts', 'categoryProducts','bundles'));
 }
 
 // --- FITUR CEK PESANAN (TRACK ORDER) ---

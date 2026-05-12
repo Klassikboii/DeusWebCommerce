@@ -4,6 +4,7 @@
 
 @section('content')
 
+
 <style>
     /* 1. Hilangkan panah input number */
     .no-arrow::-webkit-outer-spin-button,
@@ -45,6 +46,14 @@
         
         box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08); /* Shadow halus ke atas */
         border-top: 1px solid #f0f0f0;
+    }
+    /* ... (CSS mobile cart dan input arrow yang lama) ... */
+
+    /* STYLING KHUSUS BUNDLING MBA */
+    .bundle-card-hover { transition: all 0.2s ease-in-out; }
+    .bundle-card-hover:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; border: 1px solid #0d6efd !important; }
+    @media (min-width: 992px) { /* Breakpoint lg Bootstrap */
+        .border-start-lg { border-left: 2px dashed #dee2e6; }
     }
 </style>
 
@@ -278,6 +287,93 @@
                     </div>
                 </div>
             @endforeach
+        </div>
+    </div>
+    @endif
+
+    <hr>
+    {{-- =================================================== --}}
+    {{-- 🤖 SECTION AI BUNDLING: SERING DIBELI BERSAMAAN     --}}
+    {{-- =================================================== --}}
+    @if(isset($bundles) && $bundles->count() > 0)
+    <div class="container my-5 py-5 border-top border-bottom rounded-3 shadow-sm" style="background-color: #f8faff;">
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <span class="badge bg-primary bg-opacity-10 text-primary mb-2 px-3 py-2 rounded-pill"><i class="bi bi-stars me-1"></i> Penawaran Cerdas</span>
+                <h4 class="fw-bold">Sering Dibeli Bersamaan</h4>
+                <p class="text-muted small">Kombinasi produk yang paling disukai oleh pelanggan kami.</p>
+            </div>
+        </div>
+
+        <div class="row align-items-center justify-content-center g-3">
+            
+            {{-- BAGIAN KIRI: DERETAN PRODUK (FLEXBOX AGAR SEJAJAR) --}}
+            <div class="col-12 col-lg-8">
+                <div class="d-flex flex-wrap align-items-center justify-content-center gap-3">
+                    
+                    {{-- 1. Produk Utama (Yang sedang dilihat) --}}
+                    <div class="text-center" style="width: 140px;">
+                        <div class="card border-primary shadow-sm h-100">
+                            <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top p-2 rounded" alt="{{ $product->name }}" style="aspect-ratio: 1/1; object-fit: cover;">
+                            <div class="card-body p-2 bg-primary bg-opacity-10 border-top border-primary">
+                                <p class="small fw-bold mb-0 text-truncate text-primary" title="{{ $product->name }}">Barang Ini</p>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-dark fw-bold small">Rp {{ number_format($product->price, 0, ',', '.') }}</div>
+                    </div>
+
+                    @php 
+                        $bundleTotalPrice = $product->price; 
+                        $bundleItems = [$product->id]; // Array untuk JS Add to Cart
+                    @endphp
+
+                    {{-- 2. Looping Produk Rekomendasi MBA --}}
+                    @foreach($bundles as $bundle)
+                        @php 
+                            $recProduct = $bundle->recommendedProduct; 
+                            $bundleTotalPrice += $recProduct->price;
+                            $bundleItems[] = $recProduct->id;
+                        @endphp
+                        
+                        {{-- Ikon Plus --}}
+                        <div class="text-center text-muted">
+                            <i class="bi bi-plus-lg fs-4"></i>
+                        </div>
+
+                        {{-- Kartu Produk Rekomendasi --}}
+                        <div class="text-center" style="width: 140px;">
+                            <a href="{{ route('store.product', ['slug' => $recProduct->slug]) }}" class="text-decoration-none text-dark">
+                                <div class="card border-0 shadow-sm h-100 position-relative bundle-card-hover">
+                                    <img src="{{ asset('storage/' . $recProduct->image) }}" class="card-img-top p-2 rounded" alt="{{ $recProduct->name }}" style="aspect-ratio: 1/1; object-fit: cover;">
+                                    <div class="card-body p-2 border-top">
+                                        <p class="small text-muted mb-0 text-truncate" title="{{ $recProduct->name }}">{{ $recProduct->name }}</p>
+                                    </div>
+                                </div>
+                            </a>
+                            <div class="mt-2 text-dark fw-bold small">Rp {{ number_format($recProduct->price, 0, ',', '.') }}</div>
+                        </div>
+                    @endforeach
+
+                </div>
+            </div>
+
+            {{-- Ikon Sama Dengan (Hanya muncul di Desktop) --}}
+            <div class="col-auto text-center d-none d-lg-block">
+                <i class="bi bi-pause fs-2 text-muted" style="transform: rotate(90deg); display: inline-block;"></i>
+            </div>
+
+            {{-- BAGIAN KANAN: TOTAL & TOMBOL --}}
+            <div class="col-12 col-lg-3 text-center text-lg-start mt-4 mt-lg-0 ps-lg-4 border-start-lg">
+                <p class="text-muted mb-1 text-uppercase fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">Total Harga Paket:</p>
+                <h3 class="fw-bold text-primary mb-3">Rp {{ number_format($bundleTotalPrice, 0, ',', '.') }}</h3>
+                
+                {{-- Tombol Beli Paket (Trigger JS) --}}
+                <button onclick="addBundleToCart({{ json_encode($bundleItems) }})" class="btn btn-primary w-100 fw-bold shadow-sm py-2" id="btn-add-bundle">
+                    <i class="bi bi-cart-plus me-1"></i> Beli {{ count($bundleItems) }} Barang
+                </button>
+                <p class="small text-success mt-2 mb-0"><i class="bi bi-check2-circle me-1"></i>Kombinasi teruji algoritma</p>
+            </div>
+            
         </div>
     </div>
     @endif

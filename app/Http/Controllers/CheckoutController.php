@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Log;
 
 class CheckoutController extends Controller
 {
@@ -447,108 +448,146 @@ class CheckoutController extends Controller
     }
 
     // Tambahkan method ini di CheckoutController.php
-
-public function checkShipping(Request $request, )
+public function checkShipping(Request $request)
     {
         $request->validate([
             'destination' => 'required|integer', 
             'weight' => 'required|numeric|min:1',
         ]);
 
-        // TANGKAP DATA WEBSITE BERDASARKAN SUBDOMAIN
         $website = $request->get('website');
-        
-
         $apiKey = env('RAJAONGKIR_API_KEY');
-        
-        // 1. Ambil data markup
-        $markup = \App\Models\ShippingMarkup::where('website_id', $website->id)
-                    ->where('city_id', $request->destination)
-                    ->first();
+        $options = []; 
 
-        // 🚨 2. AMBIL PENGATURAN KURIR KLIEN
-        // Jika klien belum mengatur (null), kita pakai default 3 kurir
-        $activeCouriersArray = $website->active_couriers ?? ['jne', 'sicepat', 'jnt'];
+        // 1. Ambil data kota tujuan
+        $destinationCity = \App\Models\City::find($request->destination);
+        if (!$destinationCity) {
+            return response()->json(['status' => 'error', 'message' => 'Kota tujuan tidak valid.']);
+        }
         
-        // Komerce API meminta format string dipisah titik dua (misal: "jne:sicepat")
+        // 🚨 TAMBAHKAN BARIS INI (Ini yang membuat error Undefined Variable tadi)
+        $destinationCityId = $destinationCity->id; 
+
+        // ==========================================================
+        // BAGIAN A: TARIK DATA DARI RAJAONGKIR (JIKA ADA YANG AKTIF)
+        // ==========================================================
+        $activeCouriersArray = $website->active_couriers ?? [];
         $courierString = implode(':', $activeCouriersArray);
 
-        // Jika string kosong (Klien mematikan semua kurir)
-        if (empty($courierString)) {
-            return response()->json(['status' => 'error', 'message' => 'Toko ini belum mengaktifkan layanan kurir apapun.']);
-        }
+        if (!empty($courierString)) {
+            $originCityId = $website->city_id ?? 152;
+            $markup = \App\Models\ShippingMarkup::where('website_id', $website->id)
+                        ->where('city_id', $request->destination)
+                        ->first();
 
-        $originCityId = $website->city_id ?? 152;
-        $destinationCityId = $request->destination;
+            // Panggilan API RajaOngkir
+            $response = \Illuminate\Support\Facades\Http::asForm()
+                ->withHeaders(['key' => $apiKey])
+                ->timeout(30)
+                ->retry(3, 1000)
+                ->post('https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost', [
+                    'origin'      => (string) $originCityId,
+                    'destination' => (string) $destinationCityId, // 🚨 Sekarang variabel ini sudah didefinisikan!
+                    'weight'      => (int) $request->weight,
+                    'courier'     => $courierString
+                ]);
 
-        // 3. Tembak API Komerce V2 dengan Kurir Dinamis
-        $response = \Illuminate\Support\Facades\Http::asForm()
-            ->withHeaders(['key' => $apiKey])
-            ->timeout(30) // Anti timeout
-            ->retry(3, 1000)
-            ->post('https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost', [
-                'origin'      => (string) $originCityId,
-                'destination' => (string) $destinationCityId,
-                'weight'      => (int) $request->weight,
-                'courier'     => $courierString // 🚨 KURIR SEKARANG DINAMIS!
-            ]);
+            if ($response->successful()) {
+                $apiData = $response->json()['data'] ?? [];
+                
+                foreach ($apiData as $service) {
+                    $courierCode = strtoupper($service['code'] ?? 'UNKNOWN'); 
+                    $originalCost = $service['cost'] ?? 0;
+                    $serviceName = $service['service'] ?? 'REG';
+                    
+                    if ($originalCost <= 0) continue;
 
-        if (!$response->successful()) {
-            return response()->json(['status' => 'error', 'message' => 'API Error: ' . $response->body()]);
-        }
+                    // Logika Estimasi
+                    $estimationRaw = trim($service['etd'] ?? '');
+                    $etdDisplay = '';
+                    if ($estimationRaw === '' || $estimationRaw === '0') {
+                        $etdDisplay = 'Estimasi menyesuaikan layanan';
+                    } elseif (stripos($estimationRaw, 'hari') !== false || stripos($estimationRaw, 'jam') !== false) {
+                        $etdDisplay = 'Estimasi: ' . $estimationRaw;
+                    } else {
+                        $etdDisplay = 'Estimasi: ' . $estimationRaw . ' Hari';
+                    }
 
-        $apiData = $response->json()['data'] ?? [];
-        $options = [];
-
-        // 4. Mapping Data dan Perbaiki Estimasi (ETD)
-        foreach ($apiData as $service) {
-            $courierCode = strtoupper($service['code'] ?? 'UNKNOWN'); 
-            $originalCost = $service['cost'] ?? 0;
-            $serviceName = $service['service'] ?? 'REG';
-            
-            // Gembok pengaman
-            if ($originalCost <= 0) continue;
-
-            // 🚨 LOGIKA PERBAIKAN ESTIMASI (ETD)
-            $estimationRaw = trim($service['etd'] ?? '');
-            $etdDisplay = '';
-
-            if ($estimationRaw === '' || $estimationRaw === '0') {
-                $etdDisplay = 'Estimasi menyesuaikan layanan';
-            } elseif (stripos($estimationRaw, 'hari') !== false || stripos($estimationRaw, 'jam') !== false) {
-                // Jika dari API sudah ada tulisan Hari/Jam, langsung pakai
-                $etdDisplay = 'Estimasi: ' . $estimationRaw;
-            } else {
-                // Jika dari API cuma angka "1-2" atau "3", tambahkan kata "Hari"
-                $etdDisplay = 'Estimasi: ' . $estimationRaw . ' Hari';
-            }
-
-            // Suntikkan Markup
-            $finalCost = $originalCost;
-            if ($markup) {
-                if ($markup->markup_type == 'nominal') {
-                    $finalCost += $markup->markup_value; 
-                } elseif ($markup->markup_type == 'percent') {
-                    $finalCost += ($originalCost * ($markup->markup_value / 100)); 
+                    // Suntikkan Markup
+                    $finalCost = $originalCost;
+                    if ($markup) {
+                        if ($markup->markup_type == 'nominal') {
+                            $finalCost += $markup->markup_value; 
+                        } elseif ($markup->markup_type == 'percent') {
+                            $finalCost += ($originalCost * ($markup->markup_value / 100)); 
+                        }
+                    }
+                    
+                    $options[] = [
+                        'id' => $courierCode . '_' . str_replace(' ', '', $serviceName), 
+                        'courier' => $courierCode,
+                        'service' => $serviceName,
+                        'cost' => $finalCost, 
+                        'cost_formatted' => number_format($finalCost, 0, ',', '.'),
+                        'estimation' => $etdDisplay
+                    ];
                 }
             }
-            
-            $options[] = [
-                'id' => $courierCode . '_' . str_replace(' ', '', $serviceName), 
-                'courier' => $courierCode,
-                'service' => $serviceName,
-                'cost' => $finalCost, 
-                'cost_formatted' => number_format($finalCost, 0, ',', '.'),
-                
-                // 🚨 MASUKKAN ESTIMASI YANG SUDAH RAPI
-                'estimation' => $etdDisplay
-            ];
         }
 
+        // ==========================================================
+        // BAGIAN B: TARIK DATA DARI KURIR MANUAL (DATABASE)
+        // ==========================================================
+        
+        // Bersihkan nama kota dari imbuhan (seperti yang kita bahas sebelumnya)
+        $cleanCityName = str_replace(['Kabupaten', 'Kota', 'Kab.'], '', $destinationCity->name);
+        $cleanCityName = trim($cleanCityName);
+
+        $manualRates = \App\Models\ShippingRate::where('website_id', $website->id)
+            ->where(function($query) use ($cleanCityName) {
+                // Pencarian kemiripan string
+                $query->where('destination_city', 'LIKE', '%' . $cleanCityName . '%');
+            })
+            ->get();
+
+        if ($manualRates->count() > 0) {
+            $weightInKg = ceil($request->weight / 1000);
+            if ($weightInKg < 1) $weightInKg = 1;
+
+            foreach ($manualRates as $rate) {
+                $manualCost = $rate->rate_per_kg * $weightInKg;
+
+                $etdDisplay = 'Estimasi: ';
+                if ($rate->min_day) {
+                    $etdDisplay .= $rate->min_day . ($rate->max_day ? ' - ' . $rate->max_day : '') . ' Hari';
+                } else {
+                    $etdDisplay .= 'Menyesuaikan';
+                }
+
+                $options[] = [
+                    'id' => 'manual_' . $rate->id, 
+                    'courier' => strtoupper($rate->courier_name),
+                    'service' => strtoupper($rate->service_name),
+                    'cost' => $manualCost,
+                    'cost_formatted' => number_format($manualCost, 0, ',', '.'),
+                    'estimation' => $etdDisplay
+                ];
+            }
+        }
+
+        // ==========================================================
+        // HASIL AKHIR: CEK APAKAH ADA OPSI YANG TERSEDIA
+        // ==========================================================
         if (empty($options)) {
-            return response()->json(['status' => 'error', 'message' => 'Tidak ada layanan kurir yang tersedia untuk rute ini.']);
+            // Jika kosong, kembalikan response sukses tapi opsi kosong
+            // Ini akan memicu pesan peringatan yang elegan dari Javascript Anda
+            return response()->json([
+                'status' => 'error', 
+                'message' => 'Tidak ada layanan ekspedisi yang tersedia untuk ' . $destinationCity->name
+            ]);
         }
 
+        // Jika berhasil, kirim array $options
         return response()->json(['status' => 'success', 'options' => $options]);
     }
    public function applyVoucher(\Illuminate\Http\Request $request)

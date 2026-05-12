@@ -529,4 +529,37 @@
             });
         }
     </script>
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. Cari SEMUA formulir di halaman ini
+    // (Kita kecualikan form dengan class 'no-loader' jika sewaktu-waktu Anda tidak ingin form tertentu dikunci)
+    const forms = document.querySelectorAll('form:not(.no-loader)');
+
+    forms.forEach(form => {
+        form.addEventListener('submit', function (e) {
+            
+            // 2. Cek apakah form sudah lolos validasi HTML bawaan (misal: atribut 'required')
+            // Jika belum valid, jangan kunci tombolnya agar browser bisa memunculkan peringatan merah.
+            if (!form.checkValidity()) {
+                return; 
+            }
+
+            // 3. Cari tombol Submit di dalam form yang sedang diklik ini
+            const submitBtn = form.querySelector('button[type="submit"]');
+            
+            if (submitBtn && !submitBtn.disabled) {
+                // 4. Kunci tombol agar tidak bisa di-klik ganda (Double Submit Prevention)
+                submitBtn.disabled = true;
+
+                // 5. Ubah visual tombol menjadi efek Loading (Spinner Bootstrap)
+                // Simpan tinggi tombol agar tidak "berkedut" saat teksnya diganti
+                const btnHeight = submitBtn.offsetHeight; 
+                submitBtn.style.height = btnHeight + 'px'; 
+                
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Memproses...';
+            }
+        });
+    });
+});
+</script>
 </html>

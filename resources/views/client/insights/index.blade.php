@@ -194,6 +194,15 @@
                     <p class="text-muted small mb-4">
                         Data ini menunjukkan kecenderungan pembeli. Gunakan metrik <strong>Lift</strong> (> 1.0) sebagai acuan kekuatan hubungan antar produk untuk merancang promo <em>Bundling</em>.
                     </p>
+                    <div class="alert alert-info bg-info bg-opacity-10 border-info border-start border-4 small shadow-sm mb-3">
+                        <div class="d-flex">
+                            <i class="bi bi-info-circle-fill text-info fs-5 me-3 mt-1"></i>
+                            <div>
+                                <strong>Catatan Penting Bundling:</strong><br>
+                                Penawaran paket ini secara cerdas <strong>hanya akan muncul</strong> di halaman toko (Storefront) jika kedua produk dalam status <strong>Aktif</strong> dan <strong>Memiliki Stok Minimal 1</strong>. Hal ini untuk mencegah pembeli memesan barang yang kosong.
+                            </div>
+                        </div>
+                    </div>
 
                     @if($mbaData->isEmpty())
                         <div class="alert alert-warning text-center">

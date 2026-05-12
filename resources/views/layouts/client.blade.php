@@ -9,6 +9,11 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .border-start-md { border-left: 2px dashed #dee2e6; }
+        .bundle-card-hover:hover { transform: translateY(-3px); transition: 0.3s; border: 1px solid #0d6efd !important; }
+        @media (max-width: 768px) { .border-start-md { border-left: none; } }
+    </style>
     
     <style>
         :root {
