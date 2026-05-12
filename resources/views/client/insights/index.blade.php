@@ -3,7 +3,9 @@
 
 @section('content')
 <div class="container-fluid p-0">
-    
+    @if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
     {{-- HEADER & BANNER INFO (Tetap di atas) --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -186,14 +188,65 @@
             @endif
         </div>
 
-        {{-- TAB 2: KODE BARU UNTUK MARKET BASKET ANALYSIS --}}
+        {{-- TAB 2: POLA BELANJA (MARKET BASKET ANALYSIS) --}}
         <div class="tab-pane fade" id="mba-content" role="tabpanel">
+            
+            {{-- 🚨 KARTU PENGATURAN DISKON BUNDLING GLOBAL 🚨 --}}
+            <div class="card border-0 shadow-sm mb-4 border-start border-primary border-4">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-gear-fill text-primary me-2"></i>Pengaturan Diskon Bundling Otomatis</h6>
+                    <p class="text-muted small mb-4">
+                        Tentukan besaran diskon otomatis yang akan diberikan kepada pembeli jika mereka membeli paket produk yang direkomendasikan oleh AI. Biarkan <strong>0%</strong> jika Anda hanya ingin menampilkan saran tanpa memberikan potongan harga.
+                    </p>
+
+                    <form action="{{ route('client.insights.update_mba', $website->id) }}" method="POST">
+                        @csrf
+                        @method('PUT')
+                        <div class="row g-4 align-items-end">
+                            
+                            {{-- Input Diskon Kombinasi Sempurna --}}
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold text-success small mb-1">
+                                    <i class="bi bi-patch-check-fill me-1"></i> Diskon "Kombinasi Sempurna"
+                                </label>
+                                <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.5rem;">Berlaku untuk produk dengan kekuatan ikatan (Lift) sangat tinggi (>= 3.0).</p>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="0.1" min="0" max="100" name="mba_perfect_discount" class="form-control fw-bold text-center" value="{{ $website->mba_perfect_discount ?? 0 }}">
+                                    <span class="input-group-text bg-light fw-bold">%</span>
+                                </div>
+                            </div>
+
+                            {{-- Input Diskon Cross-Selling --}}
+                            <div class="col-md-5">
+                                <label class="form-label fw-bold text-primary small mb-1">
+                                    <i class="bi bi-bag-plus-fill me-1"></i> Diskon "Potensi Cross-Selling"
+                                </label>
+                                <p class="text-muted" style="font-size: 0.75rem; margin-bottom: 0.5rem;">Berlaku untuk produk pelengkap dengan kekuatan ikatan sedang (1.5 - 2.99).</p>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="0.1" min="0" max="100" name="mba_cross_discount" class="form-control fw-bold text-center" value="{{ $website->mba_cross_discount ?? 0 }}">
+                                    <span class="input-group-text bg-light fw-bold">%</span>
+                                </div>
+                            </div>
+
+                            {{-- Tombol Simpan --}}
+                            <div class="col-md-2 text-md-end">
+                                <button type="submit" class="btn btn-sm btn-primary w-100 fw-bold shadow-sm py-2">Simpan Aturan</button>
+                            </div>
+
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {{-- KARTU TABEL DATA MBA --}}
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-4">
                     <h6 class="fw-bold mb-3">Aturan Asosiasi Produk (Sering Dibeli Bersamaan)</h6>
                     <p class="text-muted small mb-4">
-                        Data ini menunjukkan kecenderungan pembeli. Gunakan metrik <strong>Lift</strong> (> 1.0) sebagai acuan kekuatan hubungan antar produk untuk merancang promo <em>Bundling</em>.
+                        Data ini menunjukkan kecenderungan pembeli. Gunakan metrik <strong>Lift</strong> (> 1.0) sebagai acuan kekuatan hubungan antar produk.
                     </p>
+                    
+                    {{-- Alert Catatan Penting Bundling --}}
                     <div class="alert alert-info bg-info bg-opacity-10 border-info border-start border-4 small shadow-sm mb-3">
                         <div class="d-flex">
                             <i class="bi bi-info-circle-fill text-info fs-5 me-3 mt-1"></i>

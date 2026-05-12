@@ -28,7 +28,11 @@ class Order extends Model
         'customer_id',
         'accurate_customer_no',
         'payment_method',
-        'voucher_id'
+        'voucher_id',
+        'admin_note',
+        'discount_amount',
+        'voucher_discount',
+        'bundle_discount'   
     ];
     // Relasi ke Item Belanja
     public function items()

@@ -195,17 +195,28 @@ public function product(Request $request, $slug)
         $bundleType = 'none';
 
         if ($bundles->count() > 0) {
-            // Cek kekuatan produk rekomendasi yang paling tinggi (ranking 1)
             $topLift = $bundles->first()->lift;
 
+            // Ambil preferensi diskon dari database klien (default 0)
+            $perfectDiscount = $website->mba_perfect_discount ?? 0;
+            $crossDiscount = $website->mba_cross_discount ?? 0;
+
             if ($topLift >= 3) {
-                // Kategori "Kombinasi Sempurna" -> Beri Diskon
-                $isDiscountBundle = true;
-                $bundleDiscountPercentage = 10; // Diskon 10% untuk keseluruhan paket
+                // Kombinasi Sempurna
                 $bundleType = 'perfect';
-            } else {
-                // Kategori "Potensi Cross-Selling" (Lift 1.5 s/d 2.99) -> Harga Normal
+                if ($perfectDiscount > 0) {
+                    $isDiscountBundle = true;
+                    $bundleDiscountPercentage = $perfectDiscount;
+                }
+            } elseif ($topLift >= 1.5) {
+                // Potensi Cross-Selling
                 $bundleType = 'cross_sell';
+                if ($crossDiscount > 0) {
+                    $isDiscountBundle = true;
+                    $bundleDiscountPercentage = $crossDiscount;
+                }
+            } else {
+                $bundleType = 'none';
             }
         }
 

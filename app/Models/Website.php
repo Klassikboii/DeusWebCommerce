@@ -70,6 +70,8 @@ class Website extends Model
         'midtrans_is_production',
         'active_couriers', // 🚨 TAMBAHKAN BARIS INI
         'dashboard_preferences', // 🚨 TAMBAHKAN INI
+        'mba_perfect_discount',
+        'mba_cross_discount',
         
     ];
 

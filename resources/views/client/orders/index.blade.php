@@ -137,20 +137,41 @@
                         @forelse($orders as $order)
                         <tr>
                             <td class="ps-4 fw-bold text-primary">
-                                #{{ $order->order_number }}
-                            </td>
+                                    #{{ $order->order_number }}
+                                    
+                                    {{-- 🚨 INDIKATOR VISUAL JIKA ADA DISKON/BUNDLING --}}
+                                    @if($order->discount_amount > 0)
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger small" title="{{ $order->internal_note }}" data-bs-toggle="tooltip">
+                                                <i class="bi bi-tag-fill me-1"></i> Ada Promo
+                                            </span>
+                                        </div>
+                                    @endif
+                                </td>
                             <td>
                                 <div class="fw-bold">{{ $order->customer_name }}</div>
                                 <div class="small text-muted"><i class="bi bi-whatsapp"></i> {{ $order->customer_whatsapp }}</div>
                             </td>
-                            <td class="fw-bold">
-                                Rp {{ number_format($order->total_amount, 0, ',', '.') }}
-                                <div class="small text-muted fw-normal">{{ $order->items->sum('qty') }} Barang</div>
-                            </td>
-                            <td class="fw-bold">
-                                Rp {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
-                               
-                            </td>
+                           {{-- KOLOM TOTAL BELANJA (Subtotal + Ongkir) --}}
+                                <td class="text-muted">
+                                    {{-- FIX: Tampilkan harga normal kustomer (Subtotal Item + Ongkir) --}}
+                                    Rp {{ number_format($order->items->sum('subtotal') + $order->shipping_cost, 0, ',', '.') }}
+                                    <div class="small text-muted fw-normal">{{ $order->items->sum('qty') }} Barang</div>
+                                </td>
+                            {{-- KOLOM TOTAL PENDAPATAN (Yang benar-benar dibayar setelah diskon) --}}
+                                <td class="fw-bold">
+                                    {{-- FIX: Tampilkan total_amount murni (karena sudah dikurangi diskon) --}}
+                                    <span class="{{ $order->discount_amount > 0 ? 'text-danger' : 'text-success' }}">
+                                        Rp {{ number_format($order->total_amount, 0, ',', '.') }}
+                                    </span>
+                                    
+                                    {{-- Teks Bantuan jika harga belanja dan pendapatan berbeda --}}
+                                    @if($order->discount_amount > 0)
+                                        <div class="small text-danger fw-normal" style="font-size: 0.75rem;">
+                                            (- Rp {{ number_format($order->discount_amount, 0, ',', '.') }})
+                                        </div>
+                                    @endif
+                                </td>
                             <td>
                                 @php
                                     $badges = [

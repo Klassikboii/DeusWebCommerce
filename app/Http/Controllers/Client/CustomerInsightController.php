@@ -37,5 +37,25 @@ class CustomerInsightController extends Controller
 
         return view('client.insights.index', compact('website', 'rfmData', 'segmentCounts', 'mbaData'));
     }
+    /**
+     * Memperbarui pengaturan diskon otomatis untuk Market Basket Analysis (Bundling).
+     */
+    public function updateMbaDiscount(\Illuminate\Http\Request $request, \App\Models\Website $website)
+    {
+        // 1. Validasi input: Pastikan nilainya berupa angka antara 0 sampai 100
+        $validated = $request->validate([
+            'mba_perfect_discount' => 'nullable|numeric|min:0|max:100',
+            'mba_cross_discount'   => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        // 2. Simpan ke database
+        $website->update([
+            'mba_perfect_discount' => $validated['mba_perfect_discount'] ?? 0,
+            'mba_cross_discount'   => $validated['mba_cross_discount'] ?? 0,
+        ]);
+
+        // 3. Kembalikan ke halaman Insights beserta pesan sukses
+        return redirect()->back()->with('success', 'Pengaturan diskon bundling AI berhasil diperbarui!');
+    }
     
 }

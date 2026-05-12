@@ -149,6 +149,7 @@ Route::middleware(['auth'])->group(function () {
         // --- FITUR LAPORAN ---
         Route::get('/reports', [App\Http\Controllers\Client\ReportController::class, 'index'])->name('client.reports.index');
         Route::get('/insights', [\App\Http\Controllers\Client\CustomerInsightController::class, 'index'])->name('client.insights.index')->middleware('feature:has_ai_insights');;
+        Route::put('/insights/mba-discount', [\App\Http\Controllers\Client\CustomerInsightController::class, 'updateMbaDiscount'])->name('client.insights.update_mba');
         // ... route produk/kategori ...
         // --- FITUR BLOG ---
         Route::get('/posts', [App\Http\Controllers\Client\PostController::class, 'index'])->name('client.posts.index');
@@ -287,6 +288,8 @@ Route::middleware([\App\Http\Middleware\ResolveTenant::class])->group(function (
     Route::get('/account', [CustomerAccountController::class, 'index'])->name('store.account');
     Route::post('/cart/add/{id}', [App\Http\Controllers\CheckoutController::class, 'addToCart'])->name('store.cart.add');
     Route::get('/cart', [App\Http\Controllers\CheckoutController::class, 'cart'])->name('store.cart');
+    // Rute Khusus untuk Memasukkan Paket Bundling MBA
+    Route::post('/cart/add-bundle', [App\Http\Controllers\CheckoutController::class, 'addBundle'])->name('store.cart.add_bundle');
         
         // Nanti kita buat Controller untuk ini, sementara arahkan ke view langsung atau biarkan kosong
         // Route::get('/account', [CustomerAccountController::class, 'index'])->name('store.account'); 

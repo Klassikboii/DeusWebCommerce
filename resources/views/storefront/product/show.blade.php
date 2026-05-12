@@ -125,7 +125,7 @@
                 {{-- FORM ADD TO CART --}}
                 <form action="{{ route('store.cart.add', [ 'id' => $product->id]) }}" method="POST">
                     @csrf
-{{-- LOGIKA VARIAN --}}
+                    {{-- LOGIKA VARIAN --}}
                     {{-- 🚨 Gunakan query langsung untuk mengecek varian yang aktif --}}
                     @if($product->variants()->where('is_active', true)->count() > 0)
                         <div class="mb-4">
@@ -325,15 +325,15 @@
                   {{-- PERHITUNGAN HARGA BUNDLING --}}
                     @php 
                         $bundleOriginalPrice = $product->price; 
-                        $bundleItems = [$product->id]; // Array untuk JS Add to Cart
+                        $bundleProductIds = []; // 🚨 HANYA BERISI ID PELENGKAP
                         
                         foreach($bundles as $bundle) {
                             $recProduct = $bundle->recommendedProduct; 
                             $bundleOriginalPrice += $recProduct->price;
-                            $bundleItems[] = $recProduct->id;
+                            $bundleProductIds[] = $recProduct->id;
                         }
 
-                        // Logika Diskon (Didapat dari Tahap 1 Controller)
+                        // Logika Diskon...
                         $bundleFinalPrice = $bundleOriginalPrice;
                         if(isset($isDiscountBundle) && $isDiscountBundle) {
                             $discountAmount = $bundleOriginalPrice * ($bundleDiscountPercentage / 100);
@@ -342,7 +342,9 @@
                     @endphp
 
                     {{-- 2. Looping Produk Rekomendasi MBA --}}
+
                     @foreach($bundles as $bundle)
+
                         @php $recProduct = $bundle->recommendedProduct; @endphp
                         
                         {{-- Ikon Plus --}}
@@ -357,6 +359,7 @@
                                     <img src="{{ asset('storage/' . $recProduct->image) }}" class="card-img-top p-2 rounded" alt="{{ $recProduct->name }}" style="aspect-ratio: 1/1; object-fit: cover;">
                                     <div class="card-body p-2 border-top">
                                         <p class="small text-muted mb-0 text-truncate" title="{{ $recProduct->name }}">{{ $recProduct->name }}</p>
+                                        <p class="small text-muted mb-0 text-truncate" title="{{ $recProduct->name }}">Stok: {{ $recProduct->stock }}</p>
                                     </div>
                                 </div>
                             </a>
@@ -386,10 +389,19 @@
 
                 <h3 class="fw-bold text-primary mb-3">Rp {{ number_format($bundleFinalPrice, 0, ',', '.') }}</h3>
                 
+                
                 {{-- Tombol Beli Paket --}}
-                <button onclick="addBundleToCart({{ json_encode($bundleItems) }}, {{ isset($isDiscountBundle) && $isDiscountBundle ? 'true' : 'false' }})" class="btn btn-primary w-100 fw-bold shadow-sm py-2" id="btn-add-bundle">
-                    <i class="bi bi-cart-plus me-1"></i> Beli {{ count($bundleItems) }} Barang
-                </button>
+                
+                @auth('customer')
+                        <button onclick="addBundleToCart({{ $product->id }}, {{ json_encode($bundleProductIds) }}, {{ isset($isDiscountBundle) && $isDiscountBundle ? 'true' : 'false' }}, {{ $bundleDiscountPercentage ?? 0 }})" class="btn btn-primary w-100 fw-bold shadow-sm py-2" id="btn-add-bundle">
+                            <i class="bi bi-cart-plus me-1"></i> Beli {{ count($bundleProductIds) + 1 }} Barang
+                        </button>
+                        @else
+                            {{-- Jika BELUM Login: Tampilkan tombol arahkan ke halaman Login --}}
+                            <a href="{{ route('store.login') }}" class="btn btn-outline-primary w-100 py-3 fw-bold" style="border-radius: var(--radius-base); border-width: 2px;">
+                                <i class="bi bi-box-arrow-in-right me-2"></i> Masuk untuk Berbelanja
+                            </a>
+                        @endauth
                 
                 {{-- Teks Bawah Tombol --}}
                 @if(isset($isDiscountBundle) && $isDiscountBundle)
@@ -536,5 +548,64 @@
                 }
                 });
     });
+
+    async function addBundleToCart(mainProductId, bundleProductIds, isDiscount, discountPercentage) {
+        // 🚨 1. CEK VARIAN PRODUK UTAMA
+        let variantId = null;
+        const variantSelector = document.getElementById('variant-selector');
+        if (variantSelector) {
+            variantId = variantSelector.value;
+            if (!variantId) {
+                // Jika belum pilih ukuran/warna, getarkan tombol dan tolak!
+                alert('Mohon pilih varian produk utama (Warna/Ukuran) terlebih dahulu!');
+                variantSelector.focus();
+                return;
+            }
+        }
+
+        const btn = document.getElementById('btn-add-bundle');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memasukkan...';
+        btn.disabled = true;
+
+        try {
+            // 🚨 2. TEMBAK KE ROUTE KHUSUS BUNDLING
+            let response = await fetch("{{ route('store.cart.add_bundle', ['subdomain' => $website->subdomain]) }}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    main_product_id: mainProductId,
+                    variant_id: variantId,
+                    bundle_product_ids: bundleProductIds,
+                    is_discount: isDiscount,
+                    discount_percentage: discountPercentage
+                })
+            });
+
+            let data = await response.json();
+            
+            if (response.ok && data.status === 'success') {
+                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Berhasil Masuk!';
+                btn.classList.replace('btn-primary', 'btn-success');
+                
+                // Pindah ke halaman cart setelah 1 detik
+                setTimeout(() => {
+                    window.location.href = "{{ route('store.cart', ['subdomain' => $website->subdomain]) }}";
+                }, 1000);
+            } else {
+                alert(data.message || 'Gagal menambahkan paket.');
+                btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Coba Lagi';
+                btn.disabled = false;
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Terjadi kesalahan jaringan. Silakan coba lagi.');
+            btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Coba Lagi';
+            btn.disabled = false;
+        }
+    }
 </script>
 @endsection

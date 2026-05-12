@@ -66,20 +66,33 @@ class CheckoutController extends Controller
     }
 
     // 2. HALAMAN CART
-    public function cart(Request $request)
+   public function cart(Request $request)
     {
         $website = $request->get('website');
         
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey, []);
 
-        $total = 0;
+        // 1. Hitung Subtotal Produk Murni
+        $subtotal = 0;
         foreach ($cart as $item) {
-            $total += $item['price'] * $item['quantity'];
+            $subtotal += $item['price'] * $item['quantity'];
         }
-        // Tarik semua data kota, sertakan nama provinsinya agar jelas
-     $cities = \App\Models\City::with('province')->orderBy('name', 'asc')->get();
-     // 🚨 TAMBAHAN: Ambil voucher yang masih aktif dan belum kedaluwarsa
+
+        // 2. Ambil Diskon Bundling (Jika Ada)
+        $bundleDiscount = session()->get('bundle_discount_' . $website->id, null);
+        $bundleDiscountAmount = $bundleDiscount ? $bundleDiscount['amount'] : 0;
+
+        // 3. Ambil Diskon Voucher (Jika Ada)
+        $appliedVoucher = session()->get("applied_voucher_{$website->id}", null);
+        $voucherDiscountAmount = $appliedVoucher ? $appliedVoucher['discount_amount'] : 0;
+
+        // 4. Hitung Grand Total (Subtotal - Semua Diskon)
+        $grandTotal = $subtotal - $bundleDiscountAmount - $voucherDiscountAmount;
+        if($grandTotal < 0) $grandTotal = 0;
+
+        // Data Kota dan Voucher
+        $cities = \App\Models\City::with('province')->orderBy('name', 'asc')->get();
         $now = now();
         $availableVouchers = \App\Models\Voucher::where('website_id', $website->id)
             ->where('is_active', true)
@@ -90,8 +103,12 @@ class CheckoutController extends Controller
                 $q->whereNull('valid_until')->orWhere('valid_until', '>=', $now);
             })
             ->get();
-
-        return view('storefront.cart', compact('website', 'cart', 'total', 'cities', 'availableVouchers'));
+            
+        // Kirim variabel yang konsisten ke View
+        return view('storefront.cart', compact(
+            'website', 'cart', 'subtotal', 'cities', 'availableVouchers', 
+            'bundleDiscountAmount', 'voucherDiscountAmount', 'grandTotal'
+        ));
     }
 // 3. PROCESS CHECKOUT
    // 3. PROCESS CHECKOUT
@@ -255,9 +272,17 @@ class CheckoutController extends Controller
                 return redirect()->back()->with('error', 'Gagal memproses pesanan: ' . $voucherErrorMessage);
             }
         }
+        $voucherAmount = $discountAmount; // Dari logika validasi voucher sebelumnya
+
+        // 5. AMBIL DISKON BUNDLING
+        $bundleDiscount = session()->get('bundle_discount_' . $website->id);
+        $bundleAmount = $bundleDiscount ? $bundleDiscount['amount'] : 0;
 
         // KURANGI TOTAL DENGAN DISKON
-        $finalTotal = $productTotal - $discountAmount;
+        // KURANGI TOTAL DENGAN DISKON
+        $totalDiscount = $voucherAmount + $bundleAmount;
+        $finalTotal = $productTotal - $totalDiscount; // 🚨 Ongkir TIDAK ditambah di sini
+        if ($finalTotal < 0) $finalTotal = 0;
 
         DB::beginTransaction();
 
@@ -278,8 +303,12 @@ class CheckoutController extends Controller
                 'courier_service'   => $courierService,
                 'total_amount'      => $finalTotal + $shippingCost, // 🚨 SUDAH DIKURANGI DISKON
                 'voucher_id'        => $voucherId, // 🚨 SIMPAN ID VOUCHER
-                'discount_amount'   => $discountAmount, // 🚨 SIMPAN TOTAL DISKON
+                'discount_amount'   => $totalDiscount, // 🚨 SIMPAN TOTAL DISKON // Gabungan voucher + bundling
+                        // 🚨 SIMPAN RINCIAN TERPISAH DISINI:
+                'voucher_discount' => $voucherAmount, 
+                'bundle_discount'  => $bundleAmount,
                 'status'            => 'pending',
+                'admin_note'     => $bundleDiscount ? '🔥 Diskon Bundling AI: ' . $bundleDiscount['name'] : null,
             ];
 
             if (auth('customer')->check()) {
@@ -325,6 +354,7 @@ class CheckoutController extends Controller
             // Bersihkan Keranjang & Session Voucher Setelah Berhasil Checkout
             session()->forget($cartKey);
             session()->forget("applied_voucher_{$website->id}"); // 🚨 BERSIHKAN SESSION VOUCHER
+            session()->forget("bundle_discount_{$website->id}");
 
             // Redirect ke Halaman Pembayaran
             return redirect()->route('store.payment', [
@@ -348,6 +378,12 @@ class CheckoutController extends Controller
         if(isset($cart[$request->id])) {
             $cart[$request->id]['quantity'] = $request->qty;
             session()->put($cartKey, $cart);
+
+            // 🚨 ANTI-CHEAT: Batalkan promo bundling jika pembeli mengubah jumlah barang
+            if (session()->has('bundle_discount_' . $website->id)) {
+                session()->forget('bundle_discount_' . $website->id);
+                return redirect()->back()->with('warning', 'Keranjang diperbarui! Promo Paket Bundling dibatalkan karena ada perubahan jumlah barang. Silakan tambahkan ulang paket dari halaman produk jika ingin menggunakan promo.');
+            }
             return redirect()->back()->with('success', 'Keranjang diperbarui!');
         }
     }
@@ -364,6 +400,12 @@ class CheckoutController extends Controller
         if(isset($cart[$id])) {
             unset($cart[$id]);
             session()->put($cartKey, $cart);
+
+            // 🚨 ANTI-CHEAT: Batalkan promo bundling jika pembeli menghapus barang dari keranjang
+            if (session()->has('bundle_discount_' . $website->id)) {
+                session()->forget('bundle_discount_' . $website->id);
+                return redirect()->back()->with('warning', 'Produk dihapus! Promo Paket Bundling dibatalkan karena paket sudah tidak utuh.');
+            }
         }
 
         return redirect()->back()->with('success', 'Produk dihapus dari keranjang!');
@@ -765,5 +807,93 @@ public function checkShipping(Request $request)
                 'message' => 'Error: ' . $e->getMessage()
             ]);
         }
+    }
+    // app/Http/Controllers/CheckoutController.php
+
+    public function addBundle(Request $request)
+    {
+        $website = $request->website;
+        
+        $request->validate([
+            'main_product_id' => 'required|integer',
+            'variant_id' => 'nullable|integer',
+            'bundle_product_ids' => 'required|array',
+        ]);
+
+        $cart = session()->get('cart_' . $website->id, []);
+        $totalBundlePrice = 0;
+
+        // --- FUNGSI HELPER INTERNAL ---
+        $addItemToCart = function($product, $varId, $qty) use (&$cart, &$totalBundlePrice) {
+            $price = $product->price;
+            $variantName = null;
+            $weight = $product->weight ?? 1000;
+
+            if ($varId) {
+                $variant = $product->variants()->find($varId);
+                if ($variant) {
+                    $price = $variant->price;
+                    $variantName = $variant->name;
+                    $weight = $variant->weight ?? $weight;
+                }
+            }
+
+            // Kunci unik keranjang (ID_VarianID)
+            $cartKey = $varId ? $product->id . '_' . $varId : $product->id;
+
+            if(isset($cart[$cartKey])) {
+                $cart[$cartKey]['quantity'] += $qty;
+            } else {
+                $cart[$cartKey] = [
+                    'product_id' => $product->id,
+                    'name' => $product->name,
+                    'price' => $price,
+                    'quantity' => $qty,
+                    'weight' => $weight,
+                    'image' => $product->image,
+                    'variant_id' => $varId,
+                    'variant_name' => $variantName
+                ];
+            }
+            $totalBundlePrice += ($price * $qty);
+        };
+
+        // 1. MASUKKAN PRODUK UTAMA KE KERANJANG
+        $mainProduct = \App\Models\Product::findOrFail($request->main_product_id);
+        $addItemToCart($mainProduct, $request->variant_id, 1);
+
+        // 2. MASUKKAN PRODUK PELENGKAP (BUNDLING)
+        foreach($request->bundle_product_ids as $bId) {
+            $bProduct = \App\Models\Product::find($bId);
+            if($bProduct && $bProduct->is_active && $bProduct->stock > 0) {
+                // Jika produk pelengkap punya varian, otomatis ambil varian pertama yang aktif
+                $bVarId = null;
+                if($bProduct->hasVariants()) {
+                    $firstVariant = $bProduct->variants()->where('is_active', true)->where('stock', '>', 0)->first();
+                    if($firstVariant) $bVarId = $firstVariant->id;
+                }
+                $addItemToCart($bProduct, $bVarId, 1);
+            }
+        }
+
+        // Simpan keranjang terbaru
+        session()->put('cart_' . $website->id, $cart);
+
+        // 3. DAFTARKAN DISKON BUNDLING KE SESSION (Jika ada)
+        if ($request->is_discount && $request->discount_percentage > 0) {
+            $discountAmount = $totalBundlePrice * ($request->discount_percentage / 100);
+            
+            // Kita simpan dengan nama 'bundle_discount' agar terpisah dari voucher reguler
+            session()->put('bundle_discount_' . $website->id, [
+                'amount' => $discountAmount,
+                'percentage' => $request->discount_percentage,
+                'name' => 'Promo Bundling Cerdas (' . $request->discount_percentage . '%)'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'Paket berhasil ditambahkan ke keranjang!'
+        ]);
     }
 }

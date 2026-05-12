@@ -223,12 +223,12 @@
                                             
                                             <hr>
 
-                                            {{-- TOTAL --}}
+                                           {{-- TOTAL --}}
                                             <div class="d-flex justify-content-between mb-2 text-muted">
                                                 <span>Subtotal</span>
-                                                <span>Rp {{ number_format($total, 0, ',', '.') }}</span>
+                                                {{-- 🚨 FIX 1: Gunakan $subtotal, bukan $total --}}
+                                                <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
                                             </div>
-                                            <!-- ELEMEN TOTAL YANG AKAN BERUBAH -->
                                             <div class="d-flex justify-content-between mt-2 text-success" id="discount-row" style="display: none !important;">
                                                 <span>Diskon Voucher</span>
                                                 <span id="discount-amount">-Rp 0</span>
@@ -237,9 +237,20 @@
                                                 <span>Ongkos Kirim</span>
                                                 <span id="display-ongkir">Rp 0</span>
                                             </div>
+                                            {{-- 🚨 TAMBAHKAN BARIS DISKON BUNDLING DI SINI --}}
+                                            @if($bundleDiscountAmount > 0)
+                                            <div class="d-flex justify-content-between mb-2 text-danger fw-bold">
+                                                <span><i class="bi bi-stars me-1"></i> Diskon Paket (MBA)</span>
+                                                <span>- Rp {{ number_format($bundleDiscountAmount, 0, ',', '.') }}</span>
+                                            </div>
+                                            <div class="small text-muted mb-3" style="font-size: 0.75rem;">
+                                                * Berlaku karena Anda membeli paket rekomendasi AI.
+                                            </div>
+                                            @endif
                                             <div class="d-flex justify-content-between mb-4 fs-5 fw-bold" id="grand-total">
                                                 <span>Total Bayar</span>
-                                                <span id="display-total">Rp {{ number_format($total, 0, ',', '.') }}</span>
+                                                {{-- 🚨 FIX 2: Gunakan $grandTotal di sini, ini alasan kenapa harganya kemarin tidak mau berubah! --}}
+                                                <span id="display-total">Rp {{ number_format($grandTotal ?? $total, 0, ',', '.') }}</span>
                                             </div>
 
                                             {{-- Hitung Berat Total (Hidden) --}}
@@ -250,10 +261,9 @@
                                                 }
                                             @endphp
                                             <input type="hidden" id="total_weight" value="{{ $totalWeight }}">
-                                            <input type="hidden" id="subtotal_amount" value="{{ $total }}">
-                                            <!-- 🚨 TAMBAHKAN BARIS INI: -->
-                                            <input type="hidden" id="discount_amount_val" value="0">
-
+                                            {{-- 🚨 FIX 3: Gunakan $subtotal di sini juga --}}
+                                            <input type="hidden" id="subtotal_amount" value="{{ $subtotal }}">
+                                            <input type="hidden" id="discount_amount_val" value="{{ $voucherDiscountAmount ?? 0 }}">
                                             {{-- CEK APAKAH TOKO BUKA --}}
                                                 @if($website->is_open)
                                                     <button type="submit" id="btn-checkout" class="btn btn-primary w-100 py-3 fw-bold" disabled>
@@ -293,17 +303,19 @@
     }
 
     // 🚨 FUNGSI SAPU JAGAT: Menghitung total kapanpun kurir/voucher diubah
+    // 🚨 FUNGSI SAPU JAGAT: Menghitung total kapanpun kurir/voucher diubah
     function calculateGrandTotal() {
-        let subtotal = parseInt(document.getElementById('subtotal_amount').value) || 0;
-        let shipping = parseInt(document.getElementById('input_shipping_cost').value) || 0;
-        let discount = parseInt(document.getElementById('discount_amount_val').value) || 0;
-
-        let grandTotal = subtotal + shipping - discount;
+        // 🚨 FIX 4: Gunakan variabel $subtotal dari Controller, bukan $total
+        let subtotal = {{ isset($subtotal) ? $subtotal : 0 }};
+        let bundleDiscount = {{ isset($bundleDiscountAmount) ? $bundleDiscountAmount : 0 }}; 
         
-        // Cegah total menjadi minus jika diskon lebih besar dari subtotal
-        // (Tetap biarkan pembeli bayar ongkirnya)
-        if (subtotal - discount < 0) {
-            grandTotal = shipping; 
+        let shipping = parseInt(document.getElementById('input_shipping_cost').value) || 0;
+        let voucherDiscount = parseInt(document.getElementById('discount_amount_val').value) || 0;
+
+        let grandTotal = subtotal + shipping - bundleDiscount - voucherDiscount;
+        
+        if (grandTotal < 0) {
+            grandTotal = 0; 
         }
 
         document.getElementById('display-total').innerText = formatRupiah(grandTotal);
@@ -559,7 +571,7 @@
         container.innerHTML = '';
         loading.classList.remove('d-none');
         btnCheckout.disabled = true;
-        updateTotal(0);
+        // updateTotal(0);
 
         // Fetch API
         fetch(checkShippingUrl, {
@@ -628,20 +640,25 @@
         document.getElementById('input_shipping_cost').value = cost;
         document.getElementById('input_shipping_courier').value = courierName;
         
-        // Update Tampilan Total
-        updateTotal(cost);
+        // Update Tampilan Teks Ongkir Saja
+        document.getElementById('display-ongkir').innerText = formatRupiah(cost);
         
-        // Enable Tombol
+        // 🚨 PANGGIL FUNGSI SAPU JAGAT (Bukan updateTotal lagi!)
+        calculateGrandTotal();
+        
+        // Enable Tombol Checkout
         document.getElementById('btn-checkout').disabled = false;
     }
+    
+    // 🚨 FUNGSI updateTotal() YANG LAMA SUDAH DIHAPUS SEPENUHNYA!
 
-    function updateTotal(shippingCost) {
-        const subtotal = parseInt(document.getElementById('subtotal_amount').value);
-        const grandTotal = subtotal + shippingCost;
+    // function updateTotal(shippingCost) {
+    //     const subtotal = parseInt(document.getElementById('subtotal_amount').value);
+    //     const grandTotal = subtotal + shippingCost;
 
-        document.getElementById('display-ongkir').innerText = formatRupiah(shippingCost);
-        document.getElementById('display-total').innerText = formatRupiah(grandTotal);
-    }
+    //     document.getElementById('display-ongkir').innerText = formatRupiah(shippingCost);
+    //     document.getElementById('display-total').innerText = formatRupiah(grandTotal);
+    // }
     document.addEventListener("DOMContentLoaded", function() {
         // Cek apakah di dalam Iframe (Preview Mode)
         if (window.self !== window.top) {

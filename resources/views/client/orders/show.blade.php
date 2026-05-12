@@ -131,19 +131,44 @@
                             </tr>
                             @endforeach
                         </tbody>
-                        <tfoot class="border-top">
+                        <tfoot class="border-top bg-light">
+                            {{-- SUBTOTAL PRODUK MURNI --}}
                             <tr>
-                                <td colspan="3" class="text-end pt-3">Subtotal</td>
-                                <td class="text-end pt-3">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</td>
+                                <td colspan="3" class="text-end pt-3 text-muted">Subtotal Produk</td>
+                                {{-- 🚨 FIX: Gunakan sum('subtotal') dari item, BUKAN total_amount dari order --}}
+                                <td class="text-end pt-3">Rp {{ number_format($order->items->sum('subtotal'), 0, ',', '.') }}</td>
                             </tr>
+                            
+                            {{-- ONGKOS KIRIM --}}
                             <tr>
-                                <td colspan="3" class="text-end text-muted">Ongkos Kirim ({{ $order->courier_name }} , {{ $order->courier_service ?? '-' }})</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</td>
+                                <td colspan="3" class="text-end text-muted">Ongkos Kirim ({{ $order->courier_name }} {{ $order->courier_service ?? '-' }})</td>
+                                <td class="text-end">Rp {{ number_format($order->shipping_cost, 0, ',', '.') }}</td>
                             </tr>
+
+                            {{-- 🚨 RINCIAN DISKON TERPISAH --}}
+                            @if($order->voucher_discount > 0)
                             <tr>
-                                <td colspan="3" class="text-end fw-bold fs-5">Grand Total</td>
+                                <td colspan="3" class="text-end text-danger small">
+                                    <i class="bi bi-tag-fill me-1"></i> Potongan Voucher
+                                </td>
+                                <td class="text-end text-danger">- Rp {{ number_format($order->voucher_discount, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
+
+                           @if($order->bundle_discount > 0)
+                            <tr>
+                                <td colspan="3" class="text-end text-danger small">
+                                    <i class="bi bi-stars me-1"></i> Potongan Bundling AI
+                                </td>
+                                <td class="text-end text-danger">- Rp {{ number_format($order->bundle_discount, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
+
+                            {{-- TOTAL AKHIR --}}
+                            <tr class="border-top border-2 border-primary">
+                                <td colspan="3" class="text-end fw-bold fs-5">Total Pendapatan</td>
                                 <td class="text-end fw-bold fs-5 text-primary">
-                                    Rp {{ number_format($order->total_amount + $order->shipping_cost, 0, ',', '.') }}
+                                    Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                                 </td>
                             </tr>
                         </tfoot>
