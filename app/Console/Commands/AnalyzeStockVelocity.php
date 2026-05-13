@@ -55,7 +55,9 @@ class AnalyzeStockVelocity extends Command
                     $warningDays  = 14;
                 }
 
-                // 4. EKSEKUSI PENENTUAN STATUS
+               // 4. EKSEKUSI PENENTUAN STATUS
+                $overstockLimitDays = 90; // Jika butuh lebih dari 3 bulan (90 hari) untuk habis = Overstock
+
                 if ($currentStock <= 0) {
                     $status = 'Empty';
                 } elseif ($runway !== null) {
@@ -63,6 +65,11 @@ class AnalyzeStockVelocity extends Command
                         $status = 'Critical';
                     } elseif ($runway <= $warningDays) {
                         $status = 'Warning';
+                    } elseif ($runway >= $overstockLimitDays) {
+                        // 🚨 FIX: Tangkap produk yang butuh waktu terlalu lama untuk terjual
+                        $status = 'Overstock'; 
+                    } else {
+                        $status = 'Safe'; // Berada di antara warning dan overstock (misal: habis dalam 45 hari)
                     }
                 } else {
                     // Jika velocity 0 (tidak ada penjualan 30 hari terakhir)

@@ -708,39 +708,17 @@ public function destroyAll(Request $request, $websiteId)
         if ($product->website_id !== $website->id) abort(404);
 
         // ==========================================
-            // 🤖 LOGIKA 1: PREDIKSI & STATUS (DIPERBAIKI)
-            // ==========================================
-            $targetDays = 30; 
-            $minVelocityThreshold = 1 / 30; // 🚨 Samakan dengan Command (1 barang/bulan)
+        // 🤖 BACA STATUS DARI DATABASE (TIDAK ADA LAGI UPDATE!)
+        // ==========================================
+        $targetDays = 30; 
+        $currentStock = $product->stock;
+        
+        // Ambil nilai yang sudah dihitung oleh Cron Job
+        $velocity = $product->velocity ?? 0; 
+        $runwayDays = $product->runway_days;
+        $stockStatus = $product->stock_status ?? 'Safe'; 
 
-            $currentStock = $product->stock;
-            $velocity = $product->velocity > 0 ? $product->velocity : 0; 
-            $runwayDays = null;
-            $stockStatus = 'Safe'; // Default
-            $criticalThreshold = 14; // Jika Anda ingin mengetes Critical di bawah 30 hari
-
-            if ($currentStock <= 0) {
-                $runwayDays = 0;
-                $stockStatus = 'Empty';
-            } else {
-                if ($velocity >= $minVelocityThreshold) {
-                    $runwayDays = (int) round($currentStock / $velocity);
-                    // Status Kritis jika laku keras dan mau habis
-                    $stockStatus = ($runwayDays <= $criticalThreshold) ? 'Critical' : 'Safe';
-                } else {
-                    // 🚨 PERBAIKAN: Hanya sebut Overstock jika stok FISIK banyak (misal > 5)
-                    // Jika stok cuma 1-3 tapi lambat, sebut saja "Safe" (Slow Mover)
-                    if ($currentStock > 5) {
-                        $stockStatus = 'Overstock';
-                        $runwayDays = (int) round($currentStock / $minVelocityThreshold); 
-                    } else {
-                        $stockStatus = 'Safe';
-                        $runwayDays = 99; // Indikasi stok awet karena jarang laku
-                    }
-                }
-            }
-
-        // Hitung Kuantitas Restock
+        // Hitung Kuantitas Restock (Hanya untuk UI, tidak disimpan ke DB)
         $neededForTarget = $velocity * $targetDays; 
         $recommendedRestock = (int) ceil($neededForTarget - $currentStock);
         if ($recommendedRestock < 0) {
@@ -748,13 +726,13 @@ public function destroyAll(Request $request, $websiteId)
         }
 
         // ==========================================
-        // 📈 LOGIKA 2: DATA GRAFIK (DUA GARIS) - DIPERBAIKI (Anti-Single Point)
+        // 📈 LOGIKA 2: DATA GRAFIK (DUA GARIS)
         // ==========================================
         $chartLabels = [];
         $chartData = [];       // Garis Merah (Proyeksi Stok)
         $targetLineData = [];  // Garis Hijau Putus-putus (Batas Aman)
         
-        // 🚨 PERBAIKAN: Selama ada stok fisik, GRAFIK HARUS MUNCUL
+        // Selama ada stok fisik, GRAFIK HARUS MUNCUL
         if ($currentStock > 0) {
             
             // Tentukan durasi plot: default 30 hari, atau runway jika runway <= 30 (bukan overstock)
@@ -764,14 +742,13 @@ public function destroyAll(Request $request, $websiteId)
             }
 
             // Tentukan langkah (step) agar label sumbu X terlihat rapi (maks 6 label)
-            // 🚨 PERBAIKAN: Pastikan step minimal 1
             $step = max(1, (int)($plotDuration / 5)); 
 
             // Loop untuk plot
             for ($i = 0; $i <= $plotDuration; $i += $step) {
                 $chartLabels[] = "Hari +" . $i;
                 
-                // Hitung proyeksi penurunan (max 0). Jika velocity 0, nilai akan konstan currentStock
+                // Hitung proyeksi penurunan (max 0). Jika velocity 0, nilai konstan.
                 $projectedValue = $currentStock;
                 if ($velocity > 0) {
                    $projectedValue = max(0, $currentStock - ($velocity * $i));
@@ -782,7 +759,7 @@ public function destroyAll(Request $request, $websiteId)
                 $targetLineData[] = round($neededForTarget); 
             }
             
-            // Tambahkan titik "Habis" di ujung jika durasi plot <= 30 hari (bukan overstock)
+            // Tambahkan titik "Habis" di ujung jika durasi plot <= 30 hari
             if ($stockStatus !== 'Overstock' && $runwayDays !== null && $runwayDays <= 30 && $runwayDays > 0) {
                 if (!in_array("Hari +" . $runwayDays . " (Habis)", $chartLabels)) {
                     $chartLabels[] = "Hari +" . $runwayDays . " (Habis)";
@@ -792,13 +769,10 @@ public function destroyAll(Request $request, $websiteId)
             }
         }
 
-        // Update status stok terkini ke model agar sinkron dengan View
-        $product->update([
-            'velocity' => $velocity,
-            'runway_days' => $runwayDays,
-            'stock_status' => $stockStatus
-        ]);
-$penjualantotal = OrderItem::where('product_id', $product->id)->sum('qty'); 
+        // 🚨 HAPUS PERINTAH $product->update([...]) DARI SINI SEPENUHNYA!
+        
+        $penjualantotal = \App\Models\OrderItem::where('product_id', $product->id)->sum('qty'); 
+        
         return view('client.products.insight', compact(
             'website', 'product', 'targetDays', 'recommendedRestock', 'chartLabels', 'chartData', 'targetLineData', 'penjualantotal'
         ));

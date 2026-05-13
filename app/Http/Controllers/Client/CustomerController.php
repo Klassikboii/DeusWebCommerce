@@ -35,6 +35,7 @@ class CustomerController extends Controller
         // Perlu diingat: Paginating group by results kadang tricky di Laravel, 
         // tapi untuk MySQL modern ini biasanya aman.
         $customers = $query->latest('last_order_date')->paginate(10)->withQueryString();
+        
 
         return view('client.customers.index', compact('website', 'customers'));
     }

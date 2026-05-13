@@ -149,8 +149,9 @@
                                     @endif
                                 </td>
                             <td>
-                                <div class="fw-bold">{{ $order->customer_name }}</div>
-                                <div class="small text-muted"><i class="bi bi-whatsapp"></i> {{ $order->customer_whatsapp }}</div>
+                                <div class="fw-bold">{{ $order->customer->name }}</div>
+                                <div class="small text-muted"><i class="bi bi-whatsapp text-success"></i> {{ $order->customer->whatsapp }}</div>
+                                <div class="small text-muted"><i class="bi bi-envelope-at text-primary"></i> {{ $order->customer->email }}</div>
                             </td>
                            {{-- KOLOM TOTAL BELANJA (Subtotal + Ongkir) --}}
                                 <td class="text-muted">

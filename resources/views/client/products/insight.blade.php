@@ -42,9 +42,21 @@
                             <span class="badge bg-primary rounded-pill px-3 py-2"><i class="bi bi-box-seam me-1"></i> Pergerakan Normal</span>
                         @endif
                     </div>
-
+                     @php
+                        // Mencari tanggal pesanan terakhir yang sukses/selesai untuk produk ini
+                        $lastOrder = \App\Models\OrderItem::where('product_id', $product->id)
+                            ->whereHas('order', function($q) {
+                                $q->whereIn('status', ['processing', 'shipped', 'completed']);
+                            })
+                            ->latest()
+                            ->first();
+                    @endphp
                     <p class="text-muted mb-4">Sisa Stok Fisik: <span class="fw-bold text-dark fs-3">{{ $product->stock }}</span> Unit</p>
                     <p class="text-muted mb-4">Total Penjualan: <span class="fw-bold text-dark fs-8">{{ $penjualantotal }}</span> Unit</p>
+                    <p class="text-muted mb-4">Terakhir Dibeli: <span class="fw-bold text-dark fs-8">{{ $lastOrder ? $lastOrder->created_at->diffForHumans() : 'Belum pernah dibeli' }}</span></p>
+                    @if($lastOrder)
+                        <p class="text-muted mb-4">Tanggal: <span class="fw-bold text-dark fs-8">{{ $lastOrder->created_at->format('d M Y') }}</span></p>
+                    @endif
 
                     {{-- KOTAK VELOCITY --}}
                     <div class="p-3 rounded bg-light border mb-3">
@@ -53,7 +65,7 @@
                     </div>
 
                     {{-- KOTAK REKOMENDASI AI --}}
-                    <div class="p-3 rounded border {{ $recommendedRestock > 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success' }}">
+                    <div class="p-3 rounded border {{ $recommendedRestock > 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success' }} ">
                         <span class="d-block text-muted small text-uppercase fw-bold mb-1">
                             <i class="bi bi-robot me-1"></i> Rekomendasi Restock ({{ $targetDays }} Hari)
                         </span>

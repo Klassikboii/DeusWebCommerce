@@ -133,7 +133,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th>Nama Pelanggan</th>
-                                        <th>WhatsApp</th>
+                                        <th>WhatsApp/Email</th>
                                         <th class="text-center">Terakhir Beli (Hari)</th>
                                         <th class="text-center">Jumlah Beli</th>
                                         <th class="text-end">Total Habis (Rp)</th>
@@ -147,7 +147,9 @@
                                             {{-- 🚨 Panggil relasi ->customer->name --}}
                                             <td class="fw-bold">{{ optional($rfm->customer)->name ?? 'Tanpa Nama' }}</td>
                                             {{-- 🚨 Panggil relasi ->customer->whatsapp --}}
-                                            <td>{{ optional($rfm->customer)->whatsapp ?? '-' }}</td>
+                                            <td><div class="  text-success"><i class="bi bi-whatsapp text-success"></i> {{ optional($rfm->customer)->whatsapp ?? '-' }}</div>
+                                            <div class=" text-primary"><i class="bi bi-envelope-at text-primary"></i> {{ optional($rfm->customer)->email ?? '-' }}</div>
+                                            </td>
                                             <td class="text-center">
                                                 {{ $rfm->recency_days }} hr<br>
                                                 <small class="text-muted">Skor: {{ $rfm->r_score }}/5</small>

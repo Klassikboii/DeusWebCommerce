@@ -30,6 +30,7 @@
                     <thead class="bg-light">
                         <tr>
                             <th class="ps-4 py-3">Nama Pelanggan</th>
+                            <th class="py-3">Email</th>
                             <th class="py-3">Kontak (WA)</th>
                             <th class="py-3">Frekuensi Belanja</th>
                             <th class="py-3">Total Pengeluaran</th>
@@ -42,6 +43,11 @@
                         <tr>
                             <td class="ps-4 fw-bold">
                                 {{ $customer->customer_name }}
+                            </td>
+                            <td>
+                                <a href="mailto:{{ $customer->email }}" class="text-decoration-none text-muted">
+                                    <i class="bi bi-envelope-at me-1"></i> {{ $customer->email }}
+                                </a>
                             </td>
                             <td>
                                 <a href="https://wa.me/{{ $customer->customer_whatsapp }}" target="_blank" class="text-decoration-none text-success">

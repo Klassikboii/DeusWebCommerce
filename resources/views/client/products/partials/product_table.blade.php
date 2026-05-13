@@ -4,18 +4,18 @@
     <table class="table table-hover align-middle mb-0">
         <thead class="bg-light text-muted">
             <tr>
-                <th class="ps-4 py-3 border-0" style="width: 30%;">Nama Produk</th>
-                <th class="py-3 border-0" style="width: 10%;">Kategori</th>
+                <th class="ps-4 py-3 border-0" style="width: 25%;">Nama Produk</th>
                 <th class="py-3 border-0" style="width: 15%;">Harga</th>
                 <th class="py-3 border-0" style="width: 10%;">Stok</th>
-                <th class="py-3 border-0" style="width: 15%; text-align: center;">Status</th>
-                <th>Prediksi</th> {{-- 🚨 TAMBAHKAN KOLOM INI --}}
-                <th class="pe-4 py-3 border-0 text-end " style="width: 20%;">Aksi</th>
+                <th class="py-3 border-0" style="width: 25%;">Status & Prediksi</th>
+                <th class="py-3 border-0" style="width: 10%;">Terakhir Terjual</th> {{-- 🚨 KOLOM BARU --}}
+                <th class="pe-4 py-3 border-0 text-end " style="width: 15%;">Aksi</th>
             </tr>
         </thead>
         <tbody>
             @forelse($products as $product)
             <tr>
+                {{-- 1. INFO PRODUK UTAMA --}}
                 <td class="ps-4 py-3">
                     <div class="d-flex align-items-center gap-3">
                         @if($product->image)
@@ -26,163 +26,150 @@
                             </div>
                         @endif
                         <div>
-                            <div>
-                        <h6 class="mb-0 fw-bold">
-                            {{ $product->name }}
-                            {{-- @if(!$product->is_active)
-                                <span class="badge bg-secondary ms-2" style="font-size: 0.6rem;">  {{ $product->name }} </span>
-                            @else --}}
-                            {{-- @endif --}}
-                        </h6>
-                        
-                    </div>
+                            <h6 class="mb-0 fw-bold">{{ $product->name }}</h6>
+                            <div class="small text-muted mb-1">{{ $product->category->name ?? 'Tanpa Kategori' }}</div>
                             @if($product->variants->count() > 0)
-                                <small class="text-muted text-break">- Multi SKU -</small>
+                                <span class="badge bg-light text-dark border" style="font-size: 0.65rem;">Multi Varian</span>
                             @else
-                                <small class="text-muted text-break">{{ $product->sku ?: '-' }}</small>
+                                <small class="text-muted text-break">SKU: {{ $product->sku ?: '-' }}</small>
                             @endif
                         </div>
                     </div>
                 </td>
-                <td>{{ $product->category->name ?? 'Tanpa Kategori' }}</td>
+
+                {{-- 2. HARGA --}}
                 <td>
                     @if($product->variants->count() > 0)
-                        {{-- Jika punya varian, tampilkan rentang harga (Termurah - Termahal) --}}
                         @php
                             $minPrice = $product->variants->min('price');
                             $maxPrice = $product->variants->max('price');
                         @endphp
                         
-                        @if($minPrice == $maxPrice)
-                            Rp {{ number_format($minPrice, 0, ',', '.') }}
-                        @else
-                            Rp {{ number_format($minPrice, 0, ',', '.') }} - Rp {{ number_format($maxPrice, 0, ',', '.') }}
-                        @endif
-                        <br>
+                        <div class="fw-bold">
+                            @if($minPrice == $maxPrice)
+                                Rp {{ number_format($minPrice, 0, ',', '.') }}
+                            @else
+                                Rp {{ number_format($minPrice, 0, ',', '.') }} - {{ number_format($maxPrice, 0, ',', '.') }}
+                            @endif
+                        </div>
                         <small class="text-primary">{{ $product->variants->count() }} Varian</small>
                     @else
-                        {{-- Jika tidak punya varian, tampilkan harga produk utama --}}
-                        Rp {{ number_format($product->price, 0, ',', '.') }}
+                        <div class="fw-bold">Rp {{ number_format($product->price, 0, ',', '.') }}</div>
                     @endif
                 </td>
-               {{-- KOLOM STOK --}}
-                      {{-- Ini contoh kolom stok Anda saat ini --}}
-                       <td>
+
+                {{-- 3. MURNI STOK FISIK --}}
+                <td>
                     <div class="d-flex align-items-center gap-2">
                         <span class="fw-bold fs-5">{{ $product->stock }}</span>
                         
-                        {{-- 🚨 LOGIKA SELISIH STOK ACCURATE (Tampil jika beda) 🚨 --}}
+                        {{-- Logika Selisih Accurate --}}
                         @if($product->accurate_stock !== null && $product->stock !== $product->accurate_stock)
                             <div class="alert alert-danger py-1 px-2 m-0 d-flex flex-column" style="font-size: 0.7rem; line-height: 1.2;">
                                 <strong><i class="bi bi-exclamation-triangle-fill"></i> Accurate: {{ $product->accurate_stock }}</strong>
                                 <div class="d-flex gap-1 mt-1">
-                                    <button class="btn btn-sm btn-outline-danger px-1 py-0" style="font-size: 0.65rem;" 
-                                            onclick="resolveStock({{ $product->id }}, 'pull')" 
-                                            title="Tarik & ikuti angka stok dari Accurate">
-                                        <i class="bi bi-download"></i> Ikuti Accurate
+                                    <button class="btn btn-sm btn-outline-danger px-1 py-0" style="font-size: 0.65rem;" onclick="resolveStock({{ $product->id }}, 'pull')" title="Tarik angka dari Accurate">
+                                        <i class="bi bi-download"></i> Tarik
                                     </button>
-                                    <button class="btn btn-sm btn-outline-primary px-1 py-0" style="font-size: 0.65rem;" 
-                                            onclick="resolveStock({{ $product->id }}, 'push')" 
-                                            title="Paksa Accurate mengikuti angka stok Web">
-                                        <i class="bi bi-upload"></i> Paksa Web
+                                    <button class="btn btn-sm btn-outline-primary px-1 py-0" style="font-size: 0.65rem;" onclick="resolveStock({{ $product->id }}, 'push')" title="Paksa Accurate ikuti Web">
+                                        <i class="bi bi-upload"></i> Paksa
                                     </button>
                                 </div>
                             </div>
                         @endif
                     </div>
-
-                    {{-- Badge AI (Sudah Anda buat sebelumnya, biarkan di sini) --}}
-                    <div class="mt-2">
-                        @if($product->stock_status === 'Critical')
-                            <span class="badge bg-danger mt-1" title="Kecepatan: {{ number_format($product->velocity ?? 0, 1) }} item/hari">
-                                <i class="bi bi-exclamation-octagon-fill"></i> Sisa {{ $product->runway_days }} Hari
-                            </span>
-                        @elseif($product->stock_status === 'Safe')
-                            <span class="badge bg-success mt-1">
-                                <i class="bi bi-check-circle-fill"></i> 
-                                @if($product->runway_days > 90)
-                                    Aman (> 3 Bulan)
-                                @else
-                                    Aman ({{ $product->runway_days }} Hari)
-                                @endif
-                            </span>
-                        @elseif($product->stock_status === 'Overstock')
-                            <span class="badge bg-warning text-dark mt-1">
-                                <i class="bi bi-box-seam"></i> Overstock (Macet)
-                            </span>
-                        @else
-                            <span class="badge bg-secondary mt-1">Kosong</span>
-                        @endif
-                    </div>
                 </td>
-                <td class="align-middle text-center">
-                    <div class="form-check form-switch d-flex justify-content-center">
-                        <input class="form-check-input toggle-active-switch" type="checkbox" role="switch" 
-                            id="switch_{{ $product->id }}" 
-                            data-id="{{ $product->id }}" 
-                            {{ $product->is_active ? 'checked' : '' }}
-                            style="cursor: pointer; transform: scale(1.2);">
-                    </div>
-                    <small class="text-muted status-label-{{ $product->id }} mt-1 d-block">
-                        {{ $product->is_active ? 'Aktif' : 'Draft' }}
-                    </small>
-                </td>
-                {{-- 🚨 TAMBAHKAN KOLOM STATUS ANALITIK INI --}}
-                    <td>
-                        @if($product->stock_status == 'Empty')
-                            <span class="badge bg-secondary">Habis</span>
-                        @elseif($product->stock_status == 'Critical')
-                            <span class="badge bg-danger animate__animated animate__pulse animate__infinite">
-                                <i class="bi bi-exclamation-triangle"></i> Kritis
-                            </span>
-                        @elseif($product->stock_status == 'Warning')
-                            <span class="badge bg-warning text-dark">Siap-siap</span>
-                        @elseif($product->stock_status == 'Dead Stock')
-                            <span class="badge bg-dark">Dead Stock</span>
-                        @else
-                            <span class="badge bg-success">Aman</span>
-                        @endif
 
-                        {{-- Tampilkan Runway (Prediksi Habis) jika ada --}}
-                        @if($product->runway_days !== null && $product->stock > 0)
-                            <div class="small text-muted mt-1" style="font-size: 0.75rem;">
-                                Prediksi habis: <strong>~{{ $product->runway_days }} hari</strong>
+                {{-- 4. STATUS JUAL & ANALITIK AI --}}
+                <td class="align-middle">
+                    <div class="d-flex flex-column align-items-start gap-2">
+                        {{-- Switch Aktif/Draft --}}
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="form-check form-switch m-0 p-0 d-flex align-items-center">
+                                {{-- 🚨 FIX: Hapus ps-5 dan paksa margin-left: 0 agar lurus sejajar --}}
+                                <input class="form-check-input toggle-active-switch m-0" type="checkbox" role="switch" 
+                                    id="switch_{{ $product->id }}" data-id="{{ $product->id }}" 
+                                    {{ $product->is_active ? 'checked' : '' }} 
+                                    style="cursor: pointer; margin-left: 0 !important; width: 2.5em; height: 1.25em;">
                             </div>
-                        @endif
-                        
-                        {{-- (Opsional) Tampilkan tipe kecepatan jual --}}
-                        <div class="small text-muted" style="font-size: 0.7rem;">
-                            Karakter: {{ ucfirst($product->moving_class) }}
+                            <small class="text-muted status-label-{{ $product->id }} fw-bold mb-0">
+                                {{ $product->is_active ? 'Aktif' : 'Inaktif' }}
+                            </small>
                         </div>
-                    </td>
-                <td class="pe-4 text-end">
-                        {{-- 🚨 UBAH btn-group MENJADI d-flex gap-1 --}}
-                        <div class="d-flex justify-content-end align-items-stretch gap-1">
-                            
-                            <a href="{{ route('client.products.edit', [$website->id, $product->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            
-                            {{-- Hapus d-inline dari form, biarkan flex yang mengatur --}}
-                            <form action="{{ route('client.products.destroy', [$website->id, $product->id]) }}" method="POST" class="m-0" onsubmit="return confirm('Hapus produk ini?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-light border text-danger h-100 d-flex align-items-center" title="Hapus">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                            @if($website->hasFeature('has_ai_insights'))
-                            <a href="{{ route('client.products.insight', ['website' => $website->id, 'product' => $product->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Lihat Analisis AI">
-                                <i class="bi bi-graph-up-arrow text-info"></i>
-                            </a>
+
+                        {{-- Status AI (Membaca dari Database stock_status) --}}
+                        <div>
+                            @if($product->stock_status == 'Empty')
+                                <span class="badge bg-secondary"><i class="bi bi-x-circle me-1"></i> Habis</span>
+                            @elseif($product->stock_status == 'Critical')
+                                <span class="badge bg-danger animate__animated animate__pulse animate__infinite" title="Kecepatan: {{ number_format($product->velocity ?? 0, 1) }} item/hari">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Kritis (~{{ $product->runway_days }} hr)
+                                </span>
+                            @elseif($product->stock_status == 'Warning')
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle me-1"></i> Siap-siap (~{{ $product->runway_days }} hr)</span>
+                            @elseif($product->stock_status == 'Overstock')
+                                <span class="badge bg-warning text-dark border border-warning"><i class="bi bi-box-seam me-1"></i> Overstock</span>
+                            @elseif($product->stock_status == 'Dead Stock')
+                                <span class="badge bg-dark"><i class="bi bi-archive me-1"></i> Dead Stock</span>
+                            @else
+                                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Aman 
+                                    @if($product->runway_days > 90) (> 3 Bln) @elseif($product->runway_days) (~{{ $product->runway_days }} hr) @endif
+                                </span>
                             @endif
                         </div>
-                    </td>
+                    </div>
+                </td>
+
+                {{-- 5. TERAKHIR DIBELI (Logika Detektif Kapan Terakhir Laku) --}}
+                <td>
+                    @php
+                        // Mencari tanggal pesanan terakhir yang sukses/selesai untuk produk ini
+                        $lastOrder = \App\Models\OrderItem::where('product_id', $product->id)
+                            ->whereHas('order', function($q) {
+                                $q->whereIn('status', ['processing', 'shipped', 'completed']);
+                            })
+                            ->latest()
+                            ->first();
+                    @endphp
+
+                    @if($lastOrder)
+                        <div class="fw-bold text-dark" style="font-size: 0.85rem;">
+                            {{ $lastOrder->created_at->diffForHumans() }}
+                        </div>
+                        <div class="small text-muted" style="font-size: 0.75rem;">
+                            {{ $lastOrder->created_at->format('d M Y') }}
+                        </div>
+                    @else
+                        <span class="badge bg-light text-muted border fw-normal" style="font-size: 0.75rem;">Belum pernah terjual</span>
+                    @endif
+                </td>
+
+                {{-- 6. AKSI --}}
+                <td class="pe-4 text-end align-middle">
+                    <div class="d-flex justify-content-end align-items-stretch gap-1">
+                        <a href="{{ route('client.products.edit', [$website->id, $product->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form action="{{ route('client.products.destroy', [$website->id, $product->id]) }}" method="POST" class="m-0" onsubmit="return confirm('Hapus produk ini secara permanen?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-light border text-danger h-100 d-flex align-items-center" title="Hapus">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        @if($website->hasFeature('has_ai_insights'))
+                        <a href="{{ route('client.products.insight', ['website' => $website->id, 'product' => $product->id]) }}" class="btn btn-sm btn-light border d-flex align-items-center" title="Lihat Analisis AI">
+                            <i class="bi bi-graph-up-arrow text-info"></i>
+                        </a>
+                        @endif
+                    </div>
+                </td>
             </tr>
             @empty
             <tr>
                 <td colspan="6" class="text-center py-5">
-                    <div class="opacity-50 mb-2"><i class="bi bi-box-seam fs-1"></i></div>
-                    <h6 class="text-muted">Tidak ada produk ditemukan</h6>
+                    <div class="opacity-50 mb-3"><i class="bi bi-box-seam" style="font-size: 3rem;"></i></div>
+                    <h6 class="text-muted fw-bold">Belum Ada Produk</h6>
+                    <p class="text-muted small">Tambahkan produk pertama Anda untuk mulai berjualan.</p>
                 </td>
             </tr>
             @endforelse
@@ -195,6 +182,7 @@
         {{ $products->links() }}
     </div>
 @endif
+
 <script>
 // Fungsi untuk menyelesaikan selisih stok (Resolusi)
 async function resolveStock(productId, action) {

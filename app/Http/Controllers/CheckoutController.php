@@ -371,7 +371,6 @@ class CheckoutController extends Controller
     {
         $website = $request->get('website');
         
-
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey);
 
@@ -379,21 +378,22 @@ class CheckoutController extends Controller
             $cart[$request->id]['quantity'] = $request->qty;
             session()->put($cartKey, $cart);
 
-            // 🚨 ANTI-CHEAT: Batalkan promo bundling jika pembeli mengubah jumlah barang
-            if (session()->has('bundle_discount_' . $website->id)) {
+            // 🚨 ANTI-CHEAT CERDAS: Hanya batalkan jika yang diubah adalah anggota paket
+            $bundleDiscount = session()->get('bundle_discount_' . $website->id);
+            if ($bundleDiscount && in_array($request->id, $bundleDiscount['bundle_keys'] ?? [])) {
                 session()->forget('bundle_discount_' . $website->id);
-                return redirect()->back()->with('warning', 'Keranjang diperbarui! Promo Paket Bundling dibatalkan karena ada perubahan jumlah barang. Silakan tambahkan ulang paket dari halaman produk jika ingin menggunakan promo.');
+                return redirect()->back()->with('warning', 'Keranjang diperbarui! Promo Paket Bundling dibatalkan karena Anda mengubah jumlah barang paketan. Silakan tambahkan ulang paket dari halaman produk jika ingin menggunakan promo.');
             }
+            
             return redirect()->back()->with('success', 'Keranjang diperbarui!');
         }
     }
 
     // 5. REMOVE FROM CART
-    public function removeFromCart(Request $request, $id)
+   public function removeFromCart(Request $request, $id)
     {
         $website = $request->get('website');
         
-
         $cartKey = 'cart_' . $website->id;
         $cart = session()->get($cartKey);
 
@@ -401,10 +401,11 @@ class CheckoutController extends Controller
             unset($cart[$id]);
             session()->put($cartKey, $cart);
 
-            // 🚨 ANTI-CHEAT: Batalkan promo bundling jika pembeli menghapus barang dari keranjang
-            if (session()->has('bundle_discount_' . $website->id)) {
+            // 🚨 ANTI-CHEAT CERDAS: Hanya batalkan jika yang dihapus adalah anggota paket
+            $bundleDiscount = session()->get('bundle_discount_' . $website->id);
+            if ($bundleDiscount && in_array($id, $bundleDiscount['bundle_keys'] ?? [])) {
                 session()->forget('bundle_discount_' . $website->id);
-                return redirect()->back()->with('warning', 'Produk dihapus! Promo Paket Bundling dibatalkan karena paket sudah tidak utuh.');
+                return redirect()->back()->with('warning', 'Produk dihapus! Promo Paket Bundling dibatalkan karena paket utama sudah tidak utuh.');
             }
         }
 
@@ -822,9 +823,10 @@ public function checkShipping(Request $request)
 
         $cart = session()->get('cart_' . $website->id, []);
         $totalBundlePrice = 0;
+        $bundleCartKeys = []; // 🚨 TAMBAHAN BARU: Array penyimpan anggota paket
 
         // --- FUNGSI HELPER INTERNAL ---
-        $addItemToCart = function($product, $varId, $qty) use (&$cart, &$totalBundlePrice) {
+        $addItemToCart = function($product, $varId, $qty) use (&$cart, &$totalBundlePrice, &$bundleCartKeys) {
             $price = $product->price;
             $variantName = null;
             $weight = $product->weight ?? 1000;
@@ -840,6 +842,8 @@ public function checkShipping(Request $request)
 
             // Kunci unik keranjang (ID_VarianID)
             $cartKey = $varId ? $product->id . '_' . $varId : $product->id;
+
+            $bundleCartKeys[] = $cartKey; // 🚨 TAMBAHAN BARU: Daftarkan cartKey ini sebagai anggota paket
 
             if(isset($cart[$cartKey])) {
                 $cart[$cartKey]['quantity'] += $qty;
@@ -887,7 +891,8 @@ public function checkShipping(Request $request)
             session()->put('bundle_discount_' . $website->id, [
                 'amount' => $discountAmount,
                 'percentage' => $request->discount_percentage,
-                'name' => 'Promo Bundling Cerdas (' . $request->discount_percentage . '%)'
+                'name' => 'Promo Bundling Cerdas (' . $request->discount_percentage . '%)',
+                'bundle_keys' => $bundleCartKeys // 🚨 TAMBAHAN BARU: Simpan list anggotanya!
             ]);
         }
 
