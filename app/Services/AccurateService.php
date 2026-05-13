@@ -988,13 +988,14 @@ class AccurateService
         // Jika masih gagal mendapatkan sesi, batalkan perpanjangan.
         if (!$sessionData) return false;
 
-        // 🚨 PERBAIKAN: Gunakan GET (bukan POST) dan buang kata '/accurate' di URL-nya
+       // 🚨 FIX: Gunakan POST, bukan GET!
         $response = \Illuminate\Support\Facades\Http::timeout(30)
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID'  => $sessionData['session_id']
-            ])->get($sessionData['host'] . '/api/webhook-renew.do');
-        // 🚨 AUTO-HEAL
+            ])->post($sessionData['host'] . '/api/webhook-renew.do'); // <-- UBAH KE POST
+
+        // AUTO-HEAL
         if ($response->status() === 401 && !$isRetry) {
             $this->getValidAccessToken(true);
             return $this->renewWebhook(true);
