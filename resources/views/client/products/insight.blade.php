@@ -58,16 +58,22 @@
                         <p class="text-muted mb-4">Tanggal: <span class="fw-bold text-dark fs-8">{{ $lastOrder->created_at->format('d M Y') }}</span></p>
                     @endif
 
+
                     {{-- KOTAK VELOCITY --}}
                     <div class="p-3 rounded bg-light border mb-3">
-                        <span class="d-block text-muted small text-uppercase fw-bold mb-1">Kecepatan Penjualan (Velocity)</span>
+                        <span class="d-block text-muted small text-uppercase fw-bold mb-1">
+                            Kecepatan Penjualan 
+                            {{-- 🚨 TAMBAHAN TOOLTIP --}}
+                            <i class="bi bi-info-circle ms-1 text-primary" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Rata-rata jumlah unit yang terjual setiap harinya berdasarkan tren 30 hari terakhir."></i>
+                        </span>
                         <h2 class="fw-bold text-primary mb-0">{{ number_format($product->velocity, 2) }} <span class="fs-6 text-muted fw-normal">unit/hari</span></h2>
                     </div>
 
                     {{-- KOTAK REKOMENDASI AI --}}
                     <div class="p-3 rounded border {{ $recommendedRestock > 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success' }} ">
                         <span class="d-block text-muted small text-uppercase fw-bold mb-1">
-                            <i class="bi bi-robot me-1"></i> Rekomendasi Restock ({{ $targetDays }} Hari)
+                            <i class="bi bi-robot me-1"></i> Rekomendasi Restock 
+                            <i class="bi bi-info-circle ms-1" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Jumlah ideal yang harus Anda pesan ke supplier agar stok aman untuk {{ $targetDays }} hari ke depan."></i>
                         </span>
                         
                         @if($recommendedRestock > 0)
@@ -77,6 +83,7 @@
                             <h2 class="fw-bold text-success mb-0">0 <span class="fs-6 fw-normal">Unit</span></h2>
                             <small class="text-success">Stok masih sangat aman.</small>
                         @endif
+                        
                     </div>
                 </div>
             </div>
@@ -93,10 +100,13 @@
                         <div class="alert alert-danger border-danger">
                             <h5 class="alert-heading fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Status Kritis: Segera Restock!</h5>
                             <hr>
-                            <p class="mb-0">
-                                Sebagai produk berstatus <strong>{{ ucfirst($product->moving_class) }}</strong>, sisa batas waktu aman Anda sangat ketat. Berdasarkan tren, stok diprediksi <strong>habis dalam {{ $product->runway_days }} hari</strong>. <br><br>
-                                Segera lakukan pemesanan (Purchase Order) ke supplier agar operasional tidak terhenti.
+                            <p class="mb-3">
+                                Sebagai produk berstatus <strong>{{ ucfirst($product->moving_class) }}</strong>, sisa batas waktu aman Anda sangat ketat. Berdasarkan tren, stok diprediksi <strong>habis dalam {{ $product->runway_days }} hari</strong>.
                             </p>
+                            {{-- 🚨 TOMBOL AKSI LANGSUNG --}}
+                            <a href="{{ route('client.products.edit', [$website->id, $product->id]) }}" class="btn btn-danger btn-sm fw-bold">
+                                <i class="bi bi-plus-circle me-1"></i> Update Stok Sekarang
+                            </a>
                         </div>
                     @elseif($product->stock_status === 'Warning')
                         <div class="alert alert-warning border-warning text-dark">
@@ -144,6 +154,33 @@
                             <p class="mb-0">Barang saat ini kosong (0 unit) di gudang Anda.</p>
                         </div>
                     @endif
+                    {{-- KOTAK PARAMETER AI --}}
+                    <div class="mt-3 p-3 bg-light rounded border border-light">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-gear-fill text-secondary me-2"></i>
+                            <h6 class="fw-bold mb-0 small text-secondary text-uppercase">Parameter Acuan AI ({{ ucfirst($product->moving_class) }} Mover)</h6>
+                        </div>
+                        <div class="row text-center g-2 mt-2">
+                            <div class="col-4">
+                                <div class="p-2 border rounded bg-white">
+                                    <small class="d-block text-muted" style="font-size: 0.7rem;">Batas Aman</small>
+                                    <span class="fw-bold text-success">> {{ $warningDays }} Hari</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 border rounded bg-white">
+                                    <small class="d-block text-muted" style="font-size: 0.7rem;">Batas Warning</small>
+                                    <span class="fw-bold text-warning text-dark">≤ {{ $warningDays }} Hari</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 border rounded bg-white">
+                                    <small class="d-block text-muted" style="font-size: 0.7rem;">Batas Kritis</small>
+                                    <span class="fw-bold text-danger">≤ {{ $criticalDays }} Hari</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     {{-- AREA GRAFIK PROYEKSI --}}
                     <div class="mt-4 pt-3 border-top">
@@ -153,7 +190,13 @@
                             <div style="position: relative; height:250px; width:100%">
                                 <canvas id="runwayChart"></canvas>
                             </div>
-                            <small class="text-muted d-block mt-2 text-center">Garis Merah memprediksi penurunan stok. Garis Hijau adalah batas minimal stok aman.</small>
+                            <div class="mt-3 p-3 bg-light rounded border small text-muted">
+                                <strong>💡 Cara Membaca Grafik:</strong>
+                                <ul class="mb-0 ps-3 mt-1">
+                                    <li><strong>Garis Merah:</strong> Prediksi sisa stok Anda dari hari ke hari jika kecepatan penjualan konstan.</li>
+                                    <li><strong>Garis Hijau:</strong> Batas aman stok. Jika Garis Merah menyentuh atau berada di bawah Garis Hijau, operasional toko Anda berisiko terganggu jika tiba-tiba ada pesanan partai besar.</li>
+                                </ul>
+                            </div>
                         @elseif($product->stock > 0 && $product->velocity == 0)
                             <div class="bg-light rounded p-4 text-center border">
                                 <i class="bi bi-dash-circle text-muted fs-1"></i>
@@ -171,7 +214,14 @@
         </div>
     </div>
 </div>
-
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    });
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
@@ -235,4 +285,5 @@
         @endif
     });
 </script>
+
 @endsection

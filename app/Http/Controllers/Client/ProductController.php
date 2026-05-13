@@ -768,13 +768,22 @@ public function destroyAll(Request $request, $websiteId)
                 }
             }
         }
+        // Siapkan angka ambang batas untuk penjelasan di UI
+        $movingClass = $product->moving_class ?? 'normal';
+        if ($movingClass === 'fast') {
+            $criticalDays = 14; $warningDays  = 30;
+        } elseif ($movingClass === 'slow') {
+            $criticalDays = 3;  $warningDays  = 7;
+        } else {
+            $criticalDays = 7;  $warningDays  = 14;
+        }
 
         // 🚨 HAPUS PERINTAH $product->update([...]) DARI SINI SEPENUHNYA!
         
         $penjualantotal = \App\Models\OrderItem::where('product_id', $product->id)->sum('qty'); 
         
         return view('client.products.insight', compact(
-            'website', 'product', 'targetDays', 'recommendedRestock', 'chartLabels', 'chartData', 'targetLineData', 'penjualantotal'
+            'website', 'product', 'targetDays', 'recommendedRestock', 'chartLabels', 'chartData', 'targetLineData', 'penjualantotal', 'criticalDays', 'warningDays'
         ));
     }
     /**
