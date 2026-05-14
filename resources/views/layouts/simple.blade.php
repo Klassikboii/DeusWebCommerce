@@ -266,7 +266,7 @@
                             {{-- Jika TIDAK BISA remove branding, maka tampilkan iklan SaaS Anda --}}
                             @if(!$canRemoveBranding)
                                 <div class="mt-2 text-muted small">
-                                    Powered by <a href="https://shopadmin.ashop.asia" target="_blank" class="fw-bold text-decoration-none text-primary">Elecios WebCommerce</a>
+                                    Powered by <a href="https://shop.ashop.asia" target="_blank" class="fw-bold text-decoration-none text-primary">Elecios WebCommerce</a>
                                 </div>
                             @endif
                     @if($website->address) <p class="small text-muted mb-3"><i class="bi bi-geo-alt-fill me-1"></i> {{ $website->address }}</p> @endif

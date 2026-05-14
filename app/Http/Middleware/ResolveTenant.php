@@ -25,7 +25,7 @@ class ResolveTenant
 
     // 3. Logika Detektif: Subdomain atau Custom Domain?
     if (str_ends_with($host, '.' . $mainDomain)) {
-        // Skenario A: Jika berakhiran domain utama -> Ini SUBDOMAIN (misal: elecjos.deusserver.test)
+        // Skenario A: Jika berakhiran domain utama -> Ini SUBDOMAIN (misal: elecjos.shop.test)
         // Kita potong nama domain utamanya, sisakan 'elecjos' saja
         $subdomainOnly = str_replace('.' . $mainDomain, '', $host);
         $website = Website::where('subdomain', $subdomainOnly)->first();

@@ -142,7 +142,7 @@
                                 </a>
                                 @else
                                     <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none small text-muted">
-                                    {{ $website->subdomain }}.deusserver.ashop.asia <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                    {{ $website->subdomain }}.shop.ashop.asia <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                                 @endif
                                 <div class="mt-4">
@@ -219,7 +219,7 @@
                                         <input type="text" id="subdomainInput" name="subdomain" 
                                                class="form-control @error('subdomain') is-invalid @enderror" 
                                                placeholder="sepatukerenbudi" value="{{ old('subdomain') }}" required>
-                                        <span class="input-group-text bg-light text-muted small">.deusserver.ashop.asia </span>
+                                        <span class="input-group-text bg-light text-muted small">.shop.ashop.asia </span>
                                         @error('subdomain')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror

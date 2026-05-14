@@ -21,7 +21,7 @@ $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
 // 🚨 UBAH JADI ARRAY: ['any' => '.*']
 Route::domain('127.0.0.1')->group(function () {
     Route::any('{any}', function ($any = '') {
-        return redirect("http://deusserver.test:8000/{$any}");
+        return redirect("http://shop.test:8000/{$any}");
     })->where(['any' => '.*']); 
 });
 // =======================================================

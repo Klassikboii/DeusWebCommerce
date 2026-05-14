@@ -639,7 +639,7 @@ public function checkShipping(Request $request)
             // =========================================================
             // 1. DETEKSI WEBSITE (TENANT) DARI URL BROWSER SECARA PAKSA
             // =========================================================
-            $host = $request->getHost(); // Contoh: 'elecjoss.deusserver.test' atau 'domain.com'
+            $host = $request->getHost(); // Contoh: 'elecjoss.shop.test' atau 'domain.com'
             $subdomain = explode('.', $host)[0]; // Mengambil kata pertama: 'elecjoss'
 
             // Cari website berdasarkan subdomain ATAU custom domain

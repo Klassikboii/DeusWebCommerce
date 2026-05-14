@@ -119,7 +119,7 @@ class DomainController extends Controller
 
             foreach ($records as $record) {
                 // Modifikasi: Karena lewat Cloudflare, klien bisa diarahkan via CNAME 
-                // ke deusserver.ashop.asia. Kita bisa sesuaikan logikanya di kemudian hari.
+                // ke shop.ashop.asia. Kita bisa sesuaikan logikanya di kemudian hari.
                 if (isset($record['ip']) && $record['ip'] === $vpsIp) {
                     $isPointed = true;
                     break;

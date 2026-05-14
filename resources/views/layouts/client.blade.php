@@ -346,7 +346,7 @@
             <div class="d-flex flex-column justify-content-center" style="line-height: 1.2;">
                 <h6 class="m-0 fw-bold text-dark">{{ $website->site_name }}</h6>
                 <small class="text-muted text-uppercase" style="font-size: 10px; letter-spacing: 0.5px;">
-                    {{ $website->custom_domain ?? $website->active_domain . ".deusserver.ashop.asia"}}
+                    {{ $website->custom_domain ?? $website->active_domain . ".shop.ashop.asia"}}
                 </small>
             </div>
         </div>
