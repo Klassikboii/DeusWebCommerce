@@ -1,0 +1,96 @@
+Parent Industry,Child Industry,MCC
+Airlines,"Airlines, Air Carriers",4511
+Automotive,Car and Truck Dealers,7699
+Automotive,Automotive Parts and Accessories Stores,7699
+Automotive,Service Stations (with or without Ancillary Services),7699
+"Clothing, apparel & acessories",Clothing stores,7299
+"Clothing, apparel & acessories",Pet shop,7299
+"Clothing, apparel & acessories",Tailors,7299
+"Clothing, apparel & acessories",Men’s and Women’s Clothing Stores,7299
+Digital goods,Games,5816
+Digital goods,"Media (books, movies, artwork, images)",5815
+Digital goods,Applications (excl. games),5817
+Digital goods,Utilities,4900
+Education,Elementary and Secondary Schools,8299
+Education,"Colleges, Universities, Professional Schools",8299
+Education,Correspondence Schools,8299
+Education,Other educational services,8299
+Education,LMS Platform,8299
+Education,Edutech,8299
+Entertainment,Theaters,7999
+Entertainment,Tourist Attractions and Exhibits,7999
+Entertainment,Public Golf Courses,7999
+Entertainment,"Membership Clubs (Sports, Recreation)",7999
+Entertainment,"Streaming services (gaming, music, TV)",7999
+Entertainment,Health & beauty spas,7999
+Entertainment,Other entertainment/recreation services,7999
+Financial services,"Banks, Credit unions",6010
+Financial services,Remittance,4829
+Financial services,"Quasi-Cash Transactions (Gambling, Lottery)",6051
+Financial services,Investments,6211
+Financial services,Cryptocurrency exchage,6051
+Financial services,Forex,6051
+Financial services,P2P Lending,6051
+Financial services,Other financial services,6051
+Financial services,Aggregator/Payment Reseller,6051
+Healthcare,Hospital,8099
+Healthcare,"Clinics (Chiropractors, Dentist, Optometrics)",8099
+Healthcare,Drug stores/Pharmacy,8099
+Healthcare,Laboratories,8099
+Healthcare,"Opticians, Optical Goods, Eyeglasses",8099
+Logistics,"Courier, Express, and Parcel",4789
+Logistics,⁠Third-Party Logistics (3PL) Provider,4789
+Logistics,Freight Forwarding Companies & ⁠Multimodal Transport Operators (MTOs),4789
+Logistics,Cold Chain Logistics Providers,4789
+Marketplace,Horizontal Marketplace,5262
+Marketplace,Vertical Marketplace,5262
+Marketplace,Gaming Marketplace,5262
+Organization,Charitable and Social Service Organizations,8699
+Organization,Political organizations,8699
+Organization,Religious organizations,8699
+Organization,"Civic, Social, and Fraternal Associations",8699
+Outsourcing,Freelance marketplace/Gig economy platform/Crowdsourcing,7399
+Outsourcing,Business Process Outsourcing (BPO),7399
+Personal services,Funeral services/crematorium,7399
+Personal services,Beauty & barber shops,7399
+Personal services,"Laundry, cleaning, garment services",7399
+Personal services,Photography Studios,7399
+Personal services,Wedding and Bridal Services,7399
+Personal services,Counseling services,7399
+Personal services,Massage parlors,7399
+Professional services,Advertising Services,8999
+Professional services,"Commercial Photography, Art, and Graphics",8999
+Professional services,"Consulting, Public Relations Services",8999
+Professional services,Professional Services (Not Elsewhere Classified),8999
+Professional services,Law firm,8999
+Professional services,"Accounting, Auditing, Book keeping",8999
+Professional services,"Insurance Sales, Underwriting, and Premiums",8999
+Professional services,Timeshares,8999
+Professional services,Tax Preparation Services,8999
+Professional services,"Counseling Services – Debt, Marriage, and Personal",8999
+Professional services,Advertising Services,8999
+Professional services,Employment Agencies and Temporary Help Services,8999
+Professional services,"Management, Consulting, and Public Relations Services",8999
+Professional services,"Detective Agencies, Protective Services, and Security Services, including Armored Cars, and Guard Dogs",8999
+Professional services,"Architectural, Engineering, and Surveying Services",8999
+Recreational services,Fitness & Sports Club,8999
+Restaurants,Restaurants and Eating Places,5812
+Restaurants,Drinking Places,5812
+Restaurants,Coffee shops/cafe,5812
+Restaurants,Fast Food Restaurants,5812
+Retail,Department Stores,5999
+Retail,Grocery Stores,5999
+Retail,Miscellaneous and Specialty Retail,5999
+Retail,Book Stores,5999
+Retail,Office Supplies,5999
+Retail,"Furniture, home decor & home appliances",5999
+Retail,Alcohol,5999
+Retail,Other retail,5999
+SaaS,POS,7399
+SaaS,CRM & Marketing Automation,7399
+SaaS,HRIS,7399
+SaaS,Invoicing platform,7399
+SaaS,"Enabler (website developer, ecommerce enabler)",4816
+SaaS,Ecommerce enabler,4816
+Travel services,"Lodging - Hotels, Motels, Resorts",7011
+Travel services,Online travel agent,7011

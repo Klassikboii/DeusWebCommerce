@@ -141,6 +141,12 @@ Route::middleware(['auth'])->group(function () {
         // Pastikan ini berada di dalam group route client Anda yang memiliki akses ke $website
         Route::put('/settings/payment', [\App\Http\Controllers\Client\SettingController::class, 'updatePayment'])
             ->name('client.settings.payment.update');
+        // --- PENGATURAN PEMBAYARAN PIVOT (KYB) ---
+        Route::get('/settings/payment-kyb', [\App\Http\Controllers\Client\SettingController::class, 'paymentSettings'])
+            ->name('client.payment.settings');
+            
+        Route::post('/settings/payment-kyb', [\App\Http\Controllers\Client\SettingController::class, 'storeKyb'])
+            ->name('client.payment.kyb.store');
 
         
         // --- FITUR PELANGGAN ---
@@ -184,6 +190,11 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/vouchers/{voucher}', [\App\Http\Controllers\Client\VoucherController::class, 'update'])->name('client.vouchers.update');
         Route::delete('/vouchers/{voucher}', [\App\Http\Controllers\Client\VoucherController::class, 'destroy'])->name('client.vouchers.destroy');
         Route::patch('/vouchers/{voucher}/toggle', [\App\Http\Controllers\Client\VoucherController::class, 'toggleStatus'])->name('client.vouchers.toggle');
+
+        // Route API Internal untuk Select2 Pivot
+        Route::get('/api/pivot/industries', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchIndustries'])->name('api.pivot.industries');
+        Route::get('/api/pivot/districts', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchDistricts'])->name('api.pivot.districts');
+        Route::get('/api/pivot/banks', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchBanks'])->name('api.pivot.banks');
 
         // SHIPPING RATES ROUTES
         
@@ -256,11 +267,19 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
         Route::delete('/websites/{website}', [App\Http\Controllers\Admin\WebsiteController::class, 'destroy'])->name('websites.destroy');
         Route::get('/users/{id}/impersonate', [App\Http\Controllers\Admin\UserController::class, 'impersonate'])->name('users.impersonate');
         Route::delete('/users/{id}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
+        // --- MANAJEMEN VERIFIKASI PIVOT (KYB) ---
+        Route::get('/kyb-submissions', [\App\Http\Controllers\Admin\KybController::class, 'index'])->name('kyb.index');
+        Route::get('/kyb-submissions/{id}', [\App\Http\Controllers\Admin\KybController::class, 'show'])->name('kyb.show');
+        Route::post('/kyb-submissions/{id}/approve', [\App\Http\Controllers\Admin\KybController::class, 'approve'])->name('kyb.approve');
+        Route::post('/kyb-submissions/{id}/reject', [\App\Http\Controllers\Admin\KybController::class, 'reject'])->name('kyb.reject');
 
         // Rute Kelola Penarikan Dana Klien
         Route::get('/withdrawals', [\App\Http\Controllers\Admin\WithdrawalController::class, 'index'])->name('withdrawals.index');
         Route::post('/withdrawals/{withdrawal}/approve', [\App\Http\Controllers\Admin\WithdrawalController::class, 'approve'])->name('withdrawals.approve');
         Route::post('/withdrawals/{withdrawal}/reject', [\App\Http\Controllers\Admin\WithdrawalController::class, 'reject'])->name('withdrawals.reject');
+        // ... (Rute admin lainnya seperti dashboard, dll) ...
+
+        
     });
 
 });

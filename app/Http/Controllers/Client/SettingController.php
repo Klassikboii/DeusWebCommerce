@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Website;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class SettingController extends Controller
 {
@@ -92,4 +93,63 @@ class SettingController extends Controller
 
         return redirect()->back()->with('success', 'Pengaturan Pembayaran Pivot berhasil diperbarui!');
     }
+    // Fungsi untuk menampilkan form KYB
+    public function paymentSettings(\App\Models\Website $website)
+    {
+        // Pastikan Anda membuat file view-nya di resources/views/client/payment/settings.blade.php
+        return view('client.payment.settings', compact('website'));
+    }
+
+    // Fungsi untuk memproses data form KYB
+    public function storeKyb(\Illuminate\Http\Request $request, \App\Models\Website $website)
+    {
+        // 1. Validasi harus mencakup SEMUA field yang ada di form
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'short_name' => 'required|string|max:25',
+            'business_structure' => 'required',
+            'mcc' => 'required',
+            'province' => 'required|string', // Tangkap Provinsi
+            'city' => 'required|string', // Tangkap Kota
+            'district_id' => 'required',
+            'address' => 'required|max:254',
+            'post_code' => 'required|string|max:20', // Tangkap Kode Pos
+            'pic_name' => 'required|max:32',
+            'pic_job_title' => 'nullable|string|max:20', // Tangkap Jabatan
+            'pic_email' => 'required|email',
+            'pic_phone' => 'required',
+            'bank_channel_code' => 'required',
+            'bank_account_number' => 'required',
+            'auto_withdrawal' => 'nullable' // Tangkap Switch Auto-Withdrawal
+        ]);
+
+        // 2. Cari nama Parent & Child Industry dari database berdasarkan MCC yang dikirim Klien
+        $industry = \Illuminate\Support\Facades\DB::table('pivot_industries')
+                        ->where('mcc', $request->mcc)
+                        ->first();
+
+        // 3. Simpan seluruh data ke Database
+        \App\Models\MerchantKybDetail::updateOrCreate(
+            ['website_id' => $website->id],
+            array_merge($validated, [
+                'status' => 'pending',
+                // Mencegah error ".ashop.asia" jika domain/slug kosong
+                'website' => $website->domain ?? ($website->slug ? $website->slug . '.ashop.asia' : 'toko.ashop.asia'),
+                // Asumsi email/no.telp merchant sama dengan PIC (bisa disesuaikan)
+                'merchant_email' => \Illuminate\Support\Facades\Auth::user()->email,
+                'merchant_phone' => $request->pic_phone,
+                
+                // Masukkan nama industri yang asli dari database
+                'parent_industry' => $industry ? $industry->parent_industry : 'Lainnya',
+                'child_industry' => $industry ? $industry->child_industry : 'Lainnya',
+                
+                'digital_status' => 'Digital',
+                'business_type' => $request->business_structure === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'COMPANY',
+                'auto_withdrawal' => $request->has('auto_withdrawal') ? 'ON' : 'OFF',
+            ])
+        );
+
+        return redirect()->back()->with('success', 'Data verifikasi berhasil dikirim. Kami akan meninjau pengajuan Anda dalam 1-3 hari kerja.');
+    }
+    
 }
