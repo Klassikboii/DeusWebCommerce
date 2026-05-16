@@ -12,8 +12,9 @@ class MerchantKybDetail extends Model
     protected $guarded = ['id'];
 
     // Relasi balik ke Website
-    public function website()
+   // Hapus public function website() dan ganti menjadi:
+    public function user()
     {
-        return $this->belongsTo(Website::class);
+        return $this->belongsTo(User::class);
     }
 }

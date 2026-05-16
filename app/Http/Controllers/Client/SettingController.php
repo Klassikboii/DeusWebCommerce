@@ -130,7 +130,7 @@ class SettingController extends Controller
 
         // 3. Simpan seluruh data ke Database
         \App\Models\MerchantKybDetail::updateOrCreate(
-            ['website_id' => $website->id],
+            ['user_id' => \Illuminate\Support\Facades\Auth::id()], // Disimpan atas nama Klien yang sedang login
             array_merge($validated, [
                 'status' => 'pending',
                 // Mencegah error ".ashop.asia" jika domain/slug kosong

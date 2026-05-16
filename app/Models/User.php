@@ -55,4 +55,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Website::class);
     }
+    // Tambahkan di dalam class User
+    public function kybDetail()
+    {
+        return $this->hasOne(MerchantKybDetail::class);
+    }
 }

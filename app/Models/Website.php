@@ -263,5 +263,11 @@ class Website extends Model
         $percentage = ($remainingDays / $totalDays) * 100;
         return min(100, max(0, $percentage)); // Pastikan mentok di 100% dan 0%
     }
+    // Cari fungsi ini dan ubah isinya menjadi:
+    public function getIsVerifiedPaymentAttribute()
+    {
+        // Mengecek apakah user (pemilik web) punya KYB dan statusnya approved
+        return $this->user && $this->user->kybDetail && $this->user->kybDetail->status === 'approved';
+    }
     
 }
