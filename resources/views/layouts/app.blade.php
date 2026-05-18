@@ -1,7 +1,8 @@
-// ini adalah kode layout app.blade.php
+
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
+    @yield('styles')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WebCommerce Platform</title>
@@ -25,6 +26,7 @@
                     <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
                         <li><a class="dropdown-item" href="{{ route('client.websites') }}">Dashboard Utama</a></li>
                         <li><a class="dropdown-item" href="{{ route('profile.edit') }}">Pengaturan Akun</a></li>
+                        
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <form action="{{ route('logout') }}" method="POST">
@@ -44,5 +46,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    @yield('scripts')
 </body>
 </html>

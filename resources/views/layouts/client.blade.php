@@ -285,10 +285,7 @@
                 class="nav-link {{ request()->routeIs('client.billing.*') ? 'active' : '' }}">
                     <i class="bi bi-credit-card"></i> Langganan (Billing)
                 </a>
-                <a href="{{ route('client.payment.settings', $website->id) }}" 
-                class="nav-link {{ request()->routeIs('client.payment.*') ? 'active' : '' }}">
-                   <i class="bi bi-credit-card-2-front"></i></i> Payment Gateway
-                </a>
+                
                 @if($subscription && $subscription->ends_at)
             <div class="mt-auto p-3">
                 <div class="card border-0 bg-dark text-white shadow-sm" style="background: linear-gradient(45deg, #212529, #343a40);">
@@ -355,14 +352,7 @@
                 </small>
             </div>
         </div>
-        @if(isset($website) && !$website->is_verified_payment)
-        <div class="alert alert-warning text-dark text-center rounded-0 mb-0 border-0 shadow-sm" style="background-color: #ffc107;" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Toko Anda belum bisa menerima pesanan!</strong> 
-            Lengkapi Profil Bisnis & Rekening Anda untuk mengaktifkan fitur Checkout. 
-            <a href="{{ route('client.payment.settings', $website->id) }}" class="alert-link text-decoration-underline ms-2">Lengkapi Sekarang &rarr;</a>
-        </div>
-    @endif
+        
         <div class="d-flex align-items-center gap-3">
             
             <div class="d-none d-md-flex align-items-center gap-2 text-secondary">

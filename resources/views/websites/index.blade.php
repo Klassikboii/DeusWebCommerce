@@ -43,6 +43,9 @@
             <a class="navbar-brand fw-bold text-primary" href="#">
                 <i class="bi bi-shop"></i> WebCommerce Platform
             </a>
+            <a href="{{ route('client.kyb.settings') }}" class="btn btn-outline-primary justify-content-end">
+                <i class="bi bi-shield-check"></i> Verifikasi Bisnis (KYB)
+            </a>
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted d-none d-md-block">Selamat datang, <strong>{{ Auth::user()->name }}</strong></span>
                 
@@ -77,6 +80,7 @@
                 <h2 class="fw-bold m-0">Website Saya</h2>
                 <p class="text-muted small">Kelola toko online Anda atau buat yang baru.</p>
             </div>
+        
             <button type="button" class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#createWebsiteModal">
                 <i class="bi bi-plus-lg"></i> Buat Website Baru
             </button>

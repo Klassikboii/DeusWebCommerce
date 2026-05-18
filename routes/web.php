@@ -74,6 +74,15 @@ Route::middleware(['auth'])->group(function () {
    
     // Aksi Buat Website
     Route::post('/websites', [WebsiteController::class, 'store'])->name('client.websites.store');
+
+     //🚨 TAMBAHKAN DI SINI: RUTE GLOBAL VERIFIKASI PIVOT (MILIK USER)
+        Route::get('/kyb-verification', [\App\Http\Controllers\Client\SettingController::class, 'paymentSettings'])->name('client.kyb.settings');
+        Route::post('/kyb-verification', [\App\Http\Controllers\Client\SettingController::class, 'storeKyb'])->name('client.kyb.store');
+
+        // Route API Internal untuk Select2 Pivot
+        Route::get('/api/pivot/industries', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchIndustries'])->name('api.pivot.industries');
+        Route::get('/api/pivot/districts', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchDistricts'])->name('api.pivot.districts');
+        Route::get('/api/pivot/banks', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchBanks'])->name('api.pivot.banks');
     // 3. Dashboard Admin Toko (CMS)
     Route::prefix('manage/{website}')
     ->middleware(['auth', App\Http\Middleware\CheckSubscription::class])
@@ -141,12 +150,7 @@ Route::middleware(['auth'])->group(function () {
         // Pastikan ini berada di dalam group route client Anda yang memiliki akses ke $website
         Route::put('/settings/payment', [\App\Http\Controllers\Client\SettingController::class, 'updatePayment'])
             ->name('client.settings.payment.update');
-        // --- PENGATURAN PEMBAYARAN PIVOT (KYB) ---
-        Route::get('/settings/payment-kyb', [\App\Http\Controllers\Client\SettingController::class, 'paymentSettings'])
-            ->name('client.payment.settings');
-            
-        Route::post('/settings/payment-kyb', [\App\Http\Controllers\Client\SettingController::class, 'storeKyb'])
-            ->name('client.payment.kyb.store');
+      
 
         
         // --- FITUR PELANGGAN ---
@@ -191,10 +195,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/vouchers/{voucher}', [\App\Http\Controllers\Client\VoucherController::class, 'destroy'])->name('client.vouchers.destroy');
         Route::patch('/vouchers/{voucher}/toggle', [\App\Http\Controllers\Client\VoucherController::class, 'toggleStatus'])->name('client.vouchers.toggle');
 
-        // Route API Internal untuk Select2 Pivot
-        Route::get('/api/pivot/industries', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchIndustries'])->name('api.pivot.industries');
-        Route::get('/api/pivot/districts', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchDistricts'])->name('api.pivot.districts');
-        Route::get('/api/pivot/banks', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchBanks'])->name('api.pivot.banks');
+        
 
         // SHIPPING RATES ROUTES
         

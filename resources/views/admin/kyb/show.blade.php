@@ -25,6 +25,11 @@
                                 <td class="ps-3">Short Name</td>
                                 <td>{{ $kyb->short_name }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->short_name }}')"><i class="bi bi-clipboard"></i></button></td>
                             </tr>
+                            {{-- 🚨 TAMPILKAN DESKRIPSI USAHA --}}
+                            <tr>
+                                <td class="ps-3">Deskripsi Usaha</td>
+                                <td>{{ $kyb->description }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->description }}')"><i class="bi bi-clipboard"></i></button></td>
+                            </tr>
                             <tr>
                                 <td class="ps-3">Tipe & Struktur Bisnis</td>
                                 <td>{{ $kyb->business_type }} - <strong>{{ $kyb->business_structure }}</strong></td>
@@ -86,6 +91,11 @@
                             <tr>
                                 <td class="ps-3">Nomor Rekening</td>
                                 <td><strong>{{ $kyb->bank_account_number }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->bank_account_number }}')"><i class="bi bi-clipboard"></i></button></td>
+                            </tr>
+                            {{-- 🚨 TAMPILKAN NAMA PEMILIK REKENING (BENEFICIARY NAME) --}}
+                            <tr>
+                                <td class="ps-3">Nama Pemilik Rekening</td>
+                                <td><strong>{{ $kyb->bank_account_name }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->bank_account_name }}')"><i class="bi bi-clipboard"></i></button></td>
                             </tr>
                             <tr>
                                 <td class="ps-3">Auto Withdrawal</td>

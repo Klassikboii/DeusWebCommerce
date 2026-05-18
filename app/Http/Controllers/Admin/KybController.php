@@ -11,8 +11,8 @@ class KybController extends Controller
     // 1. Menampilkan daftar antrean verifikasi
     public function index()
     {
-        // Ambil data KYB yang masih pending di urutan teratas
-        $submissions = MerchantKybDetail::with('website')
+        // 🚨 UBAH dengan('website') menjadi with('user')
+        $submissions = MerchantKybDetail::with('user')
             ->orderByRaw("FIELD(status, 'pending', 'approved', 'rejected')")
             ->latest()
             ->paginate(20);
@@ -23,7 +23,8 @@ class KybController extends Controller
     // 2. Menampilkan detail data untuk di-copy paste ke Pivot
     public function show($id)
     {
-        $kyb = MerchantKybDetail::with('website')->findOrFail($id);
+        // 🚨 UBAH dengan('website') menjadi with('user')
+        $kyb = MerchantKybDetail::with('user')->findOrFail($id);
         
         return view('admin.kyb.show', compact('kyb'));
     }

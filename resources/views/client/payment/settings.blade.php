@@ -1,4 +1,4 @@
-@extends('layouts.client')
+@extends('layouts.app')
 
 @section('title', 'Pengaturan Pembayaran & Verifikasi')
 
@@ -32,7 +32,7 @@
             <i class="bi bi-check-circle-fill me-1"></i> {{ session('success') }}
         </div>
     @endif
-    <form action="{{ route('client.payment.kyb.store', $website->id) }}" method="POST">
+    <form action="{{ route('client.kyb.store') }}" method="POST">
         @csrf
         
         <div class="row">
@@ -50,6 +50,30 @@
                                 <label class="form-label">Singkatan Usaha <span class="text-danger">*</span></label>
                                 <input type="text" name="short_name" class="form-control" maxlength="25" placeholder="Maks 25 huruf" required>
                             </div>
+                            {{-- 🚨 TAMBAHAN: DROPDOWN PILIHAN WEBSITE UTAMA --}}
+                            {{-- DROPDOWN PILIHAN WEBSITE UTAMA --}}
+                            <div class="col-md-12">
+                                <label class="form-label">Pilih Website/Toko Utama Sebagai Referensi <span class="text-danger">*</span></label>
+                                <select name="website_id_reference" class="form-select" required>
+                                    <option value="">-- Pilih Toko Utama Anda --</option>
+                                    
+                                    {{-- Menggunakan variabel $websites dari Controller --}}
+                                    @if(isset($websites) && $websites->count() > 0)
+                                        @foreach($websites as $web)
+                                            <option value="{{ $web->id }}">{{ $web->custom_domain ?? $web->subdomain . '.ashop.asia' }} ({{ $web->name }})</option>
+                                        @endforeach
+                                    @endif
+                                </select>
+                                
+                                {{-- 🚨 Validasi visual jika Klien belum membuat toko sama sekali --}}
+                                @if(isset($websites) && $websites->count() == 0)
+                                    <div class="text-danger mt-2 small fw-bold">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> Anda belum memiliki toko. Silakan buat toko terlebih dahulu.
+                                    </div>
+                                @else
+                                    <div class="form-text">Pilih salah satu toko aktif Anda yang akan didaftarkan ke sistem gerbang pembayaran.</div>
+                                @endif
+                            </div>
                             {{-- INI ADALAH BLOK YANG HILANG (Tipe Struktur Bisnis) --}}
                             <div class="col-md-6">
                                 <label class="form-label">Tipe Struktur Bisnis <span class="text-danger">*</span></label>
@@ -59,6 +83,11 @@
                                     <option value="PERSEROAN TERBATAS">Perseroan Terbatas (PT)</option>
                                     <option value="CV">CV</option>
                                 </select>
+                            </div>
+                            {{-- 🚨 TAMBAHAN INPUT DESKRIPSI --}}
+                            <div class="col-md-12">
+                                <label class="form-label">Deskripsi Singkat Usaha <span class="text-danger">*</span></label>
+                                <input type="text" name="description" class="form-control" placeholder="Contoh: Toko retail yang menjual komponen elektronik dan IoT" required>
                             </div>
                             {{-- Dropdown Select2 untuk Struktur Bisnis --}}
                             <div class="col-md-6">
@@ -160,8 +189,13 @@
                                         <i class="bi bi-search me-1"></i> Check Account
                                     </button>
                                 </div>
-                                <div id="account-name-preview" class="form-text text-success fw-bold d-none">
-                                    <i class="bi bi-check-circle-fill"></i> Nama Pemilik: <span id="target-name">...</span>
+                                {{-- 🚨 TAMBAHAN INPUT NAMA PEMILIK REKENING (BENEFICIARY NAME) --}}
+                                <div class="col-md-12">
+                                    <label class="form-label">Nama Pemilik Rekening (Sesuai Buku Tabungan) <span class="text-danger">*</span></label>
+                                    <input type="text" name="bank_account_name" class="form-control" placeholder="Masukkan nama pemilik rekening resmi" required>
+                                    <div id="account-name-preview" class="form-text text-success fw-bold d-none">
+                                        <i class="bi bi-check-circle-fill"></i> Hasil Cek Sistem: <span id="target-name">...</span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-12 mt-4">
@@ -202,7 +236,7 @@
     $('.select2-industry').select2({
         theme: 'bootstrap-5',
         ajax: {
-            url: "{{ route('api.pivot.industries', $website->id) }}", // Pastikan route name ini benar
+            url: "{{ route('api.pivot.industries') }}", // Pastikan route name ini benar
             dataType: 'json',
             delay: 250,
             processResults: function (data) {
@@ -215,7 +249,7 @@
     $('#district').select2({
         theme: 'bootstrap-5',
         ajax: {
-            url: "{{ route('api.pivot.districts', $website->id) }}", // Pastikan route name ini benar
+            url: "{{ route('api.pivot.districts') }}", // Pastikan route name ini benar
             dataType: 'json',
             delay: 250,
             processResults: function (data) {
@@ -248,7 +282,7 @@
     theme: 'bootstrap-5',
     placeholder: "Cari Nama Bank...",
     ajax: {
-        url: "{{ route('api.pivot.banks', $website->id) }}",
+        url: "{{ route('api.pivot.banks') }}",
         dataType: 'json',
         delay: 250,
         processResults: function (data) {
