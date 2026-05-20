@@ -8,41 +8,65 @@ use App\Models\Website;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Exception;
+use URL;
 
 class PivotService implements PaymentGatewayInterface
 {
     protected $website;
-    protected $merchantId;
-    protected $merchantSecret;
+    // Kunci Level Toko (Sub-Account)
+    protected $subMerchantId;
+    protected $subMerchantSecret;
+    
+    // Kunci Level Platform (Master)
+    protected $masterClientId;
+    protected $masterSecretKey;
     protected $baseUrl;
 
-    public function __construct(Website $website)
+   public function __construct(Website $website)
     {
         $this->website = $website;
-        
-        $this->merchantId = env('PIVOT_CLIENT_KEY'); 
-        $this->merchantSecret = env('PIVOT_SERVER_KEY');
-        
-        $this->baseUrl = $this->website->pivot_is_production 
-            ? 'https://api.pivot-payment.com' 
-            : 'https://api-stg.pivot-payment.com';
+        $this->baseUrl = 'https://api.pivot-payment.com';
+
+        // 1. Simpan Kunci Master secara permanen dari .env
+        $this->masterClientId = env('PIVOT_CLIENT_KEY');
+        $this->masterSecretKey = env('PIVOT_SERVER_KEY');
+
+        // 2. Tarik Kunci Sub-Akun dari Klien (jika sudah approved)
+        $kybDetail = $website->user->kybDetail ?? null;
+
+        if ($kybDetail && $kybDetail->status === 'approved') {
+            $this->subMerchantId = $kybDetail->merchant_id;
+            $this->subMerchantSecret = $kybDetail->merchant_secret;
+        } else {
+            $this->subMerchantId = null;
+            $this->subMerchantSecret = null;
+        }
     }
 
-    // 🚨 LANGKAH 1: FUNGSI BARU UNTUK MENGAMBIL KARTU AKSES (ACCESS TOKEN)
-    private function getAccessToken()
+   // 🚨 UBAH FUNGSI INI: Beri parameter penentu (Apakah ini Master?)
+    private function getAccessToken($useMasterKey = false)
     {
         try {
+            // Tentukan kunci mana yang akan dipakai
+            $clientId = $useMasterKey ? $this->masterClientId : $this->subMerchantId;
+            $clientSecret = $useMasterKey ? $this->masterSecretKey : $this->subMerchantSecret;
+
+            // Cegah error jika kunci kosong
+            if (!$clientId || !$clientSecret) {
+                throw new Exception('Kredensial API (Master/Sub-Account) tidak ditemukan atau belum disetting.');
+            }
+
             $response = Http::timeout(30)->withHeaders([
-                'X-MERCHANT-ID' => $this->merchantId,
-                'X-MERCHANT-SECRET' => $this->merchantSecret,
+                'X-MERCHANT-ID' => $clientId,
+                'X-MERCHANT-SECRET' => $clientSecret,
                 'Content-Type' => 'application/json',
             ])->post($this->baseUrl . '/v1/access-token', [
                 'grantType' => 'client_credentials'
             ]);
 
             if ($response->successful()) {
-                $data = $response->json();
-                return $data['data']['accessToken'] ?? null;
+                return $response->json()['data']['accessToken'] ?? null;
             }
 
             Log::error('Pivot Get Token Error: ' . $response->body());
@@ -57,7 +81,7 @@ class PivotService implements PaymentGatewayInterface
     // 🚨 LANGKAH 2: FUNGSI MEMBUAT PESANAN (MENGGUNAKAN KARTU AKSES)
     public function createTransaction(Order $order): array
     {
-        if (!$this->merchantId || !$this->merchantSecret) {
+        if (!$this->subMerchantId || !$this->subMerchantSecret) {
             Log::error("Toko {$this->website->site_name} tidak memiliki Kredensial API Pivot.");
             return ['status' => 'error', 'token' => null, 'redirect_url' => null];
         }
@@ -110,7 +134,7 @@ class PivotService implements PaymentGatewayInterface
             $response = Http::timeout(30)
                 ->withToken($accessToken) 
                 ->withHeaders([
-                    'X-MERCHANT-ID' => $this->merchantId,
+                    'X-MERCHANT-ID' => $this->subMerchantId,
                     'Content-Type' => 'application/json',
                 ])->post($this->baseUrl . '/v2/payments', $payload);
 
@@ -195,5 +219,79 @@ class PivotService implements PaymentGatewayInterface
             'status' => $finalStatus,
             'payment_method' => $paymentMethod
         ];
+    }
+   public function createSubAccount($kybDetail)
+    {
+        // Siapkan URL logo cadangan jika klien belum punya logo di database
+        $logoUrl = $kybDetail->logo 
+            ? asset('storage/' . $kybDetail->logo) // Sesuaikan dengan path penyimpanan gambar Anda
+            : 'https://ui-avatars.com/api/?name=' . urlencode($kybDetail->short_name) . '&background=random'; // Logo dummy dinamis
+
+        // Memetakan data dari database ke format payload API Pivot
+        $payload = [
+            'name' => $kybDetail->name,
+            'shortName' => $kybDetail->short_name,
+            'description' => $kybDetail->description ?? 'Bisnis ' . $kybDetail->name,
+            'website' => $kybDetail->website,
+            'merchantEmail' => $kybDetail->merchant_email,
+            'merchantPhone' => $kybDetail->merchant_phone,
+            
+            // 🚨 TAMBAHAN: Parameter LOGO yang diminta Pivot
+            'logo' => $logoUrl,
+
+            'businessCountry' => $kybDetail->business_country ?? 'ID',
+            'businessType' => $kybDetail->business_type,
+            'businessStructure' => $kybDetail->business_structure,
+            'parentIndustry' => $kybDetail->parent_industry,
+            'childIndustry' => $kybDetail->child_industry,
+            'mcc' => (string) $kybDetail->mcc,
+            'countryOfEntity' => $kybDetail->country_of_entity ?? 'ID',
+            'digitalStatus' => $kybDetail->digital_status ?? 'Digital',
+            'picName' => $kybDetail->pic_name,
+            'picEmail' => $kybDetail->pic_email,
+            'picPhone' => $kybDetail->pic_phone,
+            'picJobTitle' => $kybDetail->pic_job_title ?? 'Owner',
+            'address' => $kybDetail->address,
+            'districtId' => (int) $kybDetail->district_id,
+            'postCode' => (string) $kybDetail->post_code,
+            'autoWithdrawal' => $kybDetail->auto_withdrawal,
+            
+            // 🚨 FIX: Masukkan channelCode ke DALAM array bankAccount
+            'bankAccount' => [
+                'accountNumber' => (string) $kybDetail->bank_account_number,
+                // 'bankName' => $kybDetail->bank_account_name,
+                'channelCode' => $kybDetail->bank_channel_code ?? 'BRI', 
+            ],
+            
+            'subAccountType' => 'KYC'
+        ];
+
+        // Membersihkan nilai NULL dari array
+       // Membersihkan nilai NULL dari array
+        $payload = array_filter($payload, function($value) {
+            return !is_null($value);
+        });
+
+        // 🚨 1. MINTA ACCESS TOKEN DULU (Sama seperti di createTransaction)
+        $accessToken = $this->getAccessToken(true);
+
+        if (!$accessToken) {
+            throw new \Exception('Gagal mendapatkan Access Token dari Pivot sebelum membuat Sub-Akun.');
+        }
+
+        // 🚨 2. TEMBAK API MENGGUNAKAN ACCESS TOKEN YANG FRESH
+        $response = Http::withToken($accessToken) // <-- Gunakan token baru di sini, BUKAN merchantSecret
+            ->withHeaders([
+                'X-MERCHANT-ID' => $this->masterClientId,
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json'
+            ])
+            ->post($this->baseUrl . '/v1/sub-merchants', $payload);
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        throw new \Exception('Pivot API Error: ' . $response->body());
     }
 }

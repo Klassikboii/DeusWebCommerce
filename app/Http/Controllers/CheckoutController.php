@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Log;
+use Session;
 
 class CheckoutController extends Controller
 {
@@ -414,7 +415,7 @@ class CheckoutController extends Controller
 
    // 6. HALAMAN KONFIRMASI PEMBAYARAN
     // 6. HALAMAN KONFIRMASI PEMBAYARAN
-    public function payment(Request $request, $order_number)
+   public function payment(Request $request, $order_number)
     {
         $website = $request->get('website');
         
@@ -422,33 +423,36 @@ class CheckoutController extends Controller
                       ->where('order_number', $order_number)
                       ->firstOrFail();
 
-        $snapToken = $order->snap_token;
-        $paymentUrl = $order->payment_url; // 🚨 BACA URL PIVOT DARI DATABASE
+        // 🚨 1. CEK STATUS KESEHATAN INTEGRASI PIVOT TOKO INI
+        $kybDetail = $website->user->kybDetail ?? null;
+        $isPivotActive = ($kybDetail && $kybDetail->status === 'approved' && !empty($kybDetail->merchant_id));
 
-        // SULAP TERJADI DI SINI: Jika pesanan belum punya token/url, minta ke Gateway!
-        if (empty($snapToken) && empty($paymentUrl)) {
+        $snapToken = $order->snap_token;
+        $paymentUrl = $order->payment_url; 
+
+        // 🚨 2. SULAP TERJADI DI SINI: Minta URL Pivot HANYA JIKA Pivot Aktif!
+        if (empty($snapToken) && empty($paymentUrl) && $isPivotActive) {
             $paymentGateway = \App\Services\Payment\PaymentFactory::make($website);
             $paymentData = $paymentGateway->createTransaction($order);
 
-            // Cek apakah balasan dari Service memiliki status 'success'
             if (isset($paymentData['status']) && $paymentData['status'] === 'success') {
                 $snapToken = $paymentData['token'];
-                $paymentUrl = $paymentData['redirect_url']; // 🚨 TANGKAP URL PIVOT
+                $paymentUrl = $paymentData['redirect_url']; 
                 
-                // Simpan token dan URL ke database agar tidak double-generate
                 $order->update([
                     'snap_token' => $snapToken,
-                    'payment_url' => $paymentUrl // 🚨 SIMPAN KE DATABASE
+                    'payment_url' => $paymentUrl 
                 ]);
             } else {
                 \Illuminate\Support\Facades\Log::error('PIVOT REJECTED:', $paymentData);
-                // Beri pesan error ke pembeli jika Gateway Pivot sedang gangguan
-                \Illuminate\Support\Facades\Session::flash('error', 'Sistem pembayaran sedang sibuk atau kunci API toko salah. Silakan hubungi admin toko.');
+                // 🚨 JARING PENGAMAN: Jika Pivot sedang down/error, otomatis jatuhkan ke Manual!
+                $isPivotActive = false; 
+                \Illuminate\Support\Facades\Session::flash('error', 'Koneksi ke sistem pembayaran otomatis gagal. Dialihkan ke pembayaran manual.');
             }
         }
         
-        // 🚨 LEMPAR paymentUrl KE VIEW BLADE
-        return view('storefront.payment', compact('website', 'order', 'snapToken', 'paymentUrl'));
+        // 🚨 3. LEMPAR VARIABEL TAMBAHAN $isPivotActive KE VIEW
+        return view('storefront.payment', compact('website', 'order', 'snapToken', 'paymentUrl', 'isPivotActive'));
     }
 
     // 7. PROSES UPLOAD BUKTI (DENGAN SECURITY CHECK)

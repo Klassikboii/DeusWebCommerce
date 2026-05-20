@@ -258,10 +258,19 @@
                 class="nav-link {{ request()->routeIs('client.reports.*') ? 'active' : '' }}">
                     <i class="bi bi-clipboard-data"></i> Laporan
                 </a>
+
+                {{-- Logika Visibilitas Menu Withdrawal --}}
+                        @php
+                            $kyb = auth()->user()->kybDetail ?? null;
+                            // Menu HANYA TAMPIL jika Pivot aktif DAN Auto-Withdrawal dimatikan
+                            $showWithdrawal = $kyb && $kyb->status === 'approved' && $kyb->auto_withdrawal === 'OFF';
+                        @endphp
+                @if($showWithdrawal)
                 <a href="{{ route('client.wallet.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.wallet.*') ? 'active' : '' }}">
                     <i class="bi bi-wallet"></i> Wallet & Pencairan
                 </a>
+                @endif
                 @if($website->hasFeature('has_ai_insights'))
                        
                             <a class="nav-link" href="{{ route('client.insights.index', $website) }}">

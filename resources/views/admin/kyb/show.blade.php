@@ -8,6 +8,21 @@
             Status: {{ strtoupper($kyb->status) }}
         </span>
     </div>
+    @if (session('success'))
+        <div class="alert alert-success fw-bold">{{ session('success') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger fw-bold">{{ session('error') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="row">
        <div class="col-lg-7">
@@ -45,6 +60,10 @@
                             <tr>
                                 <td class="ps-3">Website</td>
                                 <td><strong>{{ $kyb->website }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->website }}')"><i class="bi bi-clipboard"></i></button></td>
+                            </tr>
+                            <tr>
+                                <td class="ps-3">Deskripsi Usaha</td>
+                                <td>{{ $kyb->description }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->description }}')"><i class="bi bi-clipboard"></i></button></td>
                             </tr>
 
                             <tr><td colspan="2" class="bg-light fw-bold text-center py-2">Lokasi Operasional</td></tr>
@@ -113,6 +132,18 @@
                 <div class="card-body">
                     <form action="{{ route('admin.kyb.approve', $kyb->id) }}" method="POST">
                         @csrf
+                        
+                        <div class="d-grid mb-4">
+                            <button type="submit" name="action" value="auto" class="btn btn-primary fw-bold" formnovalidate>
+                                <i class="bi bi-lightning-charge-fill"></i> APPROVE & BUAT AKUN VIA API
+                            </button>
+                        </div>
+
+                        <div class="position-relative mb-4">
+                            <hr>
+                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-2 text-muted small">Atau Fallback Manual</span>
+                        </div>
+
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Sub-Account ID (Dari Pivot)</label>
                             <input type="text" name="pivot_sub_account_id" class="form-control" value="{{ $kyb->pivot_sub_account_id }}" required placeholder="Contoh: SA-XXXX-XXXX">
@@ -131,7 +162,7 @@
                         </div>
                         
                         <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-success fw-bold">APPROVE & AKTIFKAN PEMBAYARAN</button>
+                            <button type="submit" name="action" value="manual" class="btn btn-success fw-bold">SIMPAN KREDENSIAL MANUAL</button>
                             <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmReject()">Tolak Pengajuan</button>
                         </div>
                     </form>

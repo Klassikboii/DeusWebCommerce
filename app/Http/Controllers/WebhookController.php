@@ -16,90 +16,43 @@ class WebhookController extends Controller
 public function handlePivotWebhook(Request $request)
     {
         $payload = $request->all();
-        \Illuminate\Support\Facades\Log::info('📥 WEBHOOK PIVOT MASUK:', $payload);
-        // 🚨 TAMBAHKAN BARIS INI UNTUK MENGINTIP SEMUA HEADER YANG DIKIRIM PIVOT
-        \Illuminate\Support\Facades\Log::info('🔍 SEMUA HEADER PIVOT:', $request->headers->all());
+        Log::info('📥 WEBHOOK PIVOT MASUK:', $payload);
+        Log::info('🔍 SEMUA HEADER PIVOT:', $request->headers->all());
 
-        // Jaring Pengaman: Cari ID Pesanan
+        // 1. Jaring Pengaman: Cari Nomor Pesanan (Pivot v2 menggunakan clientReferenceId)
         $orderNumber = $request->input('clientReferenceId') 
                     ?? $request->input('data.clientReferenceId') 
                     ?? $request->input('referenceId');
 
         // =========================================================================
         // 🚨 DETEKSI PING / URL VALIDATION DARI DASHBOARD PIVOT 🚨
-        // Jika orderNumber kosong, ATAU berisi kata "TEST"/"DUMMY", ini cuma ping!
         // =========================================================================
         if (empty($orderNumber) || str_contains(strtoupper($orderNumber), 'TEST')) {
-            \Illuminate\Support\Facades\Log::info("Merespons Ping/Tes Koneksi dari Dashboard Pivot.");
-            // WAJIB balas 200 OK agar Pivot mau menyimpan URL ini!
+            Log::info("Merespons Ping/Tes Koneksi dari Dashboard Pivot.");
             return response()->json(['status' => 'success', 'message' => 'Webhook URL Verified'], 200);
         }
 
-        $order = \App\Models\Order::where('order_number', $orderNumber)->first();
+        // 2. Ambil Order beserta relasi yang dibutuhkan untuk Accurate dan Restock
+        $order = Order::with(['items.product', 'items.variant', 'website.accurateIntegration'])
+                      ->where('order_number', $orderNumber)
+                      ->first();
         
         if (!$order) {
-            \Illuminate\Support\Facades\Log::error("Webhook Gagal: Pesanan {$orderNumber} tidak ditemukan di DB.");
-            // Ubah dari 404 menjadi 200. Kenapa? Agar Pivot tidak mencoba mengirim (retry) 
-            // webhook yang sama terus-menerus jika memang ordernya sudah dihapus di DB kita.
+            Log::error("Webhook Gagal: Pesanan {$orderNumber} tidak ditemukan di DB.");
+            // Kembalikan 200 agar Pivot tidak melakukan retry berulang kali untuk order yang sudah terhapus
             return response()->json(['status' => 'error', 'message' => "Order not found: {$orderNumber}"], 200);
         }
 
         $website = $order->website;
+
+        // 3. Panggil PivotService dengan konteks Toko (Website)
         $paymentService = new \App\Services\Payment\PivotService($website);
         $result = $paymentService->handleWebhook($request);
 
-        // ... (lanjutan kode if ($result['is_valid']) dan proses update status) ...
-        if ($result['is_valid']) {
-            if ($result['status'] === 'paid') {
-                $order->update([
-                    'status' => 'processing', 
-                    'payment_status' => 'paid',
-                    'payment_method' => 'pivot',
-                    'bank_name' => $result['payment_method']
-                ]);
-                
-                \App\Models\OrderHistory::create([
-                    'order_id' => $order->id,
-                    'status' => 'processing',
-                    'note' => 'Pembayaran lunas via Pivot (' . $result['payment_method'] . ')'
-                ]);
-                // $order->releaseFundToWallet();
-            }
-
-            return response()->json(['status' => 'success', 'message' => 'Webhook Processed'], 200);
-        }
-
-        return response()->json(['status' => 'error', 'message' => 'Invalid Signature'], 403);
-    }
-   public function handlePaymentWebhook(Request $request)
-    {
-        $payload = $request->all();
-        \Illuminate\Support\Facades\Log::info('Payment Webhook Masuk: ', $payload);
-
-        // 1. Cari Order ID (Bisa dari Midtrans 'order_id' atau Pivot 'reference_no')
-        $orderId = $request->order_id ?? $request->reference_no;
-
-        if (!$orderId) {
-            return response()->json(['message' => 'Invalid payload'], 400);
-        }
-
-        // Mempertahankan "🚨 UPDATE PENTING" dari kode Anda
-        $order = Order::with(['items.product', 'items.variant'])->where('order_number', $orderId)->first();
-        
-        if (!$order) {
-            return response()->json(['message' => 'Order not found'], 404);
-        }
-
-        $website = $order->website;
-
-        // 2. Panggil Factory & Service
-        $paymentGateway = \App\Services\Payment\PaymentFactory::make($website);
-        $result = $paymentGateway->handleWebhook($request);
-
-        // Keamanan: Cek apakah validasi signature di dalam Service lolos
+        // 4. Keamanan: Cek apakah validasi header x-api-key lolos
         if (!$result['is_valid']) {
-            \Illuminate\Support\Facades\Log::error("Webhook Ditolak: " . ($result['message'] ?? 'Signature Error'));
-            return response()->json(['message' => 'Forbidden'], 403);
+            Log::error("Webhook Ditolak: Invalid Signature untuk order {$orderNumber}");
+            return response()->json(['status' => 'error', 'message' => 'Invalid Signature'], 403);
         }
 
         // ==========================================
@@ -109,30 +62,32 @@ public function handlePivotWebhook(Request $request)
             if ($order->status !== 'processing') {
                 
                 $order->update([
-                    'status'         => 'processing',
-                    'payment_status' => 'paid',            
-                    'bank_name'      => $result['payment_method'], // Hasil terjemahan Service
+                    'status'         => 'processing', 
+                    'payment_status' => 'paid',
+                    'payment_method' => 'pivot',
+                    'bank_name'      => $result['payment_method'],
                     'payment_proof'  => 'otomatis_gateway_verified', 
                 ]);
                 
                 OrderHistory::create([
                     'order_id' => $order->id,
-                    'status' => 'processing',
-                    'note' => "Pembayaran lunas ({$result['payment_method']}) diverifikasi otomatis oleh sistem."
+                    'status'   => 'processing',
+                    'note'     => "Pembayaran lunas via Pivot ({$result['payment_method']}) otomatis diverifikasi."
                 ]);
 
-                // Integrasi Accurate Anda yang dipertahankan utuh
+                // Integrasi Accurate
                 try {
                     if ($website->accurateIntegration && $website->accurateIntegration->access_token) {
-                        $accurateService = new \App\Services\AccurateService($website);
+                        $accurateService = new AccurateService($website);
                         $invoiceCreated = $accurateService->syncSalesInvoice($order);
+                        
                         if ($invoiceCreated) {
                             $accurateService->syncPaymentReceipt($order);
-                            \Illuminate\Support\Facades\Log::info("Webhook Success: Faktur & Pembayaran Accurate berhasil dibuat untuk {$orderId}");
+                            Log::info("Webhook Success: Faktur & Pembayaran Accurate berhasil dibuat untuk {$orderNumber}");
                         }
                     }
                 } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error("Accurate Webhook Trigger Error untuk {$orderId}: " . $e->getMessage());
+                    Log::error("Accurate Webhook Trigger Error untuk {$orderNumber}: " . $e->getMessage());
                 }
             }
         }
@@ -146,11 +101,11 @@ public function handlePivotWebhook(Request $request)
                 
                 OrderHistory::create([
                     'order_id' => $order->id,
-                    'status' => 'cancelled',
-                    'note' => "Pembayaran gagal/expired oleh sistem. Stok dikembalikan otomatis."
+                    'status'   => 'cancelled',
+                    'note'     => "Pembayaran gagal/expired oleh sistem. Stok dikembalikan otomatis."
                 ]);
                 
-                // Logika Restock Ganda Anda yang dipertahankan utuh
+                // Logika Pengembalian Stok
                 foreach ($order->items as $item) {
                     if ($item->variant_id && $item->variant) {
                         $item->variant->increment('stock', $item->qty);
@@ -162,12 +117,109 @@ public function handlePivotWebhook(Request $request)
                     }
                 }
                 
-                \Illuminate\Support\Facades\Log::info("Webhook Cancel: Stok untuk pesanan {$orderId} berhasil dikembalikan ke etalase.");
+                Log::info("Webhook Cancel: Stok untuk pesanan {$orderNumber} berhasil dikembalikan ke etalase.");
             }
         }
 
-        return response()->json(['message' => 'OK'], 200);
+        return response()->json(['status' => 'success', 'message' => 'Webhook Processed'], 200);
     }
+//    public function handlePaymentWebhook(Request $request)
+//     {
+//         $payload = $request->all();
+//         \Illuminate\Support\Facades\Log::info('Payment Webhook Masuk: ', $payload);
+
+//         // 1. Cari Order ID (Bisa dari Midtrans 'order_id' atau Pivot 'reference_no')
+//         $orderId = $request->order_id ?? $request->reference_no;
+
+//         if (!$orderId) {
+//             return response()->json(['message' => 'Invalid payload'], 400);
+//         }
+
+//         // Mempertahankan "🚨 UPDATE PENTING" dari kode Anda
+//         $order = Order::with(['items.product', 'items.variant'])->where('order_number', $orderId)->first();
+        
+//         if (!$order) {
+//             return response()->json(['message' => 'Order not found'], 404);
+//         }
+
+//         $website = $order->website;
+
+//         // 2. Panggil Factory & Service
+//         $paymentGateway = \App\Services\Payment\PaymentFactory::make($website);
+//         $result = $paymentGateway->handleWebhook($request);
+
+//         // Keamanan: Cek apakah validasi signature di dalam Service lolos
+//         if (!$result['is_valid']) {
+//             \Illuminate\Support\Facades\Log::error("Webhook Ditolak: " . ($result['message'] ?? 'Signature Error'));
+//             return response()->json(['message' => 'Forbidden'], 403);
+//         }
+
+//         // ==========================================
+//         // SKENARIO 1: PEMBAYARAN SUKSES
+//         // ==========================================
+//         if ($result['status'] === 'paid') {
+//             if ($order->status !== 'processing') {
+                
+//                 $order->update([
+//                     'status'         => 'processing',
+//                     'payment_status' => 'paid',            
+//                     'bank_name'      => $result['payment_method'], // Hasil terjemahan Service
+//                     'payment_proof'  => 'otomatis_gateway_verified', 
+//                 ]);
+                
+//                 OrderHistory::create([
+//                     'order_id' => $order->id,
+//                     'status' => 'processing',
+//                     'note' => "Pembayaran lunas ({$result['payment_method']}) diverifikasi otomatis oleh sistem."
+//                 ]);
+
+//                 // Integrasi Accurate Anda yang dipertahankan utuh
+//                 try {
+//                     if ($website->accurateIntegration && $website->accurateIntegration->access_token) {
+//                         $accurateService = new \App\Services\AccurateService($website);
+//                         $invoiceCreated = $accurateService->syncSalesInvoice($order);
+//                         if ($invoiceCreated) {
+//                             $accurateService->syncPaymentReceipt($order);
+//                             \Illuminate\Support\Facades\Log::info("Webhook Success: Faktur & Pembayaran Accurate berhasil dibuat untuk {$orderId}");
+//                         }
+//                     }
+//                 } catch (\Exception $e) {
+//                     \Illuminate\Support\Facades\Log::error("Accurate Webhook Trigger Error untuk {$orderId}: " . $e->getMessage());
+//                 }
+//             }
+//         }
+//         // ==========================================
+//         // SKENARIO 2: PEMBAYARAN GAGAL / EXPIRED
+//         // ==========================================
+//         elseif ($result['status'] === 'failed') {
+//             if ($order->status !== 'cancelled') {
+                
+//                 $order->update(['status' => 'cancelled']);
+                
+//                 OrderHistory::create([
+//                     'order_id' => $order->id,
+//                     'status' => 'cancelled',
+//                     'note' => "Pembayaran gagal/expired oleh sistem. Stok dikembalikan otomatis."
+//                 ]);
+                
+//                 // Logika Restock Ganda Anda yang dipertahankan utuh
+//                 foreach ($order->items as $item) {
+//                     if ($item->variant_id && $item->variant) {
+//                         $item->variant->increment('stock', $item->qty);
+//                         if ($item->product) {
+//                             $item->product->increment('stock', $item->qty);
+//                         }
+//                     } elseif ($item->product) {
+//                         $item->product->increment('stock', $item->qty);
+//                     }
+//                 }
+                
+//                 \Illuminate\Support\Facades\Log::info("Webhook Cancel: Stok untuk pesanan {$orderId} berhasil dikembalikan ke etalase.");
+//             }
+//         }
+
+//         return response()->json(['message' => 'OK'], 200);
+//     }
     // App\Http\Controllers\WebhookController.php
 
 

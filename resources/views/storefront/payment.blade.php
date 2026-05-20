@@ -141,7 +141,7 @@
                        {{-- ================================================= --}}
                         {{-- BLOK PEMBAYARAN OTOMATIS PIVOT (JIKA ADA URL) --}}
                         {{-- ================================================= --}}
-                        @if(isset($paymentUrl) && $paymentUrl)
+                        @if($isPivotActive && $paymentUrl)
                             <div class="card border-primary shadow-sm mb-4 border">
                                 <div class="card-body text-center p-4">
                                     <h5 class="fw-bold text-primary mb-3">Bayar Lebih Cepat & Otomatis!</h5>
@@ -155,7 +155,7 @@
                             </div>
                             
                             <div class="text-center text-muted mb-4 fw-bold">--- ATAU MANUAL ---</div>
-                        @endif
+                        @else
                         {{-- ================================================= --}}
 
                         {{-- OPSI 2: FORM UPLOAD MANUAL (Database) --}}
@@ -191,6 +191,7 @@
                             </button>
                         </form>
 
+                    @endif
                     @endif
 
                 </div>
