@@ -4,7 +4,6 @@
 
 @section('content')
 
-
 <style>
     /* 1. Hilangkan panah input number */
     .no-arrow::-webkit-outer-spin-button,
@@ -17,13 +16,10 @@
     }
 
     /* 2. LOGIKA TAMPILAN CUSTOM (Breakpoint 695px) */
-    
-    /* Default: Tampilan Mobile (Aktif di layar < 696px) */
     .desktop-cart-actions { display: none !important; }
     .mobile-cart-actions { display: block !important; }
     .mobile-spacer { display: block !important; }
 
-    /* Jika layar LEBIH BESAR dari 695px -> Pindah ke Desktop Mode */
     @media (min-width: 696px) {
         .desktop-cart-actions { display: flex !important; }
         .mobile-cart-actions { display: none !important; }
@@ -39,20 +35,16 @@
         width: 100%;
         z-index: 9999;
         background-color: white;
-        
-        /* Auto Extend ke Bawah: Padding Safe Area + Shadow */
         padding: 1rem;
-        padding-bottom: max(1rem, env(safe-area-inset-bottom)); /* Support Poni HP */
-        
-        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08); /* Shadow halus ke atas */
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+        box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08); 
         border-top: 1px solid #f0f0f0;
     }
-    /* ... (CSS mobile cart dan input arrow yang lama) ... */
 
     /* STYLING KHUSUS BUNDLING MBA */
     .bundle-card-hover { transition: all 0.2s ease-in-out; }
     .bundle-card-hover:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; border: 1px solid #0d6efd !important; }
-    @media (min-width: 992px) { /* Breakpoint lg Bootstrap */
+    @media (min-width: 992px) { 
         .border-start-lg { border-left: 2px dashed #dee2e6; }
     }
 </style>
@@ -69,11 +61,9 @@
 
     <div class="row g-5">
         {{-- KOLOM KIRI: GAMBAR --}}
-       {{-- KOLOM KIRI: GAMBAR --}}
         <div class="col-md-6">
             <div class="border rounded overflow-hidden shadow-sm" style="background-color: white;">
                 @if($product->image)
-                    {{-- 🚨 TAMBAHKAN ID DISINI --}}
                     <img id="main-product-image" src="{{ asset('storage/' . $product->image) }}" class="w-100 object-fit-cover" style="aspect-ratio: 1/1;" alt="{{ $product->name }}">
                 @else
                     <div class="d-flex align-items-center justify-content-center bg-light" style="aspect-ratio: 1/1;" id="main-product-image-container">
@@ -120,25 +110,64 @@
                     </span>
                 </div>
 
+                {{-- ========================================== --}}
+                {{-- INFO HARGA GROSIR (B2B UPSELLING)          --}}
+                {{-- ========================================== --}}
+                @if($product->wholesalePrices && $product->wholesalePrices->count() > 0)
+                    <div class="card border-primary mb-4 shadow-sm" id="wholesale-info-card">
+                        <div class="card-header bg-primary bg-opacity-10 text-primary py-2 fw-bold d-flex align-items-center">
+                            <i class="bi bi-box-seam me-2"></i> Beli Banyak, Lebih Murah!
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-striped table-borderless mb-0 text-center align-middle" style="font-size: 0.9rem;">
+                                <thead>
+                                    <tr class="text-muted">
+                                        <th scope="col" class="py-2 w-50">Minimal Beli</th>
+                                        <th scope="col" class="py-2 w-50">Harga Satuan</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        $globalWholesales = $product->wholesalePrices->whereNull('product_variant_id')->sortBy('min_qty');
+                                    @endphp
+
+                                    @if($globalWholesales->count() > 0)
+                                        @foreach($globalWholesales as $wholesale)
+                                            <tr class="wholesale-row-global">
+                                                <td class="fw-bold py-2">≥ {{ $wholesale->min_qty }} pcs</td>
+                                                <td class="text-primary fw-bold py-2">Rp {{ number_format($wholesale->price, 0, ',', '.') }}</td>
+                                            </tr>
+                                        @endforeach
+                                    @else
+                                        <tr id="wholesale-placeholder-text">
+                                            <td colspan="2" class="py-3 text-muted fst-italic">
+                                                Pilih varian produk terlebih dahulu untuk melihat penawaran grosir.
+                                            </td>
+                                        </tr>
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                @endif
+                {{-- ========================================== --}}
+                
                 <hr>
                 
                 {{-- FORM ADD TO CART --}}
                 <form action="{{ route('store.cart.add', [ 'id' => $product->id]) }}" method="POST">
                     @csrf
                     {{-- LOGIKA VARIAN --}}
-                    {{-- 🚨 Gunakan query langsung untuk mengecek varian yang aktif --}}
                     @if($product->variants()->where('is_active', true)->count() > 0)
                         <div class="mb-4">
                             <label class="form-label fw-bold">Pilih Varian:</label>
                             <select name="variant_id" id="variant-selector" class="form-select" required>
                                 <option value="" selected disabled>-- Pilih Opsi --</option>
-                                
-                                {{-- 🚨 Looping hanya varian yang aktif --}}
                                 @foreach($product->variants()->where('is_active', true)->get() as $variant)
                                     <option value="{{ $variant->id }}" 
                                             data-price="{{ $variant->price }}"
                                             data-stock="{{ $variant->stock }}"
-                                            {{-- 🚨 Sisipkan URL Gambar Varian di sini --}}
+                                            data-wholesales="{{ json_encode($variant->wholesalePrices->sortBy('min_qty')->map(function($w) { return ['min_qty' => $w->min_qty, 'price' => $w->price]; })->values()) }}"
                                             data-image="{{ $variant->image ? asset('storage/' . $variant->image) : '' }}">
                                         {{ $variant->name }}
                                     </option>
@@ -147,10 +176,8 @@
                             <div class="form-text text-danger d-none" id="variant-error">Mohon pilih varian terlebih dahulu.</div>
                         </div>
                     @endif
-                    {{-- 
-                        === TAMPILAN DESKTOP (> 695px) === 
-                        Menggunakan class 'desktop-cart-actions' yang diatur CSS di atas
-                    --}}
+                    
+                    {{-- DESKTOP ADD TO CART --}}
                     <div class="desktop-cart-actions align-items-center gap-3 mb-4">
                         <div class="input-group" style="width: 140px;">
                             <button class="btn btn-outline-secondary" type="button" onclick="adjustQty(-1)">
@@ -167,48 +194,38 @@
                             <i class="bi bi-bag-plus "></i> Masukkan Keranjang
                         </button>
                         @else
-                            {{-- Jika BELUM Login: Tampilkan tombol arahkan ke halaman Login --}}
                             <a href="{{ route('store.login') }}" class="btn btn-outline-primary w-100 py-3 fw-bold" style="border-radius: var(--radius-base); border-width: 2px;">
                                 <i class="bi bi-box-arrow-in-right me-2"></i> Masuk untuk Berbelanja
                             </a>
                         @endauth
                     </div>
 
-                    {{-- 
-                        === TAMPILAN MOBILE (< 696px) === 
-                        Menggunakan class 'mobile-cart-actions' yang Sticky di bawah
-                    --}}
+                    {{-- MOBILE ADD TO CART --}}
                     <div class="mobile-cart-actions">
                         <div class="d-flex gap-2 align-items-center">
-                            {{-- Quantity Selector Compact --}}
                             <div class="input-group" style="width: 120px;">
                                 <button class="btn btn-outline-secondary btn-sm" type="button" onclick="adjustQty(-1)">
                                     <i class="bi bi-dash"></i>
                                 </button>
-                                <input type="number" class="form-control text-center mobile-qty no-arrow fw-bold" 
-                                       value="1" min="1" readonly onchange="syncQty(this.value)"> 
+                                <input type="number" class="form-control text-center mobile-qty no-arrow fw-bold" value="1" min="1" readonly onchange="syncQty(this.value)"> 
                                 <button class="btn btn-outline-secondary btn-sm" type="button" onclick="adjustQty(1)">
                                     <i class="bi bi-plus"></i>
                                 </button>
                             </div>
                             @auth('customer')
-                            {{-- Tombol Beli --}}
                             <button type="submit" id="mobile-add-btn" class="btn btn-primary rounded-pill flex-grow-1 add-btn"
                                     {{ (!$product->hasVariants() && $product->stock < 1) ? 'disabled' : '' }}>
                                 <i class="bi bi-bag-plus me-1"></i> Beli
                             </button>
                             @else
-                            {{-- Jika BELUM Login: Tampilkan tombol arahkan ke halaman Login --}}
                             <a href="{{ route('store.login') }}" class="btn btn-outline-primary w-100 py-3 fw-bold" style="border-radius: var(--radius-base); border-width: 2px;">
                                 <i class="bi bi-box-arrow-in-right me-2"></i> Masuk untuk Berbelanja
                             </a>
-                        @endauth
+                            @endauth
                         </div>
                     </div>
-
                 </form>
 
-                {{-- Spacer untuk Mobile agar konten tidak ketutup bar --}}
                 <div class="mobile-spacer" style="height: 100px;"></div>
 
                 <hr class="my-4">
@@ -306,12 +323,9 @@
         </div>
 
         <div class="row align-items-center justify-content-center g-3">
-            
-            {{-- BAGIAN KIRI: DERETAN PRODUK (FLEXBOX AGAR SEJAJAR) --}}
             <div class="col-12 col-lg-8">
                 <div class="d-flex flex-wrap align-items-center justify-content-center gap-3">
                     
-                    {{-- 1. Produk Utama (Yang sedang dilihat) --}}
                     <div class="text-center" style="width: 140px;">
                         <div class="card border-primary shadow-sm h-100">
                             <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top p-2 rounded" alt="{{ $product->name }}" style="aspect-ratio: 1/1; object-fit: cover;">
@@ -322,10 +336,9 @@
                         <div class="mt-2 text-dark fw-bold small">Rp {{ number_format($product->price, 0, ',', '.') }}</div>
                     </div>
 
-                  {{-- PERHITUNGAN HARGA BUNDLING --}}
                     @php 
                         $bundleOriginalPrice = $product->price; 
-                        $bundleProductIds = []; // 🚨 HANYA BERISI ID PELENGKAP
+                        $bundleProductIds = [];
                         
                         foreach($bundles as $bundle) {
                             $recProduct = $bundle->recommendedProduct; 
@@ -333,7 +346,6 @@
                             $bundleProductIds[] = $recProduct->id;
                         }
 
-                        // Logika Diskon...
                         $bundleFinalPrice = $bundleOriginalPrice;
                         if(isset($isDiscountBundle) && $isDiscountBundle) {
                             $discountAmount = $bundleOriginalPrice * ($bundleDiscountPercentage / 100);
@@ -341,18 +353,11 @@
                         }
                     @endphp
 
-                    {{-- 2. Looping Produk Rekomendasi MBA --}}
-
                     @foreach($bundles as $bundle)
-
                         @php $recProduct = $bundle->recommendedProduct; @endphp
                         
-                        {{-- Ikon Plus --}}
-                        <div class="text-center text-muted">
-                            <i class="bi bi-plus-lg fs-4"></i>
-                        </div>
-
-                        {{-- Kartu Produk Rekomendasi --}}
+                        <div class="text-center text-muted"><i class="bi bi-plus-lg fs-4"></i></div>
+                        
                         <div class="text-center" style="width: 140px;">
                             <a href="{{ route('store.product', ['slug' => $recProduct->slug]) }}" class="text-decoration-none text-dark">
                                 <div class="card border-0 shadow-sm h-100 position-relative bundle-card-hover">
@@ -370,16 +375,13 @@
                 </div>
             </div>
 
-            {{-- Ikon Sama Dengan --}}
             <div class="col-auto text-center d-none d-lg-block">
                 <i class="bi bi-pause fs-2 text-muted" style="transform: rotate(90deg); display: inline-block;"></i>
             </div>
 
-            {{-- BAGIAN KANAN: TOTAL & TOMBOL --}}
             <div class="col-12 col-lg-3 text-center text-lg-start mt-4 mt-lg-0 ps-lg-4 border-start-lg">
                 <p class="text-muted mb-1 text-uppercase fw-bold" style="font-size: 0.75rem; letter-spacing: 1px;">Total Harga Paket:</p>
                 
-                {{-- 🚨 LOGIKA VISUAL DISKON TAMPIL DI SINI --}}
                 @if(isset($isDiscountBundle) && $isDiscountBundle)
                     <div class="mb-1 d-flex align-items-center justify-content-center justify-content-lg-start">
                         <span class="text-decoration-line-through text-muted small me-2">Rp {{ number_format($bundleOriginalPrice, 0, ',', '.') }}</span>
@@ -389,28 +391,22 @@
 
                 <h3 class="fw-bold text-primary mb-3">Rp {{ number_format($bundleFinalPrice, 0, ',', '.') }}</h3>
                 
-                
-                {{-- Tombol Beli Paket --}}
-                
                 @auth('customer')
                         <button onclick="addBundleToCart({{ $product->id }}, {{ json_encode($bundleProductIds) }}, {{ isset($isDiscountBundle) && $isDiscountBundle ? 'true' : 'false' }}, {{ $bundleDiscountPercentage ?? 0 }})" class="btn btn-primary w-100 fw-bold shadow-sm py-2" id="btn-add-bundle">
                             <i class="bi bi-cart-plus me-1"></i> Beli {{ count($bundleProductIds) + 1 }} Barang
                         </button>
                         @else
-                            {{-- Jika BELUM Login: Tampilkan tombol arahkan ke halaman Login --}}
                             <a href="{{ route('store.login') }}" class="btn btn-outline-primary w-100 py-3 fw-bold" style="border-radius: var(--radius-base); border-width: 2px;">
                                 <i class="bi bi-box-arrow-in-right me-2"></i> Masuk untuk Berbelanja
                             </a>
                         @endauth
                 
-                {{-- Teks Bawah Tombol --}}
                 @if(isset($isDiscountBundle) && $isDiscountBundle)
                     <p class="small text-danger fw-bold mt-2 mb-0"><i class="bi bi-fire me-1"></i>Kombinasi Sempurna (Promo)</p>
                 @else
                     <p class="small text-success mt-2 mb-0"><i class="bi bi-check2-circle me-1"></i>Kombinasi teruji algoritma</p>
                 @endif
             </div>
-            
         </div>
     </div>
     @endif
@@ -418,20 +414,8 @@
 </div>
 
 <script>
-    // JS DETEKSI EDITOR (Iframe Fix)
-    // Jika di dalam editor, naikkan bar sedikit agar tidak tertutup footer editor
-    function inIframe() {
-        try { return window.self !== window.top; } catch (e) { return true; }
-    }
-    if (inIframe()) {
-        const style = document.createElement('style');
-        style.innerHTML = ` .mobile-cart-actions { bottom: 30px !important; } `; 
-        // Note: Anda bisa ubah 0px jadi 50px/80px jika toolbar editor menutupi
-        document.head.appendChild(style);
-    }
-
-    // FUNGSI SINKRONISASI JUMLAH
-    function syncQty(val) {
+    // FUNGSI SINKRONISASI JUMLAH (Dipindahkan ke luar agar bisa diakses global)
+    window.syncQty = function(val) {
         const desktopInput = document.querySelector('.desktop-qty');
         const mobileInput = document.querySelector('.mobile-qty');
         
@@ -443,44 +427,93 @@
 
         desktopInput.value = cleanVal;
         mobileInput.value = cleanVal;
-    }
+    };
 
-    function adjustQty(amount) {
+    window.adjustQty = function(amount) {
         const desktopInput = document.querySelector('.desktop-qty');
         let currentVal = parseInt(desktopInput.value) || 0;
-        syncQty(currentVal + amount); 
-    }
+        window.syncQty(currentVal + amount); 
+    };
 
     document.addEventListener("DOMContentLoaded", function() {
+        
+        // Iframe Fix
+        function inIframe() { try { return window.self !== window.top; } catch (e) { return true; } }
+        if (inIframe()) {
+            const style = document.createElement('style');
+            style.innerHTML = ` .mobile-cart-actions { bottom: 30px !important; } `; 
+            document.head.appendChild(style);
+        }
+
         const variantSelector = document.getElementById('variant-selector');
         const priceElement = document.getElementById('product-price');
         const stockBadge = document.getElementById('product-stock-badge');
-        
+        const mainImageElement = document.getElementById('main-product-image');
+        const defaultImageSrc = mainImageElement ? mainImageElement.src : '';
         const addToCartBtns = document.querySelectorAll('.add-btn');
         const quantityInputs = document.querySelectorAll('.desktop-qty, .mobile-qty');
 
-        
-        
         const formatRupiah = (number) => {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
         }
 
         if (variantSelector) {
-            // Disable awal
+            // Disable tombol beli di awal jika produk bervarian
             addToCartBtns.forEach(btn => {
                 btn.disabled = true;
                 if(btn.id === 'desktop-add-btn') btn.innerHTML = 'Pilih Varian';
                 if(btn.id === 'mobile-add-btn') btn.innerHTML = 'Pilih Varian';
             });
 
+            // Logika ketika varian diubah
             variantSelector.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 const price = parseFloat(selectedOption.getAttribute('data-price'));
                 const stock = parseInt(selectedOption.getAttribute('data-stock'));
+                const variantImage = selectedOption.getAttribute('data-image'); 
+                
+                // --- 1. UPDATE TABEL GROSIR DINAMIS ---
+                const wholesaleDataStr = selectedOption.getAttribute('data-wholesales');
+                const wholesaleCard = document.getElementById('wholesale-info-card');
+                
+                if (wholesaleCard && wholesaleDataStr) {
+                    try {
+                        const wholesales = JSON.parse(wholesaleDataStr);
+                        const tbody = wholesaleCard.querySelector('tbody');
+                        
+                        if (wholesales.length > 0) {
+                            let html = '';
+                            wholesales.forEach(w => {
+                                html += `
+                                    <tr>
+                                        <td class="fw-bold py-2">≥ ${w.min_qty} pcs</td>
+                                        <td class="text-primary fw-bold py-2">${formatRupiah(w.price)}</td>
+                                    </tr>
+                                `;
+                            });
+                            tbody.innerHTML = html;
+                        } 
+                        else if(document.getElementById('wholesale-placeholder-text')) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="2" class="py-3 text-muted fst-italic text-center">
+                                        Tidak ada harga grosir spesifik untuk varian ini.
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    } catch(e) { console.error("Error parsing wholesale data"); }
+                }
 
+                // --- 2. UPDATE HARGA, STOK, DAN GAMBAR ---
                 priceElement.innerText = formatRupiah(price);
                 quantityInputs.forEach(input => { input.max = stock; input.value = 1; });
 
+                if (mainImageElement) {
+                    mainImageElement.src = (variantImage && variantImage !== '') ? variantImage : defaultImageSrc;
+                }
+
+                // --- 3. UPDATE TOMBOL CART ---
                 if (stock > 0) {
                     stockBadge.className = 'badge bg-success';
                     stockBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> Stok: ${stock}`;
@@ -501,62 +534,15 @@
                 }
             });
         }
-        const mainImageElement = document.getElementById('main-product-image');
-            const defaultImageSrc = mainImageElement ? mainImageElement.src : '';
-
-            variantSelector.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                
-                const price = parseFloat(selectedOption.getAttribute('data-price'));
-                const stock = parseInt(selectedOption.getAttribute('data-stock'));
-                const variantImage = selectedOption.getAttribute('data-image'); 
-                
-                // --- DEBUGGING (Bisa dicek di Inspect Element -> Console browser Anda) ---
-                console.log("Varian dipilih:", selectedOption.text);
-                console.log("URL Gambar Varian:", variantImage);
-                // ----------------------------------------------------------------------
-
-                priceElement.innerText = formatRupiah(price);
-                quantityInputs.forEach(input => { input.max = stock; input.value = 1; });
-
-                // 🚨 TUKAR GAMBAR
-                if (mainImageElement) {
-                    if (variantImage && variantImage !== '') {
-                        mainImageElement.src = variantImage; // Ganti gambar sesuai varian
-                    } else {
-                        mainImageElement.src = defaultImageSrc; // Kembalikan ke gambar produk induk
-                    }
-                }
-
-                if (stock > 0) {
-                    stockBadge.className = 'badge bg-success';
-                    stockBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i> Stok: ${stock}`;
-                    
-                    addToCartBtns.forEach(btn => {
-                        btn.disabled = false;
-                        if(btn.id === 'desktop-add-btn') btn.innerHTML = `<i class="bi bi-bag-plus me-2"></i> Masukkan Keranjang`;
-                        if(btn.id === 'mobile-add-btn') btn.innerHTML = `<i class="bi bi-bag-plus me-1"></i> Beli`;
-                    });
-                } else {
-                    stockBadge.className = 'badge bg-danger';
-                    stockBadge.innerHTML = `<i class="bi bi-x-circle me-1"></i> Habis`;
-                    
-                    addToCartBtns.forEach(btn => {
-                        btn.disabled = true;
-                        btn.innerText = "Stok Habis";
-                    });
-                }
-                });
     });
 
-    async function addBundleToCart(mainProductId, bundleProductIds, isDiscount, discountPercentage) {
-        // 🚨 1. CEK VARIAN PRODUK UTAMA
+    // FUNGSI BUNDLING
+    window.addBundleToCart = async function(mainProductId, bundleProductIds, isDiscount, discountPercentage) {
         let variantId = null;
         const variantSelector = document.getElementById('variant-selector');
         if (variantSelector) {
             variantId = variantSelector.value;
             if (!variantId) {
-                // Jika belum pilih ukuran/warna, getarkan tombol dan tolak!
                 alert('Mohon pilih varian produk utama (Warna/Ukuran) terlebih dahulu!');
                 variantSelector.focus();
                 return;
@@ -568,7 +554,6 @@
         btn.disabled = true;
 
         try {
-            // 🚨 2. TEMBAK KE ROUTE KHUSUS BUNDLING
             let response = await fetch("{{ route('store.cart.add_bundle', ['subdomain' => $website->subdomain]) }}", {
                 method: 'POST',
                 headers: {
@@ -590,8 +575,6 @@
             if (response.ok && data.status === 'success') {
                 btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Berhasil Masuk!';
                 btn.classList.replace('btn-primary', 'btn-success');
-                
-                // Pindah ke halaman cart setelah 1 detik
                 setTimeout(() => {
                     window.location.href = "{{ route('store.cart', ['subdomain' => $website->subdomain]) }}";
                 }, 1000);
@@ -606,6 +589,6 @@
             btn.innerHTML = '<i class="bi bi-cart-plus me-1"></i> Coba Lagi';
             btn.disabled = false;
         }
-    }
+    };
 </script>
 @endsection

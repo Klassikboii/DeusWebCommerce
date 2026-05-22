@@ -29,12 +29,10 @@
                 <div class="mb-3">
                     <label class="form-label">Foto Produk</label>
                     
-                    {{-- 🚨 WADAH PREVIEW: Ditambahkan di sini --}}
                     <div class="mb-2" id="preview-container" style="display: none;">
                         <img id="image-preview" src="#" alt="Preview" class="img-thumbnail rounded" style="height: 100px; width: 100px; object-fit: cover;">
                     </div>
                     
-                    {{-- 🚨 TRIGGER ONCHANGE: Ditambahkan di sini --}}
                     <input type="file" name="image" class="form-control @error('image') is-invalid @enderror" accept="image/*" onchange="window.previewNewImage(event)">
                     
                     <div class="form-text small text-muted">Format: JPG, PNG, JPEG. Maksimal 2MB.</div>
@@ -112,20 +110,19 @@
                             <label class="form-label">SKU (Kode Unik)</label>
                             <input type="text" name="sku" class="form-control" value="{{ old('sku') }}" placeholder="SKU-001">
                         </div>
-                        {{-- TAMBAHAN: DROPDOWN MOVING CLASS --}}
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Karakter Jual <i class="bi bi-info-circle text-primary" title="Aturan kecepatan habis barang"></i></label>
                             <select name="moving_class" class="form-select">
-                                <option value="fast" {{ old('moving_class', $product->moving_class ?? 'normal') == 'fast' ? 'selected' : '' }}>🔥 Fast Moving (Cepat Habis)</option>
-                                <option value="normal" {{ old('moving_class', $product->moving_class ?? 'normal') == 'normal' ? 'selected' : '' }}>📦 Normal</option>
-                                <option value="slow" {{ old('moving_class', $product->moving_class ?? 'normal') == 'slow' ? 'selected' : '' }}>🐢 Slow Moving (Jarang Laku)</option>
+                                <option value="fast" {{ old('moving_class') == 'fast' ? 'selected' : '' }}>🔥 Fast Moving (Cepat Habis)</option>
+                                <option value="normal" {{ old('moving_class', 'normal') == 'normal' ? 'selected' : '' }}>📦 Normal</option>
+                                <option value="slow" {{ old('moving_class') == 'slow' ? 'selected' : '' }}>🐢 Slow Moving (Jarang Laku)</option>
                             </select>
                             <div class="form-text small text-muted">Bantu sistem menentukan standar peringatan stok.</div>
                         </div>
                     </div>
                 </div>
 
-                {{-- VARIANT PRODUCT (Compare Price Dihapus!) --}}
+                {{-- VARIANT PRODUCT --}}
                 <div id="variant-product-fields" style="display: none;">
                     <div class="alert alert-info small py-2">
                         <i class="bi bi-info-circle me-1"></i> Tambahkan varian produk di bawah ini.
@@ -157,6 +154,34 @@
             </div>
         </div>
 
+        {{-- 🚨 BAGIAN GROSIR (Dikeluarkan dari single-product-fields) 🚨 --}}
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-primary">Harga Grosir (Opsional)</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="add-wholesale-btn">
+                    <i class="bi bi-plus-lg"></i> Tambah Aturan Grosir
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="wholesale-variant-warning" class="alert alert-warning small mb-3" style="display: none;">
+                    <i class="bi bi-info-circle me-1"></i> <b>Produk Bervariasi Aktif:</b> Harga grosir yang ditambahkan di sini akan berlaku secara global untuk semua varian. Jika Anda ingin mengatur grosir secara spesifik per-varian (misal Varian XL harga grosirnya berbeda), Anda dapat mengaturnya nanti di halaman <b>Edit Produk</b> setelah produk ini disimpan.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-borderless align-middle mb-0" id="wholesale-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Minimal Pembelian (Qty)</th>
+                                <th>Harga Satuan (Rp)</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-end gap-2 mb-5">
             <a href="{{ route('client.products.index', $website->id) }}" class="btn btn-light border">Batal</a>
             <button type="submit" class="btn btn-primary px-4">Simpan Produk</button>
@@ -167,11 +192,7 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         
-        // ==========================================
-        // 1. DAFTARKAN SEMUA FUNGSI TERLEBIH DAHULU
-        // ==========================================
-
-        // Fungsi Preview Gambar Utama
+        // --- LOGIKA VARIAN ---
         window.previewNewImage = function(event) {
             const input = event.target;
             const previewContainer = document.getElementById('preview-container');
@@ -187,7 +208,6 @@
             }
         };
 
-        // Fungsi Preview Gambar Varian
         window.previewVariantImage = function(input, index) {
             let flagInput = input.closest('td').querySelector('.remove-image-flag');
             if(flagInput) flagInput.value = '0';
@@ -211,7 +231,6 @@
             }
         };
 
-        // Fungsi Hapus Gambar Varian
         window.removeVariantImage = function(btn) {
             let td = btn.closest('td');
             td.querySelector('.variant-image-preview').innerHTML = '';
@@ -221,19 +240,10 @@
             if(flagInput) flagInput.value = '1';
         };
 
-        // Fungsi Tambah Baris Varian (Versi Create - Tanpa Kunci SKU)
-       // Fungsi Tambah Baris Varian (Versi Create - Tanpa Kunci SKU)
         window.addVariantRow = function() {
             const index = Date.now() + Math.floor(Math.random() * 1000); 
             const tableBody = document.querySelector('#variant-table tbody');
             
-            // BERIKAN NILAI DEFAULT KARENA INI BARIS BARU
-            const movingClass = 'normal';
-            const sku = '';
-            const isSkuLocked = '';
-            const skuBgClass = '';
-            const isActive = 1; // Default aktif
-
             const row = `
                 <tr>
                     <td>
@@ -247,20 +257,15 @@
                     <td><input type="number" name="variants[${index}][price]" class="form-control form-control-sm" required></td>
                     <td><input type="number" name="variants[${index}][stock]" class="form-control form-control-sm" required></td>
                     <td>
-                        {{-- 1. Input SKU --}}
-                        <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1 ${skuBgClass}" placeholder="SKU" value="${sku}" ${isSkuLocked}>
-                        
-                        {{-- 2. Dropdown Status (Beri mb-1 agar ada jarak bawah) --}}
+                        <input type="text" name="variants[${index}][sku]" class="form-control form-control-sm mb-1" placeholder="SKU">
                         <select name="variants[${index}][is_active]" class="form-select form-select-sm mb-1">
-                            <option value="1" ${isActive == 1 ? 'selected' : ''}>Status: Aktif</option>
-                            <option value="0" ${isActive == 0 ? 'selected' : ''}>Status: Mati</option>
+                            <option value="1" selected>Status: Aktif</option>
+                            <option value="0">Status: Mati</option>
                         </select>
-                        
-                        {{-- 3. Dropdown Karakter Jual --}}
                         <select name="variants[${index}][moving_class]" class="form-select form-select-sm">
-                            <option value="fast" ${movingClass == 'fast' ? 'selected' : ''}>🔥 Fast Moving</option>
-                            <option value="normal" ${movingClass == 'normal' ? 'selected' : ''}>📦 Normal</option>
-                            <option value="slow" ${movingClass == 'slow' ? 'selected' : ''}>🐢 Slow Moving</option>
+                            <option value="fast">🔥 Fast Moving</option>
+                            <option value="normal" selected>📦 Normal</option>
+                            <option value="slow">🐢 Slow Moving</option>
                         </select>
                     </td>
                     <td class="text-center align-middle">
@@ -271,7 +276,6 @@
             tableBody.insertAdjacentHTML('beforeend', row);
         };
 
-        // Fungsi Hapus Baris
         window.removeRow = function(btn) {
             const tableBody = document.querySelector('#variant-table tbody');
             if (tableBody.children.length > 1) {
@@ -281,25 +285,24 @@
             }
         };
 
-        // ==========================================
-        // 2. LOGIKA TOGGLE SINGLE VS VARIAN
-        // ==========================================
+        // --- LOGIKA TOGGLE SINGLE VS VARIAN ---
         const checkbox = document.getElementById('has_variants');
         const singleFields = document.getElementById('single-product-fields');
         const variantFields = document.getElementById('variant-product-fields');
         const tableBody = document.querySelector('#variant-table tbody');
+        const warningWholesale = document.getElementById('wholesale-variant-warning');
 
         function toggleVariantFields() {
             if (checkbox.checked) {
                 singleFields.style.display = 'none';
                 variantFields.style.display = 'block';
+                warningWholesale.style.display = 'block'; // Tampilkan peringatan grosir
                 toggleInputs(singleFields, true);
-                
-                // Tambahkan 1 baris otomatis jika tabel kosong saat diaktifkan
                 if(tableBody.children.length === 0) window.addVariantRow();
             } else {
                 singleFields.style.display = 'block';
                 variantFields.style.display = 'none';
+                warningWholesale.style.display = 'none'; // Sembunyikan peringatan grosir
                 toggleInputs(singleFields, false);
             }
         }
@@ -309,8 +312,36 @@
         }
 
         checkbox.addEventListener('change', toggleVariantFields);
-        toggleVariantFields(); // Inisialisasi awal saat halaman diload
+        toggleVariantFields(); 
+
+        // --- LOGIKA HARGA GROSIR (CREATE) ---
+        let wholesaleIndex = 0;
+        document.getElementById('add-wholesale-btn').addEventListener('click', function() {
+            let tbody = document.querySelector('#wholesale-table tbody');
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <input type="number" name="wholesale_prices[${wholesaleIndex}][min_qty]" class="form-control form-control-sm" min="2" placeholder="Contoh: 12" required>
+                </td>
+                <td>
+                    <input type="number" name="wholesale_prices[${wholesaleIndex}][price]" class="form-control form-control-sm" min="0" placeholder="Contoh: 45000" required>
+                </td>
+                <td class="text-center align-middle">
+                    <button type="button" class="btn btn-danger btn-sm remove-wholesale-btn">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            wholesaleIndex++;
+        });
+
+        // Event delegation hapus grosir
+        document.querySelector('#wholesale-table').addEventListener('click', function(e) {
+            if(e.target.closest('.remove-wholesale-btn')) {
+                e.target.closest('tr').remove();
+            }
+        });
     });
 </script>
-
 @endsection

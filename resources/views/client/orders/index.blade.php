@@ -149,9 +149,9 @@
                                     @endif
                                 </td>
                             <td>
-                                <div class="fw-bold">{{ $order->customer->name }}</div>
-                                <div class="small text-muted"><i class="bi bi-whatsapp text-success"></i> {{ $order->customer->whatsapp }}</div>
-                                <div class="small text-muted"><i class="bi bi-envelope-at text-primary"></i> {{ $order->customer->email }}</div>
+                                <div class="fw-bold">{{ $order->customer?->name }}</div>
+                                <div class="small text-muted"><i class="bi bi-whatsapp text-success"></i> {{ $order->customer?->whatsapp }}</div>
+                                <div class="small text-muted"><i class="bi bi-envelope-at text-primary"></i> {{ $order->customer?->email }}</div>
                             </td>
                            {{-- KOLOM TOTAL BELANJA (Subtotal + Ongkir) --}}
                                 <td class="text-muted">
@@ -159,17 +159,47 @@
                                     Rp {{ number_format($order->items->sum('subtotal') + $order->shipping_cost, 0, ',', '.') }}
                                     <div class="small text-muted fw-normal">{{ $order->items->sum('qty') }} Barang</div>
                                 </td>
-                            {{-- KOLOM TOTAL PENDAPATAN (Yang benar-benar dibayar setelah diskon) --}}
+                            {{-- KOLOM TOTAL PENDAPATAN --}}
                                 <td class="fw-bold">
-                                    {{-- FIX: Tampilkan total_amount murni (karena sudah dikurangi diskon) --}}
                                     <span class="{{ $order->discount_amount > 0 ? 'text-danger' : 'text-success' }}">
                                         Rp {{ number_format($order->total_amount, 0, ',', '.') }}
                                     </span>
                                     
-                                    {{-- Teks Bantuan jika harga belanja dan pendapatan berbeda --}}
+                                    {{-- 🚨 LOGIKA DETEKSI GROSIR BARU (IKUT CEK ATURAN KUANTITAS) 🚨 --}}
+                                    @php
+                                        $hasWholesale = false;
+                                        foreach($order->items as $item) {
+                                            // Periksa apakah kuantitas item ini lolos batas minimal aturan grosir di database
+                                            $checkWholesale = \App\Models\WholesalePrice::where('product_id', $item->product_id)
+                                                ->where('min_qty', '<=', $item->qty)
+                                                ->when($item->variant_id, function($q) use ($item) {
+                                                    $q->where(function($sq) use ($item) {
+                                                        $sq->where('product_variant_id', $item->variant_id)
+                                                        ->orWhereNull('product_variant_id');
+                                                    });
+                                                }, function($q) {
+                                                    $q->whereNull('product_variant_id');
+                                                })
+                                                ->exists();
+
+                                            if($checkWholesale) {
+                                                $hasWholesale = true;
+                                                break; // Cukup 1 item grosir valid untuk memunculkan badge order grosir
+                                            }
+                                        }
+                                    @endphp
+
+                                    @if($hasWholesale)
+                                        <div class="mt-1">
+                                            <span class="badge bg-info text-dark shadow-sm border border-info-subtle" style="font-size: 0.65rem;">
+                                                <i class="bi bi-box-seam"></i> Order Grosir
+                                            </span>
+                                        </div>
+                                    @endif
+
                                     @if($order->discount_amount > 0)
-                                        <div class="small text-danger fw-normal" style="font-size: 0.75rem;">
-                                            (- Rp {{ number_format($order->discount_amount, 0, ',', '.') }})
+                                        <div class="small text-danger fw-normal mt-1" style="font-size: 0.75rem;">
+                                            Diskon/Voucher: -Rp {{ number_format($order->discount_amount, 0, ',', '.') }}
                                         </div>
                                     @endif
                                 </td>

@@ -1,4 +1,3 @@
-//Ini adalah kode sidebar client.blade.php 
 
 <!DOCTYPE html>
 <html lang="id">
@@ -353,12 +352,37 @@
             <button class="btn btn-light border btn-sm shadow-sm" id="sidebarToggle" style="width: 32px; height: 32px; padding: 0;">
                 <i class="bi bi-list fs-6"></i>
             </button>
+            @php
+                $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
 
-            <div class="d-flex flex-column justify-content-center" style="line-height: 1.2;">
+                // Tentukan protocol berdasarkan environment
+                $scheme = app()->environment('local') ? 'http://' : 'https://';
+
+                // Port hanya untuk local
+                $port = app()->environment('local') ? ':8000' : '';
+
+                // Prioritas: custom domain > subdomain
+                if (!empty($website->custom_domain)) {
+                    $storeUrl = $scheme . $website->custom_domain . $port;
+                } else {
+                    $storeUrl = $scheme . $website->subdomain . '.' . $mainDomain . $port;
+                }
+            @endphp
+            <div class="d-flex flex-column justify-content-center" style="line-height: 1.2;" title="Akses Toko di Tab Lain">
                 <h6 class="m-0 fw-bold text-dark">{{ $website->site_name }}</h6>
-                <small class="text-muted text-uppercase" style="font-size: 10px; letter-spacing: 0.5px;">
-                    {{ $website->custom_domain ?? $website->active_domain . ".shop.ashop.asia"}}
+                <small>
+                    <a 
+                        href="{{ $storeUrl }}" 
+                        target="_blank"
+                        class="text-uppercase text-primary"
+                        style="font-size: 10px; letter-spacing: 0.5px;"
+                    >
+                        {{ $website->custom_domain ?? $website->active_domain . '.shop.ashop.asia' }}
+                        <i class="bi bi-link-45deg"></i>
+                    </a>
+                    
                 </small>
+            
             </div>
         </div>
         

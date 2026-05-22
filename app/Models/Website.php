@@ -269,5 +269,9 @@ class Website extends Model
         // Mengecek apakah user (pemilik web) punya KYB dan statusnya approved
         return $this->user && $this->user->kybDetail && $this->user->kybDetail->status === 'approved';
     }
+    public function customers()
+{
+    return $this->hasMany(Customer::class);
+}
     
 }

@@ -44,7 +44,7 @@ class LocalDummyOrderSeeder extends Seeder
             // Buat Induk Pesanan
             $order = Order::create([
                 'website_id'        => $website->id,
-                'order_number'      => 'INV-LOCAL-' . $randomDate->format('Ymd') . '-' . Str::random(4),
+                'order_number'      => 'INV-DUMMY-' . $randomDate->format('Ymd') . '-' . Str::random(4),
                 'customer_name'     => 'Pelanggan Dummy ' . rand(1, 20), 
                 'customer_whatsapp' => '081234567' . rand(100, 999),
                 'customer_address'  => 'Jl. Data Science No ' . rand(1, 99) . ', Surabaya',

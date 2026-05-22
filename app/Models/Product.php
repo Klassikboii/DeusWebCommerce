@@ -81,4 +81,10 @@ class Product extends Model
             }
         });
     }
+    // Tambahkan di dalam class Product
+    public function wholesalePrices()
+    {
+        // Mengurutkan dari min_qty terbesar ke terkecil mempermudah perhitungan logika keranjang nanti
+        return $this->hasMany(WholesalePrice::class)->orderBy('min_qty', 'desc');
+    }
 }

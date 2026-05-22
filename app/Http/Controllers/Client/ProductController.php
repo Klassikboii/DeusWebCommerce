@@ -249,6 +249,22 @@ class ProductController extends Controller
                 
                 $product->update(['price' => $minPrice ?? 0, 'stock' => $totalStock]);
             }
+            // ==========================================
+            // 3. SIMPAN HARGA GROSIR (BARU)
+            // ==========================================
+            if ($request->has('wholesale_prices') && is_array($request->wholesale_prices)) {
+                foreach ($request->wholesale_prices as $wholesale) {
+                    // Validasi ringan agar tidak error jika ada baris kosong
+                    if (empty($wholesale['min_qty']) || empty($wholesale['price'])) continue;
+
+                    $product->wholesalePrices()->create([
+                        // Untuk Create, kita biarkan variant_id null (berlaku global)
+                        'product_variant_id' => null, 
+                        'min_qty'            => $wholesale['min_qty'],
+                        'price'              => $wholesale['price'],
+                    ]);
+                }
+            }
             
             DB::commit();
 
@@ -476,7 +492,37 @@ public function update(Request $request, Website $website, Product $product)
                     'stock' => $request->stock
                 ]);
             }
+            // ==========================================
+            // 3. SINKRONISASI HARGA GROSIR (BARU)
+            // ==========================================
+            $wholesaleIdsToKeep = [];
+            
+            if ($request->has('wholesale_prices') && is_array($request->wholesale_prices)) {
+                foreach ($request->wholesale_prices as $wholesale) {
+                    if (empty($wholesale['min_qty']) || empty($wholesale['price'])) continue;
 
+                    // Tangkap variant_id jika klien memilih dropdown spesifik
+                    $variantId = !empty($wholesale['product_variant_id']) ? $wholesale['product_variant_id'] : null;
+
+                    // Update jika ada ID-nya (data lama), Create jika tidak ada (data baru)
+                    $wholesaleModel = $product->wholesalePrices()->updateOrCreate(
+                        [
+                            'id' => $wholesale['id'] ?? null, 
+                        ],
+                        [
+                            'product_variant_id' => $variantId,
+                            'min_qty'            => $wholesale['min_qty'],
+                            'price'              => $wholesale['price'],
+                        ]
+                    );
+                    
+                    $wholesaleIdsToKeep[] = $wholesaleModel->id;
+                }
+            }
+
+            // Hapus aturan grosir yang dihapus klien dari tabel UI
+            $product->wholesalePrices()->whereNotIn('id', $wholesaleIdsToKeep)->delete();
+            // ==========================================
             DB::commit();
 
             // =========================================================

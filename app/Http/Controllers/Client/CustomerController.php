@@ -5,38 +5,63 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use App\Models\Website;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
     public function index(Request $request, Website $website)
     {
-        // KITA MEMBUAT "VIRTUAL CUSTOMER" DARI TABEL ORDER
-        
-        // 1. Base Query: Ambil dari tabel orders
-        $query = $website->orders()
-            ->select('customer_name', 'customer_address', 'customer_whatsapp') // Pilih kolom identitas
-            ->selectRaw('MAX(created_at) as last_order_date') // Kapan terakhir order
-            ->selectRaw('COUNT(*) as total_orders') // Berapa kali order
-            ->selectRaw('SUM(total_amount) as total_spent') // Total uang yang dibelanjakan
-            ->groupBy('customer_address', 'customer_name', 'customer_whatsapp'); // Grouping biar unik
+        $query = $website->customers()
 
-        // 2. Logika Search
+            ->leftJoin('orders', function ($join) {
+                $join->on('customers.id', '=', 'orders.customer_id')
+                      ->whereIn('orders.status', ['shipped', 'processing', 'completed']);
+            })
+
+            ->select(
+                'customers.id',
+                'customers.name',
+                'customers.email',
+                'customers.whatsapp',
+                'customers.created_at'
+            )
+
+            ->selectRaw('COUNT(orders.id) as total_orders')
+
+            ->selectRaw('
+                COALESCE(SUM(orders.total_amount), 0) as total_spent
+            ')
+
+            ->selectRaw('
+                MAX(orders.created_at) as last_order_date
+            ')
+
+            ->groupBy(
+                'customers.id',
+                'customers.name',
+                'customers.email',
+                'customers.whatsapp',
+                'customers.created_at'
+            );
+
+        // Search
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('customer_name', 'like', '%' . $search . '%')
-                  ->orWhere('customer_address', 'like', '%' . $search . '%')
-                  ->orWhere('customer_whatsapp', 'like', '%' . $search . '%');
+
+            $query->where(function ($q) use ($search) {
+                $q->where('customers.name', 'like', "%{$search}%")
+                  ->orWhere('customers.email', 'like', "%{$search}%")
+                  ->orWhere('customers.whatsapp', 'like', "%{$search}%");
             });
         }
 
-        // 3. Pagination
-        // Perlu diingat: Paginating group by results kadang tricky di Laravel, 
-        // tapi untuk MySQL modern ini biasanya aman.
-        $customers = $query->latest('last_order_date')->paginate(10)->withQueryString();
-        
+        $customers = $query
+            ->latest('last_order_date')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('client.customers.index', compact('website', 'customers'));
+        return view('client.customers.index', compact(
+            'website',
+            'customers'
+        ));
     }
 }

@@ -68,4 +68,9 @@ class ProductVariant extends Model
             }
         });
     }
+    // Tambahkan di dalam class ProductVariant
+    public function wholesalePrices()
+    {
+        return $this->hasMany(WholesalePrice::class, 'product_variant_id')->orderBy('min_qty', 'desc');
+    }
 }

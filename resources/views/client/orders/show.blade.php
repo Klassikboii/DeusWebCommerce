@@ -87,45 +87,80 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-end">
-                                    <div class="fw-bold">Rp {{ number_format($item->price, 0, ',', '.') }}</div>
+                               <td class="text-end">
+    {{-- 🚨 LOGIKA DETEKSI INPUT AMAN: GROSIR VS HARGA LAMA 🚨 --}}
+    @php
+        $masterItem = $item->variant_id ? $item->variant : $item->product;
+        
+        $isOldPrice = false;
+        $changedAtStr = null;
+        
+        $isWholesale = false;
+        $originalPrice = $item->price;
 
-                                    {{-- LOGIKA DETEKTOR HARGA LAMA --}}
-                                    @php
-                                        // 1. Tentukan Master Data (Varian atau Induk)
-                                        $masterItem = $item->variant_id ? $item->variant : $item->product;
-                                        $isOldPrice = false;
-                                        $changedAtStr = null;
+        if ($masterItem) {
+            $originalPrice = $masterItem->price;
 
-                                        // 2. Cek apakah harganya berbeda dengan harga Master saat ini
-                                        if ($masterItem && $item->price != $masterItem->price) {
-                                            $isOldPrice = true;
-                                            
-                                            // 3. Jika beda, bongkar JSON price_history untuk mencari tanggalnya
-                                            if (!empty($masterItem->price_history) && is_array($masterItem->price_history)) {
-                                                foreach ($masterItem->price_history as $history) {
-                                                    if ($history['price'] == $item->price) {
-                                                        // Ketemu! Ubah format tanggalnya agar enak dibaca
-                                                        $changedAtStr = \Carbon\Carbon::parse($history['changed_at'])->format('d M Y');
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    @endphp
+            // Cari aturan grosir aktif yang kuantitasnya sesuai dengan jumlah pembelian pesanan ini
+            $wholesaleRule = \App\Models\WholesalePrice::where('product_id', $item->product_id)
+                ->where('min_qty', '<=', $item->qty)
+                ->when($item->variant_id, function($q) use ($item) {
+                    $q->where(function($sq) use ($item) {
+                        $sq->where('product_variant_id', $item->variant_id)
+                          ->orWhereNull('product_variant_id');
+                    });
+                }, function($q) {
+                    $q->whereNull('product_variant_id');
+                })
+                ->orderBy('min_qty', 'desc')
+                ->first();
 
-                                    {{-- TAMPILKAN NOTIFIKASI JIKA TERDETEKSI HARGA LAMA --}}
-                                    @if($isOldPrice)
-                                        <div class="mt-1">
-                                            <span class="badge bg-warning bg-opacity-10 text-dark border border-warning" style="font-size: 0.65rem; white-space: normal; text-align: right; line-height: 1.4;">
-                                                <i class="bi bi-info-circle me-1"></i> Harga Lama
-                                                @if($changedAtStr)
-                                                    <br>(Sblm {{ $changedAtStr }})
-                                                @endif
-                                            </span>
-                                        </div>
-                                    @endif
-                                </td>
+            // A. JIKA kuantitasnya memenuhi batas grosir aktif, maka ini murni harga grosir
+            if ($wholesaleRule) {
+                $isWholesale = true;
+            } 
+            // B. JIKA harganya berbeda TAPI kuantitas beli tidak memenuhi syarat grosir, pastinya ini "Harga Lama"
+            unset($history);
+            if (!$isWholesale && $item->price != $originalPrice) {
+                $isOldPrice = true;
+                if (!empty($masterItem->price_history) && is_array($masterItem->price_history)) {
+                    foreach ($masterItem->price_history as $history) {
+                        if ($history['price'] == $item->price) {
+                            $changedAtStr = \Carbon\Carbon::parse($history['changed_at'])->format('d M Y');
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    @endphp
+
+    <div class="fw-bold">Rp {{ number_format($item->price, 0, ',', '.') }}</div>
+
+    {{-- TAMPILKAN CORETAN & BADGE JIKA MEMENUHI SYARAT GROSIR --}}
+    @if($isWholesale)
+        <div class="text-decoration-line-through text-muted small">
+            Rp {{ number_format($originalPrice, 0, ',', '.') }}
+        </div>
+        <div class="mt-1">
+            <span class="badge bg-info text-dark shadow-sm border border-info-subtle" style="font-size: 0.65rem;">
+                <i class="bi bi-box-seam me-1"></i>Harga Grosir
+            </span>
+        </div>
+    @endif
+
+    {{-- TAMPILKAN NOTIFIKASI JIKA HANYA TERDETEKSI PERUBAHAN HARGA HISTORIS (HARGA LAMA) --}}
+    @if($isOldPrice)
+        <div class="mt-1">
+            <span class="badge bg-warning bg-opacity-10 text-dark border border-warning" style="font-size: 0.65rem; white-space: normal; text-align: right; line-height: 1.4;">
+                <i class="bi bi-info-circle me-1"></i> Harga Lama
+                @if($changedAtStr)
+                    <br>(Sblm {{ $changedAtStr }})
+                @endif
+            </span>
+        </div>
+    @endif
+</td>
                                 <td class="text-center">{{ $item->qty }}</td>
                                 <td class="text-end fw-bold">Rp {{ number_format($item->price * $item->qty, 0, ',', '.') }}</td>
                             </tr>

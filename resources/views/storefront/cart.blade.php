@@ -64,9 +64,47 @@
                                                 </form>
 
                                                 <div>
-                                                    <div class="fw-bold">{{ $details['name'] }}</div>
-                                                    <small class="text-muted">Rp {{ number_format($details['price']) }}</small>
-                                                    <small class="text-muted">SKU: {{ $details['sku'] ?? 'SKU: -' }}</small>
+                                                    <div class="fw-bold mb-1">{{ $details['name'] }}</div>
+                                                    
+                                                    {{-- 🚨 LOGIKA DETEKSI HARGA GROSIR & SKU 🚨 --}}
+                                                    @php
+                                                        $isWholesale = false;
+                                                        $originalPrice = $details['price'];
+                                                        $sku = $details['sku'] ?? '-';
+
+                                                        // Tarik data asli dari database
+                                                        $pModel = \App\Models\Product::find($details['product_id']);
+                                                        if($pModel) {
+                                                            if(!empty($details['variant_id'])) {
+                                                                $vModel = \App\Models\ProductVariant::find($details['variant_id']);
+                                                                $originalPrice = $vModel ? $vModel->price : $pModel->price;
+                                                                $sku = $vModel ? $vModel->sku : $sku;
+                                                            } else {
+                                                                $originalPrice = $pModel->price;
+                                                                $sku = $pModel->sku ?? $sku;
+                                                            }
+                                                            
+                                                            // Jika harga di keranjang lebih murah dari harga normal, berarti dapat Grosir!
+                                                            if($details['price'] < $originalPrice) {
+                                                                $isWholesale = true;
+                                                            }
+                                                        }
+                                                    @endphp
+
+                                                    <div class="d-flex align-items-center flex-wrap gap-2">
+                                                        {{-- Harga yang dibayar (Grosir/Normal) --}}
+                                                        <small class="fw-bold text-dark" style="font-size: 0.9rem;">Rp {{ number_format($details['price'], 0, ',', '.') }}</small>
+                                                        
+                                                        {{-- Jika dapat grosir, coret harga asli dan beri badge --}}
+                                                        @if($isWholesale)
+                                                            <small class="text-decoration-line-through text-muted" style="font-size: 0.75rem;">Rp {{ number_format($originalPrice, 0, ',', '.') }}</small>
+                                                            <span class="badge bg-info text-dark shadow-sm border border-info-subtle" style="font-size: 0.65rem;">
+                                                                <i class="bi bi-box-seam me-1"></i>Harga Grosir
+                                                            </span>
+                                                        @endif
+                                                    </div>
+                                                    
+                                                    <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">SKU: {{ $sku }}</small>
                                                 </div>
                                             </div>
                                         </td>

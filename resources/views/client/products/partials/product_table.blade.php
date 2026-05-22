@@ -56,6 +56,17 @@
                     @else
                         <div class="fw-bold">Rp {{ number_format($product->price, 0, ',', '.') }}</div>
                     @endif
+                    {{-- BADGE GROSIR --}}
+                    @if($product->wholesalePrices && $product->wholesalePrices->count() > 0)
+                        <div class="mt-1">
+                            <span class="badge bg-info text-dark shadow-sm border border-info-subtle" 
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                title=" Aturan Grosir Aktif">
+                                <i class="bi bi-box-seam me-1"></i> {{ $product->wholesalePrices->count() }} Harga Grosir
+                            </span>
+                        </div>
+                    @endif
                 </td>
 
                 {{-- 3. MURNI STOK FISIK --}}
