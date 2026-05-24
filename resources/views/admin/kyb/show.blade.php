@@ -51,7 +51,7 @@
                             </tr>
                             <tr>
                                 <td class="ps-3">Industri (MCC)</td>
-                                <td><strong>{{ $kyb->mcc }}</strong> ({{ $kyb->parent_industry }} - {{ $kyb->child_industry }})</td>
+                                <td><strong>{{ $kyb->mcc }} - {{ $kyb->mcc_name }}</strong> ({{ $kyb->parent_industry }} - {{ $kyb->child_industry }})</td>
                             </tr>
                             <tr>
                                 <td class="ps-3">Email & Telp Bisnis</td>
@@ -73,7 +73,7 @@
                             </tr>
                             <tr>
                                 <td class="ps-3">Kecamatan (District ID)</td>
-                                <td><strong>{{ $kyb->district_id }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->district_id }}')"><i class="bi bi-clipboard"></i></button></td>
+                                <td><strong>{{ $kyb->district_id }} - {{ $kyb->district_name }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->district_id }} - {{ $kyb->district_name }}')"><i class="bi bi-clipboard"></i></button></td>
                             </tr>
                             <tr>
                                 <td class="ps-3">Alamat Lengkap</td>

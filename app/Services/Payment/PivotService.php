@@ -27,7 +27,8 @@ class PivotService implements PaymentGatewayInterface
     {
         $this->website = $website;
         // $this->baseUrl = 'https://api.pivot-payment.com';
-        $baseUrl = 'https://api-stg.pivot-payment.com';
+        // 🚨 FIX: Wajib menggunakan $this-> agar bisa dibaca oleh fungsi lain!
+        $this->baseUrl = 'https://api-stg.pivot-payment.com';
 
         // 1. Simpan Kunci Master secara permanen dari .env
         $this->masterClientId = env('PIVOT_CLIENT_KEY');
@@ -46,25 +47,17 @@ class PivotService implements PaymentGatewayInterface
     }
 
    // 🚨 UBAH FUNGSI INI: Beri parameter penentu (Apakah ini Master?)
-  private function getAccessToken($useMasterKey = false)
+ // Tidak perlu lagi parameter $useMasterKey
+    private function getAccessToken()
     {
         try {
-            $clientId = $useMasterKey ? $this->masterClientId : $this->subMerchantId;
-            $clientSecret = $useMasterKey ? $this->masterSecretKey : $this->subMerchantSecret;
-
-            if (!$clientId || !$clientSecret) {
-                throw new Exception('Kredensial API (Master/Sub-Account) tidak ditemukan atau belum disetting.');
-            }
-
-            // 🚨 HARDCODE URL LANGSUNG DI SINI UNTUK BYPASS ERROR NULL
-            $stagingUrl = 'https://api-stg.pivot-payment.com';
-            $url = $stagingUrl . '/v1/access-token';
+            // 🚨 PALU GODAM: Hardcode URL di sini agar mustahil dibaca kosong
+            $baseUrl = 'https://api-stg.pivot-payment.com';
+            $url = $baseUrl . '/v1/access-token';
             
-            Log::info("Mencoba hit Pivot Token URL: " . $url);
-
             $response = Http::timeout(30)->withHeaders([
-                'X-MERCHANT-ID' => $clientId,
-                'X-MERCHANT-SECRET' => $clientSecret,
+                'X-MERCHANT-ID' => $this->masterClientId,
+                'X-MERCHANT-SECRET' => $this->masterSecretKey,
                 'Content-Type' => 'application/json',
             ])->post($url, [
                 'grantType' => 'client_credentials'
@@ -86,12 +79,13 @@ class PivotService implements PaymentGatewayInterface
     // 🚨 LANGKAH 2: FUNGSI MEMBUAT PESANAN (MENGGUNAKAN KARTU AKSES)
     public function createTransaction(Order $order): array
     {
-        if (!$this->subMerchantId || !$this->subMerchantSecret) {
-            Log::error("Toko {$this->website->site_name} tidak memiliki Kredensial API Pivot.");
+        // 🚨 FIX: Hapus pengecekan subMerchantSecret, karena OBO cuma butuh ID!
+        if (!$this->subMerchantId) {
+            Log::error("Toko {$this->website->site_name} tidak memiliki Sub-Account ID Pivot.");
             return ['status' => 'error', 'token' => null, 'redirect_url' => null];
         }
 
-        // --- MINTA ACCESS TOKEN DULU ---
+        // --- MINTA ACCESS TOKEN DULU (Otomatis akan menggunakan ID & Secret Master) ---
         $accessToken = $this->getAccessToken();
         
         if (!$accessToken) {
@@ -136,10 +130,18 @@ class PivotService implements PaymentGatewayInterface
 
         try {
             // --- TEMBAK API PEMBAYARAN MENGGUNAKAN ACCESS TOKEN BEARER ---
+            Log::info("Mencoba membuat transaksi OBO (On-Behalf-Of) untuk Sub-Account: " . $this->subMerchantId);
+            
+            // --- TEMBAK API PEMBAYARAN MENGGUNAKAN ACCESS TOKEN BEARER ---
             $response = Http::timeout(30)
                 ->withToken($accessToken) 
                 ->withHeaders([
-                    'X-MERCHANT-ID' => $this->subMerchantId,
+                    // 1. Identitas pintu utama (Selalu Master)
+                    'X-MERCHANT-ID' => $this->masterClientId, 
+                    
+                    // 2. 🚨 HEADER SAKTI PIVOT UNTUK SUB-ACCOUNT 🚨
+                    'x-submerchant-id' => trim($this->subMerchantId), 
+                    
                     'Content-Type' => 'application/json',
                 ])->post($this->baseUrl . '/v2/payments', $payload);
 
@@ -278,7 +280,7 @@ class PivotService implements PaymentGatewayInterface
         });
 
         // 🚨 1. MINTA ACCESS TOKEN DULU (Sama seperti di createTransaction)
-       $accessToken = $this->getAccessToken(true);
+       $accessToken = $this->getAccessToken();
 
         if (!$accessToken) {
             throw new \Exception('Gagal mendapatkan Access Token dari Pivot sebelum membuat Sub-Akun.');

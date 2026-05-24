@@ -11,24 +11,24 @@ class PivotReferenceController extends Controller
     // API Pencarian Industri
     public function searchIndustries(Request $request)
     {
-        $search = $request->get('q'); // Kata kunci yang diketik klien
-
+        $search = $request->get('q');
+        
         $query = DB::table('pivot_industries')
-            ->select('id', 'parent_industry', 'child_industry', 'mcc');
+                    ->select('id', 'parent_industry', 'child_industry', 'mcc');
 
         if ($search) {
-            $query->where('child_industry', 'LIKE', "%{$search}%")
-                  ->orWhere('parent_industry', 'LIKE', "%{$search}%");
+            $query->where('child_industry', 'like', "%{$search}%")
+                  ->orWhere('parent_industry', 'like', "%{$search}%")
+                  ->orWhere('mcc', 'like', "%{$search}%");
         }
 
-        // Ambil 50 data teratas agar tidak berat
-        $industries = $query->limit(50)->get();
+        $industries = $query->limit(20)->get();
 
-        // Format data sesuai permintaan library Select2
+        // 🚨 KUNCI PERBAIKAN: Gunakan $item->id sebagai nilai 'id', bukan $item->mcc
         $formatted = $industries->map(function ($item) {
             return [
-                'id' => $item->mcc, // Kita simpan kode MCC-nya di database
-                'text' => $item->parent_industry . ' - ' . $item->child_industry
+                'id' => $item->id, // Kirim Primary Key tabel ke form HTML
+                'text' => $item->parent_industry . ' > ' . $item->child_industry . ' (' . $item->mcc . ')'
             ];
         });
 

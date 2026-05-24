@@ -155,6 +155,8 @@ class SettingController extends Controller
                 'website' => $websiteUrl,
                 'merchant_email' => $user->email,
                 'merchant_phone' => $request->pic_phone,
+                'mcc' => $industry->mcc,
+            
                 'parent_industry' => $industry ? $industry->parent_industry : 'Lainnya',
                 'child_industry' => $industry ? $industry->child_industry : 'Lainnya',
                 'digital_status' => 'Digital',

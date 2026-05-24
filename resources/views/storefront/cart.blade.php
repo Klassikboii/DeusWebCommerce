@@ -66,11 +66,12 @@
                                                 <div>
                                                     <div class="fw-bold mb-1">{{ $details['name'] }}</div>
                                                     
-                                                    {{-- 🚨 LOGIKA DETEKSI HARGA GROSIR & SKU 🚨 --}}
+                                                 {{-- 🚨 LOGIKA DETEKSI HARGA GROSIR STRICT (FOOLPROOF) 🚨 --}}
                                                     @php
                                                         $isWholesale = false;
                                                         $originalPrice = $details['price'];
                                                         $sku = $details['sku'] ?? '-';
+                                                        $currentQty = $details['quantity'];
 
                                                         // Tarik data asli dari database
                                                         $pModel = \App\Models\Product::find($details['product_id']);
@@ -84,8 +85,21 @@
                                                                 $sku = $pModel->sku ?? $sku;
                                                             }
                                                             
-                                                            // Jika harga di keranjang lebih murah dari harga normal, berarti dapat Grosir!
-                                                            if($details['price'] < $originalPrice) {
+                                                            // CEK DATABASE GROSIR STRICT BERDASARKAN QTY
+                                                            $checkWholesale = \App\Models\WholesalePrice::where('product_id', $details['product_id'])
+                                                                ->where('min_qty', '<=', $currentQty)
+                                                                ->when(!empty($details['variant_id']), function($q) use ($details) {
+                                                                    $q->where(function($sq) use ($details) {
+                                                                        $sq->where('product_variant_id', $details['variant_id'])
+                                                                          ->orWhereNull('product_variant_id');
+                                                                    });
+                                                                }, function($q) {
+                                                                    $q->whereNull('product_variant_id');
+                                                                })
+                                                                ->exists();
+
+                                                            // Jika valid di database grosir DAN harga keranjang lebih murah dari normal
+                                                            if($checkWholesale && $details['price'] < $originalPrice) {
                                                                 $isWholesale = true;
                                                             }
                                                         }

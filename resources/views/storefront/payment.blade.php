@@ -152,16 +152,17 @@
                                         <i class="bi bi-shield-lock me-2"></i> Lanjutkan Pembayaran
                                     </a>
                                 </div>
-                            </div>
+                            </div>  
                             
-                            <div class="text-center text-muted mb-4 fw-bold">--- ATAU MANUAL ---</div>
+                            
                         @else
                         {{-- ================================================= --}}
 
                         {{-- OPSI 2: FORM UPLOAD MANUAL (Database) --}}
                         
                         {{-- Peringatan Re-Upload --}}
-                        @if($order->payment_proof && $order->status == 'pending')
+                        @if($order->payment_proof && $order->status == 'pending')\
+                        <div class="text-center text-muted mb-4 fw-bold">--- ATAU MANUAL ---</div>
                             <div class="alert alert-warning text-center small py-2 mb-3">
                                 <i class="bi bi-info-circle me-1"></i> Bukti sebelumnya sedang dicek. Anda boleh upload ulang jika perlu revisi.
                             </div>

@@ -46,6 +46,50 @@
             <a href="{{ route('client.kyb.settings') }}" class="btn btn-outline-primary justify-content-end">
                 <i class="bi bi-shield-check"></i> Verifikasi Bisnis (KYB)
             </a>
+            <div class="d-flex align-items-center gap-2">
+                {{-- Ambil data KYB milik user yang sedang login --}}
+                @php
+                    $kyb = auth()->user()->kybDetail ?? null;
+                @endphp
+
+                {{-- JIKA BELUM PERNAH PENGAJUAN --}}
+                @if(!$kyb)
+                    <a href="{{ route('client.kyb.settings') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-shield-check"></i> Verifikasi Bisnis (KYB)
+                    </a>
+                
+                {{-- JIKA SEDANG DIPROSES --}}
+                @elseif($kyb->status === 'pending')
+                    <span class="badge bg-warning text-dark border border-warning" style="padding: 0.5rem 0.8rem;">
+                        <i class="bi bi-hourglass-split"></i> Verifikasi Pivot Diproses
+                    </span>
+
+                {{-- JIKA SUDAH DISETUJUI (APPROVED) --}}
+                @elseif($kyb->status === 'approved')
+                    <div class="d-flex gap-1">
+                        <span class="badge bg-success" style="padding: 0.5rem 0.8rem;" title="Pembayaran Otomatis Aktif">
+                            <i class="bi bi-check-circle-fill"></i> Pivot Aktif
+                        </span>
+                        
+                        {{-- Cek Status Auto-Withdrawal --}}
+                        @if($kyb->auto_withdrawal === 'ON' || $kyb->auto_withdrawal == 1)
+                            <span class="badge bg-info text-dark" style="padding: 0.5rem 0.8rem;" title="Uang otomatis cair ke rekening Anda setiap hari">
+                                <i class="bi bi-cash-stack"></i> Pencairan Otomatis
+                            </span>
+                        @else
+                            <span class="badge bg-secondary" style="padding: 0.5rem 0.8rem;" title="Uang masuk ke saldo, harus ditarik manual">
+                                <i class="bi bi-wallet2"></i> Pencairan Manual
+                            </span>
+                        @endif
+                    </div>
+
+                {{-- JIKA DITOLAK --}}
+                @elseif($kyb->status === 'rejected')
+                    <a href="{{ route('client.kyb.settings') }}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-x-circle"></i> Verifikasi Ditolak (Perbaiki)
+                    </a>
+                @endif
+            </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="text-muted d-none d-md-block">Selamat datang, <strong>{{ Auth::user()->name }}</strong></span>
                 
