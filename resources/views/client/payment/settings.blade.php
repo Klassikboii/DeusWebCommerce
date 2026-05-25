@@ -96,7 +96,12 @@
                                         @endforeach
                                     @endif
                                 </select>
-                                <label class="form-label small fw-bold text-muted">Toko Anda Sekarang: <span class="text-primary"> ({{ $kyb->website }})</span></label>
+                                @isset($kyb->website)
+                                    <label class="form-label small fw-bold text-muted">
+                                        Toko Anda Sekarang:
+                                        <span class="text-primary">({{ $kyb->website }})</span>
+                                    </label>
+                                @endisset
                                 @if(isset($websites) && $websites->count() == 0)
                                     <div class="text-danger mt-2 small fw-bold">
                                         <i class="bi bi-exclamation-triangle-fill"></i> Anda belum memiliki toko. Silakan buat toko terlebih dahulu.
@@ -108,9 +113,12 @@
                                 <label class="form-label small fw-bold text-muted">Tipe Struktur Bisnis <span class="text-danger">*</span></label>
                                 <select name="business_structure" class="form-select" {{ $isPending ? 'disabled' : 'required' }}>
                                     <option value="">-- Pilih Struktur --</option>
-                                    <option value="INDIVIDUAL" {{ (old('business_structure', $kyb->business_structure ?? '') == 'INDIVIDUAL') ? 'selected' : '' }}>Perorangan (Individual)</option>
                                     <option value="PERSEROAN TERBATAS" {{ (old('business_structure', $kyb->business_structure ?? '') == 'PERSEROAN TERBATAS') ? 'selected' : '' }}>Perseroan Terbatas (PT)</option>
                                     <option value="CV" {{ (old('business_structure', $kyb->business_structure ?? '') == 'CV') ? 'selected' : '' }}>CV</option>
+                                    <option value="PERUSAHAAN NEGARA" {{ (old('business_structure', $kyb->business_structure ?? '') == 'PERUSAHAAN NEGARA') ? 'selected' : '' }}>Perusahaan Negara</option>
+                                    <option value="PERUSAHAAN DAERAH" {{ (old('business_structure', $kyb->business_structure ?? '') == 'PERUSAHAAN DAERAH') ? 'selected' : '' }}>Perusahaan Daerah</option>
+                                    <option value="YAYASAN" {{ (old('business_structure', $kyb->business_structure ?? '') == 'YAYASAN') ? 'selected' : '' }}>Yayasan</option>
+                                    <option value="KOPERASI" {{ (old('business_structure', $kyb->business_structure ?? '') == 'KOPERASI') ? 'selected' : '' }}>Koperasi</option>
                                 </select>
                             </div>
 
@@ -125,6 +133,30 @@
                                     @endif
                                 </select>
                             </div>
+                            {{-- TIGA INPUT BARU SESUAI REQUEST --}}
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-muted">Negara Terdaftar <span class="text-danger">*</span></label>
+                                <input type="text" name="country_of_entity" class="form-control" placeholder="Contoh: Indonesia" value="{{ old('country_of_entity', $kyb->country_of_entity ?? 'Indonesia') }}" {{ $isPending ? 'readonly' : 'required' }}>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-muted">Merchant Type <span class="text-danger">*</span></label>
+                                <select name="business_type" class="form-select" {{ $isPending ? 'disabled' : 'required' }}>
+                                    <option value="">-- Pilih Tipe --</option>
+                                    <option value="PERORANGAN" {{ (old('business_type', $kyb->business_type ?? '') == 'PERORANGAN') ? 'selected' : '' }}>Perorangan</option>
+                                    <option value="FIRMA" {{ (old('business_type', $kyb->business_type ?? '') == 'FIRMA') ? 'selected' : '' }}>Firma</option>
+                                
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold text-muted">Tipe Industri <span class="text-danger">*</span></label>
+                                <select name="digital_status" class="form-select" {{ $isPending ? 'disabled' : 'required' }}>
+                                    <option value="Digital" {{ (old('digital_status', $kyb->digital_status ?? '') == 'Digital') ? 'selected' : '' }}>Digital</option>
+                                    <option value="Non-Digital" {{ (old('digital_status', $kyb->digital_status ?? '') == 'Non-Digital') ? 'selected' : '' }}>Non-Digital</option>
+                                </select>
+                            </div>
+                            {{-- AKHIR TIGA INPUT BARU --}}
 
                             <div class="col-md-12">
                                 <label class="form-label small fw-bold text-muted">Deskripsi Singkat Usaha <span class="text-danger">*</span></label>

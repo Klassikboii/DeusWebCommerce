@@ -72,9 +72,9 @@ public function approve(Request $request, $id, PivotService $pivotService)
         // 🚨 JIKA SUPERADMIN KLIK TOMBOL "MANUAL"
         else {
             $request->validate([
-                'pivot_sub_account_id' => 'required',
+                // 'pivot_sub_account_id' => 'required',
                 'merchant_id' => 'required',
-                'merchant_secret' => 'required',
+                // 'merchant_secret' => 'required',
             ]);
 
             $kyb->update([

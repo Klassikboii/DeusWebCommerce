@@ -115,16 +115,19 @@ class SettingController extends Controller
     }
 
     // Fungsi untuk memproses data form KYB
-   // 2. Fungsi simpan form
-    public function storeKyb(\Illuminate\Http\Request $request)
-    {
+   // 2. Fungsi simpan formpublic function storeKyb(\Illuminate\Http\Request $request)
+   public function storeKyb(\Illuminate\Http\Request $request) 
+   {
         $user = \Illuminate\Support\Facades\Auth::user();
 
+        // 🚨 1. Tambahkan 2 input baru ini ke dalam validasi
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'short_name' => 'required|string|max:25',
             'website_id_reference' => 'required|exists:websites,id',
             'business_structure' => 'required',
+            'country_of_entity' => 'required|string', // <-- BARU
+            'digital_status' => 'required|string',    // <-- BARU
             'mcc' => 'required',
             'province' => 'required|string',
             'city' => 'required|string',
@@ -138,32 +141,43 @@ class SettingController extends Controller
             'bank_channel_code' => 'required',
             'bank_account_number' => 'required',
             'bank_account_name' => 'required',
-            'auto_withdrawal' => 'nullable'
+            'auto_withdrawal' => 'nullable',
+            'description' => 'required|string'
         ]);
         
+        // 🚨 2. Perbaikan pencarian MCC seperti yang kita bahas sebelumnya
+        $industry = \Illuminate\Support\Facades\DB::table('pivot_industries')->find($request->mcc);
+        if (!$industry) {
+            $industry = \Illuminate\Support\Facades\DB::table('pivot_industries')->where('mcc', $request->mcc)->first();
+        }
+        if (!$industry) {
+            return redirect()->back()->withErrors(['mcc' => 'Kategori industri tidak ditemukan, silakan cari ulang.'])->withInput();
+        }
 
-        $industry = \Illuminate\Support\Facades\DB::table('pivot_industries')->where('mcc', $request->mcc)->first();
-        
-        // 🚨 AMBIL WEBSITE BERDASARKAN PILIHAN DROPDOWN KLIEN
         $selectedWeb = \App\Models\Website::find($request->website_id_reference);
         $websiteUrl = $selectedWeb->custom_domain ?? ($selectedWeb->subdomain ? $selectedWeb->subdomain . '.ashop.asia' : 'toko.ashop.asia');
 
         \App\Models\MerchantKybDetail::updateOrCreate(
-            ['user_id' => $user->id], // 🚨 Berdasarkan User ID
+            ['user_id' => $user->id], 
             array_merge($validated, [
                 'status' => 'pending',
                 'website' => $websiteUrl,
                 'merchant_email' => $user->email,
                 'merchant_phone' => $request->pic_phone,
+                
+                // Ekstrak identitas industri
                 'mcc' => $industry->mcc,
-            
-                'parent_industry' => $industry ? $industry->parent_industry : 'Lainnya',
-                'child_industry' => $industry ? $industry->child_industry : 'Lainnya',
-                'digital_status' => 'Digital',
+                'parent_industry' => $industry->parent_industry,
+                'child_industry' => $industry->child_industry,
+                
+                // 🚨 3. Dinamiskan input sesuai form klien
+                'country_of_entity' => $request->country_of_entity,
+                'digital_status' => $request->digital_status,
+                
+                // Pivot butuh 2 parameter: businessType (COMPANY/INDIVIDUAL) & businessStructure (FIRMA/PT/dll)
                 'business_type' => $request->business_structure === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'COMPANY',
+                
                 'auto_withdrawal' => $request->has('auto_withdrawal') ? 'ON' : 'OFF',
-                'bank_account_name' => $request->bank_account_name,
-                'description' => $request->description ?? 'Tidak ada deskripsi usaha yang diberikan.' // Tambahkan deskripsi usaha jika ada
             ])
         );
 

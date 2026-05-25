@@ -43,9 +43,7 @@
             <a class="navbar-brand fw-bold text-primary" href="#">
                 <i class="bi bi-shop"></i> WebCommerce Platform
             </a>
-            <a href="{{ route('client.kyb.settings') }}" class="btn btn-outline-primary justify-content-end">
-                <i class="bi bi-shield-check"></i> Verifikasi Bisnis (KYB)
-            </a>
+            
             <div class="d-flex align-items-center gap-2">
                 {{-- Ambil data KYB milik user yang sedang login --}}
                 @php
@@ -60,12 +58,18 @@
                 
                 {{-- JIKA SEDANG DIPROSES --}}
                 @elseif($kyb->status === 'pending')
+                <a href="{{ route('client.kyb.settings') }}" class="btn btn-outline-primary justify-content-end">
+                    <i class="bi bi-shield-check"></i> Verifikasi Bisnis (KYB)
+                </a>
                     <span class="badge bg-warning text-dark border border-warning" style="padding: 0.5rem 0.8rem;">
                         <i class="bi bi-hourglass-split"></i> Verifikasi Pivot Diproses
                     </span>
 
                 {{-- JIKA SUDAH DISETUJUI (APPROVED) --}}
                 @elseif($kyb->status === 'approved')
+                    <a href="{{ route('client.kyb.settings') }}" class="btn btn-outline-primary justify-content-end">
+                        <i class="bi bi-shield-check"></i> Verifikasi Bisnis (KYB)
+                    </a>
                     <div class="d-flex gap-1">
                         <span class="badge bg-success" style="padding: 0.5rem 0.8rem;" title="Pembayaran Otomatis Aktif">
                             <i class="bi bi-check-circle-fill"></i> Pivot Aktif

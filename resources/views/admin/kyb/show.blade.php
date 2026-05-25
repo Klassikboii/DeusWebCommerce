@@ -4,10 +4,11 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold">Detail Verifikasi: {{ $kyb->name }}</h4>
-        <span class="badge {{ $kyb->status == 'pending' ? 'bg-warning' : 'bg-success' }}">
+        <span class="badge {{ $kyb->status == 'pending' ? 'bg-warning text-dark' : ($kyb->status == 'approved' ? 'bg-success' : 'bg-danger') }}">
             Status: {{ strtoupper($kyb->status) }}
         </span>
     </div>
+
     @if (session('success'))
         <div class="alert alert-success fw-bold">{{ session('success') }}</div>
     @endif
@@ -25,100 +26,276 @@
     @endif
 
     <div class="row">
-       <div class="col-lg-7">
+        <div class="col-lg-7">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-header bg-white fw-bold">Data Lengkap Merchant (Untuk Form Pivot)</div>
                 <div class="card-body p-0">
-                    <table class="table table-sm table-striped mb-0">
+                    <table class="table table-sm table-striped mb-0 align-middle">
                         <tbody>
-                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2">Merchant Detail</td></tr>
+                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2 text-primary">Merchant Detail</td></tr>
+                            
                             <tr>
-                                <td width="35%" class="ps-3">Nama Merchant</td>
-                                <td>{{ $kyb->name }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->name }}')"><i class="bi bi-clipboard"></i></button></td>
+                                <td width="35%" class="ps-3 py-2 text-muted small">Nama Merchant <br>(Merchant Name)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong class="text-break">{{ $kyb->name }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->name) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
+                            
                             <tr>
-                                <td class="ps-3">Short Name</td>
-                                <td>{{ $kyb->short_name }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->short_name }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-                            {{-- 🚨 TAMPILKAN DESKRIPSI USAHA --}}
-                            <tr>
-                                <td class="ps-3">Deskripsi Usaha</td>
-                                <td>{{ $kyb->description }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->description }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Tipe & Struktur Bisnis</td>
-                                <td>{{ $kyb->business_type }} - <strong>{{ $kyb->business_structure }}</strong></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Industri (MCC)</td>
-                                <td><strong>{{ $kyb->mcc }} - {{ $kyb->mcc_name }}</strong> ({{ $kyb->parent_industry }} - {{ $kyb->child_industry }})</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Email & Telp Bisnis</td>
-                                <td>{{ $kyb->merchant_email }} | {{ $kyb->merchant_phone }}</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Website</td>
-                                <td><strong>{{ $kyb->website }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->website }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Deskripsi Usaha</td>
-                                <td>{{ $kyb->description }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->description }}')"><i class="bi bi-clipboard"></i></button></td>
+                                <td class="ps-3 py-2 text-muted small">Merchant Short Name</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->short_name }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->short_name) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
 
-                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2">Lokasi Operasional</td></tr>
+                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2 text-primary">Lokasi Operasional</td></tr>
+                            
                             <tr>
-                                <td class="ps-3">Provinsi & Kota</td>
-                                <td>{{ $kyb->province }}, {{ $kyb->city }}</td>
+                                <td class="ps-3 py-2 text-muted small">Negara Pendirian <br>(Country of Establishment)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->country_of_entity }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->country_of_entity) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
+                            
                             <tr>
-                                <td class="ps-3">Kecamatan (District ID)</td>
-                                <td><strong>{{ $kyb->district_id }} - {{ $kyb->district_name }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->district_id }} - {{ $kyb->district_name }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Alamat Lengkap</td>
-                                <td>{{ $kyb->address }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->address }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Kode Pos</td>
-                                <td>{{ $kyb->post_code }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->post_code }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-
-                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2">PIC Detail</td></tr>
-                            <tr>
-                                <td class="ps-3">Nama PIC</td>
-                                <td>{{ $kyb->pic_name }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->pic_name }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Jabatan</td>
-                                <td>{{ $kyb->pic_job_title ?? '-' }}</td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Email PIC</td>
-                                <td>{{ $kyb->pic_email }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->pic_email }}')"><i class="bi bi-clipboard"></i></button></td>
-                            </tr>
-                            <tr>
-                                <td class="ps-3">Telp PIC</td>
-                                <td>{{ $kyb->pic_phone }} <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->pic_phone }}')"><i class="bi bi-clipboard"></i></button></td>
+                                <td class="ps-3 py-2 text-muted small">Provinsi (Province)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->province }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->province) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
 
-                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2">Withdrawal Detail</td></tr>
                             <tr>
-                                <td class="ps-3">Bank Tujuan</td>
-                                <td><strong>{{ $kyb->bank_channel_code }}</strong></td>
+                                <td class="ps-3 py-2 text-muted small">Kota (City)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->city }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->city) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
+
                             <tr>
-                                <td class="ps-3">Nomor Rekening</td>
-                                <td><strong>{{ $kyb->bank_account_number }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->bank_account_number }}')"><i class="bi bi-clipboard"></i></button></td>
+                                <td class="ps-3 py-2 text-muted small">Kecamatan (District ID)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->district_id }} - {{ $kyb->district_name }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->district_name) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
-                            {{-- 🚨 TAMPILKAN NAMA PEMILIK REKENING (BENEFICIARY NAME) --}}
+
                             <tr>
-                                <td class="ps-3">Nama Pemilik Rekening</td>
-                                <td><strong>{{ $kyb->bank_account_name }}</strong> <button class="btn btn-sm btn-light py-0 px-1 border" onclick="copy('{{ $kyb->bank_account_name }}')"><i class="bi bi-clipboard"></i></button></td>
+                                <td class="ps-3 py-2 text-muted small">Alamat Lengkap <br> (Address Line)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong class="text-break">{{ $kyb->address }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->address) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
+
                             <tr>
-                                <td class="ps-3">Auto Withdrawal</td>
-                                <td><span class="badge {{ $kyb->auto_withdrawal == 'ON' ? 'bg-success' : 'bg-secondary' }}">{{ $kyb->auto_withdrawal }}</span></td>
+                                <td class="ps-3 py-2 text-muted small">Kode Pos <br> (Postal Code)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->post_code }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->post_code) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2 text-primary">Karakteristik Bisnis</td></tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Jenis Perdagangan<br> (Merchant Type)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->business_type }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->business_type) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">MCC (Industry)</td>
+                                <td class="py-2">
+                                <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->mcc }} - {{ $kyb->mcc_name }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->parent_industry) }} - {{ addslashes($kyb->child_industry) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                </button>
+                                    </div>
+                                </td>
+                                
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Jenis Industri (Industry Type)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->digital_status }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->digital_status) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Struktur Perdagangan (Merchant Structure)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->business_structure }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->business_structure) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Website</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong class="text-primary text-break">https://{{ $kyb->website }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('https://{{ addslashes($kyb->website) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Deskripsi Usaha <br> (Description)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong class="text-break">{{ $kyb->description }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->description) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Email & Telp Bisnis</td>
+                                <td class="py-2"><strong>{{ $kyb->merchant_email }} | {{ $kyb->merchant_phone }}</strong></td>
+                            </tr>
+
+                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2 text-primary">Withdrawal Detail</td></tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Bank Tujuan <br> (Bank Account)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->bank_channel_code }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->bank_channel_code) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Nomor Rekening <br>(Account Number)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->bank_account_number }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->bank_account_number) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Nama Pemilik Rekening <br> (Beneficiary Name)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->bank_account_name }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->bank_account_name) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Auto Withdrawal</td>
+                                <td class="py-2"><span class="badge {{ $kyb->auto_withdrawal == 'ON' ? 'bg-info text-dark' : 'bg-secondary' }}">{{ $kyb->auto_withdrawal }}</span></td>
+                            </tr>
+
+                            <tr><td colspan="2" class="bg-light fw-bold text-center py-2 text-primary">PIC Detail</td></tr>
+                            
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Nama PIC (PIC Name)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->pic_name }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->pic_name) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Email PIC (PIC Email)</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->pic_email }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->pic_email) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Jabatan</td>
+                                <td class="py-2"><strong>{{ $kyb->pic_job_title ?? '-' }}</strong></td>
+                            </tr>
+
+                            <tr>
+                                <td class="ps-3 py-2 text-muted small">Telp PIC</td>
+                                <td>
+                                    <div class="d-flex justify-content-between align-items-center pe-2">
+                                        <strong>{{ $kyb->pic_phone }}</strong>
+                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->pic_phone) }}')" title="Salin">
+                                            <i class="bi bi-clipboard"></i> Salin
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -127,45 +304,58 @@
         </div>
 
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm border-start border-primary border-4">
-                <div class="card-header bg-primary text-white fw-bold">Kredensial Produksi Pivot</div>
+            <div class="card border-0 shadow-sm border-start border-primary border-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-white fw-bold py-3">
+                    <i class="bi bi-gear-fill text-primary me-2"></i> Kredensial Produksi Pivot
+                </div>
                 <div class="card-body">
+                    
+                    {{-- FORM 1: Aksi Utama (Approve / Simpan Manual) --}}
                     <form action="{{ route('admin.kyb.approve', $kyb->id) }}" method="POST">
                         @csrf
                         
-                        <div class="d-grid mb-4">
-                            <button type="submit" name="action" value="auto" class="btn btn-primary fw-bold" formnovalidate>
-                                <i class="bi bi-lightning-charge-fill"></i> APPROVE & BUAT AKUN VIA API
-                            </button>
-                        </div>
+                        @if($kyb->status === 'pending')
+                            <div class="d-grid mb-4">
+                                <button type="submit" name="action" value="auto" class="btn btn-primary fw-bold py-2 shadow-sm" formnovalidate>
+                                    <i class="bi bi-lightning-charge-fill me-1"></i> APPROVE & BUAT AKUN VIA API
+                                </button>
+                            </div>
 
-                        <div class="position-relative mb-4">
-                            <hr>
-                            <span class="position-absolute top-50 start-50 translate-middle bg-white px-2 text-muted small">Atau Fallback Manual</span>
-                        </div>
+                            <div class="position-relative mb-4">
+                                <hr class="text-muted">
+                                <span class="position-absolute top-50 start-50 translate-middle bg-white px-2 text-muted small fw-bold">Atau Fallback Manual</span>
+                            </div>
+                        @endif
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Sub-Account ID (Dari Pivot)</label>
-                            <input type="text" name="pivot_sub_account_id" class="form-control" value="{{ $kyb->pivot_sub_account_id }}" required placeholder="Contoh: SA-XXXX-XXXX">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Merchant ID</label>
-                            <input type="text" name="merchant_id" class="form-control" value="{{ $kyb->merchant_id }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Merchant Secret</label>
-                            <input type="password" name="merchant_secret" class="form-control" value="{{ $kyb->merchant_secret }}" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Callback URL (Webhook)</label>
-                            <input type="text" name="callback_url" class="form-control" value="{{ $kyb->callback_url ?? 'https://' . ($kyb->website->domain ?? $kyb->website . '.ashop.asia') . '/pivot/webhook' }}">
+                            <label class="form-label small fw-bold text-muted">Merchant ID</label>
+                            <input type="text" name="merchant_id" class="form-control bg-light" value="{{ $kyb->merchant_id }}" {{ $kyb->status === 'approved' ? 'readonly' : 'required' }}>
                         </div>
                         
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" name="action" value="manual" class="btn btn-success fw-bold">SIMPAN KREDENSIAL MANUAL</button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmReject()">Tolak Pengajuan</button>
-                        </div>
+                        @if($kyb->status !== 'approved')
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" name="action" value="manual" class="btn btn-success fw-bold">
+                                    <i class="bi bi-save me-1"></i> SIMPAN KREDENSIAL MANUAL
+                                </button>
+                            </div>
+                        @endif
                     </form>
+
+                    {{-- FORM 2: Aksi Penolakan (Hanya muncul jika pending) --}}
+                    @if($kyb->status === 'pending')
+                        <hr class="my-4 text-muted">
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-outline-danger fw-bold" onclick="confirmReject()">
+                                <i class="bi bi-x-circle me-1"></i> Tolak Pengajuan
+                            </button>
+                        </div>
+                        
+                        {{-- Form Tersembunyi untuk Menolak --}}
+                        <form id="rejectForm" action="{{ route('admin.kyb.reject', $kyb->id) }}" method="POST" class="d-none">
+                            @csrf
+                        </form>
+                    @endif
+
                 </div>
             </div>
         </div>
@@ -173,9 +363,38 @@
 </div>
 
 <script>
-    function copy(text) {
-        navigator.clipboard.writeText(text);
-        alert('Teks berhasil disalin!');
+    // 1. FUNGSI COPY TEXT 
+    function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Teks berhasil disalin!');
+            }).catch(err => {
+                console.error('Gagal menyalin: ', err);
+            });
+        } else {
+            let textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Teks berhasil disalin!');
+            } catch (err) {
+                alert('Gagal menyalin teks.');
+            }
+            document.body.removeChild(textArea);
+        }
+    }
+
+    // 2. FUNGSI KONFIRMASI TOLAK
+    function confirmReject() {
+        if (confirm('Apakah Anda yakin ingin menolak pengajuan verifikasi ini? Status merchant akan berubah menjadi "Rejected" dan mereka harus mengajukan ulang.')) {
+            document.getElementById('rejectForm').submit();
+        }
     }
 </script>
 @endsection

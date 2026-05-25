@@ -63,20 +63,7 @@
                         </div>
                     </div>
 
-                    {{-- INFO REKENING --}}
-                    <div class="alert alert-info border-0 d-flex align-items-start gap-3">
-                        <i class="bi bi-bank fs-4"  style="color: var(--primary-color);"></i>
-                        <div>
-                            <p class="mb-1 small text-muted">Silakan transfer ke:</p>
-                            @if($website->bank_name && $website->bank_account_number)
-                                <h6 class="fw-bold mb-0 text-uppercase">{{ $website->bank_name }}</h6>
-                                <div class="fs-5 fw-bold mb-1 font-monospace">{{ $website->bank_account_number }}</div>
-                                <div class="small">a.n {{ $website->bank_account_name }}</div>
-                            @else
-                                <strong class="text-danger small">Belum ada info rekening. Hubungi Admin.</strong>
-                            @endif
-                        </div>
-                    </div>
+                    
 
                     {{-- 
                         === LOGIKA TAMPILAN UTAMA === 
@@ -161,13 +148,27 @@
                         {{-- OPSI 2: FORM UPLOAD MANUAL (Database) --}}
                         
                         {{-- Peringatan Re-Upload --}}
-                        @if($order->payment_proof && $order->status == 'pending')\
+                        @if($order->payment_proof && $order->status == 'pending')
                         <div class="text-center text-muted mb-4 fw-bold">--- ATAU MANUAL ---</div>
+                        {{-- INFO REKENING --}}
+                    
                             <div class="alert alert-warning text-center small py-2 mb-3">
                                 <i class="bi bi-info-circle me-1"></i> Bukti sebelumnya sedang dicek. Anda boleh upload ulang jika perlu revisi.
                             </div>
                         @endif
-
+                        <div class="alert alert-info border-0 d-flex align-items-start gap-3">
+                        <i class="bi bi-bank fs-4"  style="color: var(--primary-color);"></i>
+                        <div>
+                            <p class="mb-1 small text-muted">Silakan transfer ke:</p>
+                            @if($website->bank_name && $website->bank_account_number)
+                                <h6 class="fw-bold mb-0 text-uppercase">{{ $website->bank_name }}</h6>
+                                <div class="fs-5 fw-bold mb-1 font-monospace">{{ $website->bank_account_number }}</div>
+                                <div class="small">a.n {{ $website->bank_account_name }}</div>
+                            @else
+                                <strong class="text-danger small">Belum ada info rekening. Hubungi Admin.</strong>
+                            @endif
+                        </div>
+                    </div>
                         <form action="{{ route('store.payment.confirm', [ 'order_number' => $order->order_number]) }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             
