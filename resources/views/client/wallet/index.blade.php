@@ -32,38 +32,49 @@
         <div class="col-md-5 mb-4">
             <div class="card shadow-sm border-0">
                 <div class="card-body">
-                    <h5 class="text-muted mb-2">Saldo Tersedia</h5>
+                    <h5 class="text-muted mb-2">Saldo Aktif (Siap Tarik)</h5>
                     <h1 class="text-success fw-bold mb-4">
-                        Rp {{ number_format($website->wallet_balance, 0, ',', '.') }}
+                        {{-- 🚨 BACA DARI VARIABEL PIVOT API ($activeBalance) --}}
+                        Rp {{ number_format($activeBalance, 0, ',', '.') }}
                     </h1>
 
                     <hr>
                     <h6 class="mb-3 fw-bold">Tarik Dana ke Rekening</h6>
                     
-                    @if(empty($website->bank_name) || empty($website->bank_account_number))
+                    {{-- 🚨 CEK STATUS KYB (BUKAN LAGI TABEL WEBSITE) --}}
+                    @if(empty($kyb) || $kyb->status !== 'approved')
                         <div class="alert alert-warning text-sm">
-                            ⚠️ Silakan lengkapi data rekening bank Anda di menu Pengaturan Toko untuk dapat menarik dana.
+                            <i class="bi bi-exclamation-triangle me-1"></i> Silakan lengkapi Verifikasi Bisnis (KYB) Anda terlebih dahulu untuk mengaktifkan pencairan dana.
+                            <br><a href="{{ route('client.kyb.settings') }}" class="btn btn-sm btn-dark mt-2">Cek Status KYB</a>
                         </div>
                     @else
                         <div class="bg-light p-3 rounded mb-3 text-sm">
-                            <strong>Bank Tujuan:</strong> {{ $website->bank_name }}<br>
-                            <strong>No. Rekening:</strong> {{ $website->bank_account_number }}<br>
-                            <strong>Atas Nama:</strong> {{ $website->bank_account_holder }}
+                            {{-- 🚨 BACA DATA REKENING DARI TABEL KYB --}}
+                            <strong>Bank Tujuan:</strong> {{ $kyb->bank_channel_code }}<br>
+                            <strong>No. Rekening:</strong> {{ $kyb->bank_account_number }}<br>
+                            <strong>Atas Nama:</strong> {{ $kyb->bank_account_name }}
                         </div>
 
-                        <form action="{{ route('client.wallet.withdraw', $website) }}" method="POST">
-                            @csrf
-                            <div class="form-group mb-3">
-                                <label for="amount">Nominal Penarikan (Min. Rp 50.000)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="number" class="form-control" name="amount" id="amount" min="50000" max="{{ $website->wallet_balance }}" required placeholder="Contoh: 150000">
-                                </div>
+                        {{-- PERINGATAN AUTO-WITHDRAWAL --}}
+                        @if($kyb->auto_withdrawal === 'ON')
+                            <div class="alert alert-info text-sm mb-3">
+                                <i class="bi bi-info-circle me-1"></i> Mode <strong>Auto-Withdrawal</strong> aktif. Saldo Anda akan otomatis ditransfer ke rekening di atas setiap hari kerja tanpa perlu ditarik manual.
                             </div>
-                            <button type="submit" class="btn btn-primary w-100" {{ $website->wallet_balance < 50000 ? 'disabled' : '' }}>
-                                Ajukan Pencairan
-                            </button>
-                        </form>
+                        @else
+                            <form action="{{ route('client.wallet.withdraw', $website) }}" method="POST">
+                                @csrf
+                                <div class="form-group mb-3">
+                                    <label for="amount" class="small fw-bold">Nominal Penarikan (Min. Rp 50.000)</label>
+                                    <div class="input-group mt-1">
+                                        <span class="input-group-text">Rp</span>
+                                        <input type="number" class="form-control" name="amount" id="amount" min="50000" max="{{ $activeBalance }}" required placeholder="Contoh: 150000">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100 fw-bold" {{ $activeBalance < 50000 ? 'disabled' : '' }}>
+                                    <i class="bi bi-wallet2 me-1"></i> Ajukan Pencairan
+                                </button>
+                            </form>
+                        @endif
                     @endif
                 </div>
             </div>

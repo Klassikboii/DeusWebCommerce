@@ -13,48 +13,108 @@ use App\Models\AccurateIntegration;
 
 class WebhookController extends Controller
 {
-public function handlePivotWebhook(Request $request)
+    public function handlePivotWebhook(Request $request)
     {
         $payload = $request->all();
-        Log::info('📥 WEBHOOK PIVOT MASUK:', $payload);
-        Log::info('🔍 SEMUA HEADER PIVOT:', $request->headers->all());
+        $event = $payload['event'] ?? ''; 
 
-        // 1. Jaring Pengaman: Cari Nomor Pesanan (Pivot v2 menggunakan clientReferenceId)
+        \Illuminate\Support\Facades\Log::info('📥 WEBHOOK PIVOT MASUK:', $payload);
+
+        // =========================================================================
+        // 🚨 1. EKSTRAK ID TRANSAKSI DENGAN BENAR (TERMASUK UNTUK WITHDRAWAL)
+        // =========================================================================
         $orderNumber = $request->input('clientReferenceId') 
                     ?? $request->input('data.clientReferenceId') 
+                    ?? $request->input('data.withdrawal.referenceId') // 🚨 FIX: Ambil ID khusus dari objek Withdrawal
                     ?? $request->input('referenceId');
 
-        // =========================================================================
-        // 🚨 DETEKSI PING / URL VALIDATION DARI DASHBOARD PIVOT 🚨
-        // =========================================================================
+        // Deteksi Ping / Empty ID
         if (empty($orderNumber) || str_contains(strtoupper($orderNumber), 'TEST')) {
-            Log::info("Merespons Ping/Tes Koneksi dari Dashboard Pivot.");
+            \Illuminate\Support\Facades\Log::info("Merespons Ping/Tes Koneksi dari Dashboard Pivot.");
             return response()->json(['status' => 'success', 'message' => 'Webhook URL Verified'], 200);
         }
 
-        // 2. Ambil Order beserta relasi yang dibutuhkan untuk Accurate dan Restock
-        $order = Order::with(['items.product', 'items.variant', 'website.accurateIntegration'])
+        // =========================================================================
+        // 🚨 2. JALUR KHUSUS: TRANSAKSI PENCAIRAN DANA (WITHDRAWAL)
+        // =========================================================================
+        if (str_starts_with($event, 'WITHDRAW.')) {
+            // Validasi Signature
+            $apiKeyFromPivot = $request->header('x-api-key'); 
+            if ($apiKeyFromPivot !== env('PIVOT_CALLBACK_KEY')) {
+                \Illuminate\Support\Facades\Log::error("Webhook Withdrawal Ditolak: Invalid Signature");
+                return response()->json(['status' => 'error', 'message' => 'Invalid Signature'], 403);
+            }
+
+            $status = $payload['data']['status'] ?? null; // SUCCESS / FAILED
+
+            // Cari data penarikan di tabel withdrawals
+            $withdrawal = \App\Models\Withdrawal::where('reference_id', $orderNumber)->first();
+
+            if ($withdrawal) {
+                // A. JIKA STATUS BERUBAH MENJADI SUKSES DARI PENDING
+                if ($status === 'SUCCESS' && $withdrawal->status === 'pending') {
+                    $withdrawal->update(['status' => 'approved']);
+                    
+                    \App\Models\WalletMutation::create([
+                        'website_id' => $withdrawal->website_id,
+                        'amount' => $withdrawal->amount,
+                        'type' => 'debit',
+                        'description' => "Pencairan dana manual ke rekening {$withdrawal->bank_name} sukses."
+                    ]);
+                    \Illuminate\Support\Facades\Log::info("✅ Withdrawal {$orderNumber} SUKSES via Webhook.");
+                } 
+                
+                // B. JIKA STATUS DITOLAK BANK (FAILED)
+                elseif ($status === 'FAILED' && $withdrawal->status !== 'rejected') {
+                    // Cek apakah sebelumnya statusnya sudah terlanjur "approved" (Saldo sudah dipotong)
+                    $wasApproved = ($withdrawal->status === 'approved');
+
+                    // Ubah jadi Ditolak
+                    $withdrawal->update([
+                        'status' => 'rejected',
+                        'admin_note' => 'Penarikan digagalkan oleh pihak Bank (Rekening tidak valid/Downstream Error).'
+                    ]);
+
+                    // 🚨 FITUR REFUND OTOMATIS: Jika saldo telanjur dipotong, kembalikan uangnya!
+                    if ($wasApproved) {
+                        \App\Models\WalletMutation::create([
+                            'website_id' => $withdrawal->website_id,
+                            'amount' => $withdrawal->amount,
+                            'type' => 'credit', // Credit = Uang masuk kembali
+                            'description' => "Refund pengembalian dana karena pencairan ditolak oleh Bank."
+                        ]);
+                        \Illuminate\Support\Facades\Log::info("🔄 Mutasi Refund (Pengembalian Saldo) dibuat untuk {$orderNumber}.");
+                    } else {
+                        \Illuminate\Support\Facades\Log::info("❌ Withdrawal {$orderNumber} FAILED ditolak oleh Bank.");
+                    }
+                }
+            }
+            
+            return response()->json(['status' => 'success', 'message' => 'Withdrawal Webhook Processed'], 200);
+        }
+
+        // =========================================================================
+        // 🚨 3. JALUR NORMAL: TRANSAKSI PEMBAYARAN PESANAN PEMBELI (PAYMENT)
+        // =========================================================================
+        $order = \App\Models\Order::with(['items.product', 'items.variant', 'website.accurateIntegration'])
                       ->where('order_number', $orderNumber)
                       ->first();
         
         if (!$order) {
-            Log::error("Webhook Gagal: Pesanan {$orderNumber} tidak ditemukan di DB.");
-            // Kembalikan 200 agar Pivot tidak melakukan retry berulang kali untuk order yang sudah terhapus
+            \Illuminate\Support\Facades\Log::error("Webhook Gagal: Pesanan {$orderNumber} tidak ditemukan di DB.");
             return response()->json(['status' => 'error', 'message' => "Order not found: {$orderNumber}"], 200);
         }
 
         $website = $order->website;
 
-        // 3. Panggil PivotService dengan konteks Toko (Website)
+        // Panggil PivotService dengan konteks Toko (Website)
         $paymentService = new \App\Services\Payment\PivotService($website);
         $result = $paymentService->handleWebhook($request);
 
-        // 4. Keamanan: Cek apakah validasi header x-api-key lolos
         if (!$result['is_valid']) {
-            Log::error("Webhook Ditolak: Invalid Signature untuk order {$orderNumber}");
+            \Illuminate\Support\Facades\Log::error("Webhook Ditolak: Invalid Signature untuk order {$orderNumber}");
             return response()->json(['status' => 'error', 'message' => 'Invalid Signature'], 403);
         }
-
         // ==========================================
         // SKENARIO 1: PEMBAYARAN SUKSES
         // ==========================================
@@ -69,7 +129,7 @@ public function handlePivotWebhook(Request $request)
                     'payment_proof'  => 'otomatis_gateway_verified', 
                 ]);
                 
-                OrderHistory::create([
+                \App\Models\OrderHistory::create([
                     'order_id' => $order->id,
                     'status'   => 'processing',
                     'note'     => "Pembayaran lunas via Pivot ({$result['payment_method']}) otomatis diverifikasi."
@@ -78,7 +138,7 @@ public function handlePivotWebhook(Request $request)
                 // Integrasi Accurate
                 try {
                     if ($website->accurateIntegration && $website->accurateIntegration->access_token) {
-                        $accurateService = new AccurateService($website);
+                        $accurateService = new \App\Services\AccurateService($website);
                         $invoiceCreated = $accurateService->syncSalesInvoice($order);
                         
                         if ($invoiceCreated) {
@@ -99,7 +159,7 @@ public function handlePivotWebhook(Request $request)
                 
                 $order->update(['status' => 'cancelled']);
                 
-                OrderHistory::create([
+                \App\Models\OrderHistory::create([
                     'order_id' => $order->id,
                     'status'   => 'cancelled',
                     'note'     => "Pembayaran gagal/expired oleh sistem. Stok dikembalikan otomatis."

@@ -48,7 +48,7 @@ class PivotService implements PaymentGatewayInterface
 
    // 🚨 UBAH FUNGSI INI: Beri parameter penentu (Apakah ini Master?)
  // Tidak perlu lagi parameter $useMasterKey
-    private function getAccessToken()
+    public function getAccessToken()
     {
         try {
             // 🚨 PALU GODAM: Hardcode URL di sini agar mustahil dibaca kosong
@@ -302,5 +302,49 @@ class PivotService implements PaymentGatewayInterface
         }
 
         throw new \Exception('Pivot API Error: ' . $response->body());
+    }
+    /**
+     * Mengambil Saldo (Balance) dari Sub-Account Pivot
+     */
+    public function getSubAccountBalance($merchantId)
+    {
+        $accessToken = $this->getAccessToken();
+
+        if (!$accessToken) {
+            \Illuminate\Support\Facades\Log::error("Gagal mendapatkan Access Token untuk Cek Saldo Merchant ID: {$merchantId}");
+            return 0; // Kembalikan 0 jika gagal
+        }
+
+        try {
+            // Gunakan Staging URL
+            $url = 'https://api-stg.pivot-payment.com/v1/balances';
+            
+            $response = Http::withToken($accessToken)
+                ->withHeaders([
+                    'X-MERCHANT-ID' => $this->masterClientId,
+                    'x-submerchant-id' => trim($merchantId), // 🚨 INI KUNCI UTAMANYA!
+                    'Accept' => 'application/json',
+                ])
+                ->get($url, [
+                    'usecase' => 'PAYMENT' // Fokus ke saldo hasil transaksi payment
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Pivot mengembalikan nilai dalam string (misal: "135775256.00")
+                $balanceString = $data['data']['availableBalance']['value'] ?? '0';
+                
+                // Konversi ke integer/float
+                return (float) $balanceString; 
+            }
+
+            \Illuminate\Support\Facades\Log::error("Pivot Get Balance Error: " . $response->body());
+            return 0;
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Koneksi Pivot Balance Gagal: ' . $e->getMessage());
+            return 0;
+        }
     }
 }
