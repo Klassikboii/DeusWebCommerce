@@ -102,13 +102,15 @@ public function withdraw(Request $request, Website $website)
             ];
 
             $accessToken = $this->pivotService->getAccessToken(); 
+            // 🚨 Panggil Base URL dari .env
+            $pivotBaseUrl = env('PIVOT_BASE_URL', 'https://api.pivot-payment.com');
             
             $pivotResponse = \Illuminate\Support\Facades\Http::withToken($accessToken)
                 ->withHeaders([
                     'X-MERCHANT-ID' => env('PIVOT_CLIENT_KEY'),
                     'x-submerchant-id' => trim($kyb->merchant_id),
                     'Content-Type' => 'application/json',
-                ])->post('https://api.pivot-payment.com/v1/withdrawals', $payload);
+                ])->post($pivotBaseUrl . '/v1/withdrawals', $payload); // 🚨 Gunakan variabel di sini
 
             if ($pivotResponse->successful()) {
                 $responseBody = $pivotResponse->json();
