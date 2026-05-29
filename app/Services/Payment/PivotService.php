@@ -28,7 +28,8 @@ class PivotService implements PaymentGatewayInterface
         $this->website = $website;
         // $this->baseUrl = 'https://api.pivot-payment.com';
         // 🚨 FIX: Wajib menggunakan $this-> agar bisa dibaca oleh fungsi lain!
-        $this->baseUrl = 'https://api-stg.pivot-payment.com';
+        // $this->baseUrl = 'https://api-stg.pivot-payment.com';
+        $this->baseUrl = 'https://api.pivot-payment.com';
 
         // 1. Simpan Kunci Master secara permanen dari .env
         $this->masterClientId = env('PIVOT_CLIENT_KEY');
@@ -52,7 +53,7 @@ class PivotService implements PaymentGatewayInterface
     {
         try {
             // 🚨 PALU GODAM: Hardcode URL di sini agar mustahil dibaca kosong
-            $baseUrl = 'https://api-stg.pivot-payment.com';
+            $baseUrl = 'https://api.pivot-payment.com';
             $url = $baseUrl . '/v1/access-token';
             
             $response = Http::timeout(30)->withHeaders([
@@ -96,9 +97,9 @@ class PivotService implements PaymentGatewayInterface
         $totalBayar = (int) ($order->total_amount);
         $returnUrl = url()->route('store.payment', ['order_number' => $order->order_number]);
         // 🚨 GANTI DENGAN URL NGROK ANDA YANG SEDANG JALAN
-        $ngrokUrl = 'https://nontraversable-magan-nonpulsating.ngrok-free.dev'; // <-- Isi dengan URL Ngrok asli Anda!
-        $webhookUrl = $ngrokUrl . '/pivot/webhook';
-
+        // $ngrokUrl = 'https://nontraversable-magan-nonpulsating.ngrok-free.dev'; // <-- Isi dengan URL Ngrok asli Anda!
+        // $webhookUrl = $ngrokUrl . '/pivot/webhook';
+        $webhookUrl = config('app.url') . '/pivot/webhook';
         // Merakit Payload sesuai format v2/payments Pivot
         $payload = [
             'clientReferenceId' => $order->order_number,
@@ -287,7 +288,7 @@ class PivotService implements PaymentGatewayInterface
         }
 
         // 🚨 HARDCODE URL LANGSUNG DI SINI JUGA
-        $stagingUrl = 'https://api-stg.pivot-payment.com';
+        $stagingUrl = 'https://api.pivot-payment.com';
 
         $response = Http::withToken($accessToken) 
             ->withHeaders([
@@ -317,7 +318,7 @@ class PivotService implements PaymentGatewayInterface
 
         try {
             // Gunakan Staging URL
-            $url = 'https://api-stg.pivot-payment.com/v1/balances';
+            $url = 'https://api.pivot-payment.com/v1/balances';
             
             $response = Http::withToken($accessToken)
                 ->withHeaders([

@@ -108,7 +108,7 @@ public function withdraw(Request $request, Website $website)
                     'X-MERCHANT-ID' => env('PIVOT_CLIENT_KEY'),
                     'x-submerchant-id' => trim($kyb->merchant_id),
                     'Content-Type' => 'application/json',
-                ])->post('https://api-stg.pivot-payment.com/v1/withdrawals', $payload);
+                ])->post('https://api.pivot-payment.com/v1/withdrawals', $payload);
 
             if ($pivotResponse->successful()) {
                 $responseBody = $pivotResponse->json();
