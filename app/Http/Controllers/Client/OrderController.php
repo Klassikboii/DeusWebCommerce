@@ -214,7 +214,11 @@ public function update(Request $request, Website $website, Order $order)
         'status' => $request->status,
         'note' => $note, 
     ]);
-
+    // Catat log
+    \App\Models\UserActivity::log(
+        'update_order', 
+        "Memperbarui status pesanan: {$order->id} menjadi {$request->status}"
+    );
     return redirect()->back()->with('success', 'Status pesanan berhasil diperbarui!');
 }
     

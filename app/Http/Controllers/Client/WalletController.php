@@ -136,6 +136,12 @@ public function withdraw(Request $request, Website $website)
                 }
 
                 \Illuminate\Support\Facades\DB::commit();
+
+                // Catat log
+                \App\Models\UserActivity::log(
+                    'withdraw', 
+                    "Melakukan Withdrawal: {$pesanStatus}"
+                );
                 return redirect()->back()->with('success', $pesanStatus);
             }
 

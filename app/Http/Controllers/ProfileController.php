@@ -36,6 +36,10 @@ class ProfileController extends Controller
             'bank_account_number' => $request->bank_account_number,
             'bank_account_name' => $request->bank_account_name,
         ]);
+        \App\Models\UserActivity::log(
+        'update_profile', 
+        "Memperbarui profil: {$user->name} ({$user->email}) dengan bank: {$user->bank_name}, nomor rekening: {$user->bank_account_number}, atas nama: {$user->bank_account_name})"
+    );
 
         return back()->with('success', 'Profil berhasil diupdate.');
     }

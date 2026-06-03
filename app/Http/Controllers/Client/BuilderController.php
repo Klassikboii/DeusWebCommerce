@@ -122,7 +122,11 @@ class BuilderController extends Controller
         }
 
         $website->save();
-
+     // Catat log
+    \App\Models\UserActivity::log(
+        'update_website_frontend', 
+        "Memperbarui frontend toko: {$website->name}"
+    );
         return back()->with('success', 'Perubahan berhasil disimpan!');
     }
     // Fungsi khusus untuk menerima upload gambar via AJAX

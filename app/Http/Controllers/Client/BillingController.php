@@ -50,6 +50,11 @@ class BillingController extends Controller
             'status' => 'pending',
             'proof_image' => $request->file('proof_image')->store('payment_proofs', 'public'),
         ]);
+            // Catat log
+    \App\Models\UserActivity::log(
+        'create_billing_transaction', 
+        "Membuat transaksi billing: {$website->name} membeli paket {$package->name} seharga Rp " . number_format($package->price, 0, ',', '.')
+    );
 
         return redirect()->back()->with('success', 'Bukti pembayaran dikirim! Mohon tunggu verifikasi Admin.');
     }

@@ -70,6 +70,12 @@ class SettingController extends Controller
 
         $website->update($data);
 
+        // Catat log
+        \App\Models\UserActivity::log(
+            'update_website_settings',
+            "Memperbarui pengaturan toko: {$website->name}"
+        );
+
         return redirect()->back()->with('success', 'Identitas toko berhasil diperbarui.');
     }
     public function updatePayment(Request $request, \App\Models\Website $website)
@@ -180,6 +186,11 @@ class SettingController extends Controller
                 'auto_withdrawal' => $request->has('auto_withdrawal') ? 'ON' : 'OFF',
             ])
         );
+        // Catat log
+    \App\Models\UserActivity::log(
+        'update_kyb_details', 
+        "Memperbarui detail KYB untuk toko: {$website->name}"
+    );
 
         return redirect()->back()->with('success', 'Data verifikasi berhasil dikirim. Kami akan meninjau pengajuan Anda segera.');
     }

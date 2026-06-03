@@ -128,6 +128,7 @@ class ProductController extends Controller
         // // ----------------------------------------------------------
 
         $categories = $website->categories;
+    
         return view('client.products.create', compact('website', 'categories'));
     }
     public function store(Request $request, Website $website)
@@ -618,6 +619,7 @@ public function update(Request $request, Website $website, Product $product)
         if ($product->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($product->image)) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
         }
+        
         $product->delete();
 
         return redirect()->back()->with('success', 'Produk berhasil dihapus permanen.');

@@ -41,6 +41,11 @@ class ShippingController extends Controller
             'min_day' => $request->min_day,
             'max_day' => $request->max_day,
         ]);
+             // Catat log
+    \App\Models\UserActivity::log(
+        'store_shipping_rate',
+        "Menambahkan ongkos kirim: {$request->origin_city} -> {$request->destination_city} ({$request->courier_name} - {$request->service_name}) Rp {$request->rate_per_kg}/kg"
+    );
 
         return back()->with('success', 'Ongkos kirim berhasil ditambahkan.');
     }
@@ -49,6 +54,11 @@ class ShippingController extends Controller
     {
         $this->authorize('update', $website);
         if($rate->website_id !== $website->id) abort(403);
+         // Catat log
+    \App\Models\UserActivity::log(
+        'delete_shipping_rate',
+        "Menghapus ongkos kirim: {$rate->origin_city} -> {$rate->destination_city} ({$rate->courier_name} - {$rate->service_name})"
+    );
         $rate->delete();
         return back()->with('success', 'Data ongkir dihapus.');
     }
@@ -60,6 +70,11 @@ class ShippingController extends Controller
         
         // Hapus semua ongkir milik website ini
         $website->shippingRates()->delete();
+             // Catat log
+    \App\Models\UserActivity::log(
+        'delete_shipping_rate_bulk', 
+        "Menghapus seluruh data ongkos kirim untuk toko {$website->name} (ID: {$website->id})"
+    );
 
         return back()->with('success', 'Semua data ongkos kirim berhasil dikosongkan.');
     }
@@ -113,6 +128,11 @@ class ShippingController extends Controller
             'min_day' => $request->min_day,
             'max_day' => $request->max_day,
         ]);
+             // Catat log
+    \App\Models\UserActivity::log(
+        'update_shipping_rate',
+        "Memperbarui ongkos kirim: {$rate->origin_city} -> {$rate->destination_city} ({$rate->courier_name} - {$rate->service_name})"
+    );
 
         return back()->with('success', 'Ongkos kirim berhasil diperbarui.');
     }
@@ -169,6 +189,11 @@ class ShippingController extends Controller
             
             DB::commit();
             fclose($handle);
+                 // Catat log
+            \App\Models\UserActivity::log(
+                'import_shipping_rates', 
+                "Mengimpor data ongkos kirim untuk toko {$website->name} (ID: {$website->id}). Jumlah data: {$count}"
+            );
             return back()->with('success', "Import berhasil! {$count} data tarif ditambahkan.");
 
         } catch (\Exception $e) {
@@ -189,6 +214,11 @@ class ShippingController extends Controller
         $website->update([
             'active_couriers' => $request->input('active_couriers', [])
         ]);
+             // Catat log
+    \App\Models\UserActivity::log(
+        'update_active_couriers', 
+        "Memperbarui daftar kurir otomatis untuk toko {$website->name} (ID: {$website->id}). Kurir aktif: " . implode(', ', $request->input('active_couriers', []))
+    );
 
         return redirect()->back()->with('success', 'Daftar kurir otomatis berhasil diperbarui.');
     }

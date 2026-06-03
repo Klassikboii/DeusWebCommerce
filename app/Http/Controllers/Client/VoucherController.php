@@ -52,6 +52,7 @@ class VoucherController extends Controller
             'target_rfm_segment' => $request->target_rfm_segment,
             'is_active' => $request->has('is_active'),
         ]);
+        
 
         return redirect()->route('client.vouchers.index', $website->id)
             ->with('success', 'Voucher baru berhasil ditambahkan!');

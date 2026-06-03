@@ -29,6 +29,11 @@ class SeoController extends Controller
             'meta_description' => $request->meta_description,
             'meta_keywords' => $request->meta_keywords,
         ]);
+             // Catat log
+        \App\Models\UserActivity::log(
+            'update_seo', 
+            "Memperbarui konfigurasi SEO untuk toko: {$website->name}"
+        );
 
         return redirect()->back()->with('success', 'Konfigurasi SEO berhasil disimpan!');
     }

@@ -42,6 +42,12 @@ class ShippingMarkupController extends Controller
                 'markup_value' => $request->markup_value
             ]
         );
+             // Catat log
+    \App\Models\UserActivity::log(
+        'store_markup',
+         "Menambahkan/ memperbarui markup ongkir untuk kota ID: {$request->city_id} dengan tipe: {$request->markup_type} dan nilai: {$request->markup_value}"
+        
+    );
 
         return redirect()->back()->with('success', 'Aturan keuntungan ongkir berhasil disimpan!');
     }
@@ -50,6 +56,12 @@ class ShippingMarkupController extends Controller
     public function destroy(Website $website, $id)
     {
         $markup = ShippingMarkup::where('website_id', $website->id)->findOrFail($id);
+
+             // Catat log
+            \App\Models\UserActivity::log(
+                'delete_markup', 
+                "Menghapus markup: {$markup->id} untuk kota ID: {$markup->city_id}"
+            );
         $markup->delete();
 
         return redirect()->back()->with('success', 'Aturan keuntungan ongkir berhasil dihapus!');

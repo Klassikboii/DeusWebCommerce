@@ -40,9 +40,9 @@
             </a>
             
 
-            <a href="{{ route('admin.withdrawals.index') }}" class="nav-link {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
+            {{-- <a href="{{ route('admin.withdrawals.index') }}" class="nav-link {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
                 <i class="bi bi-cash-coin"></i> Penarikan Dana
-            </a>
+            </a> --}}
             <a href="{{ route('admin.kyb.index') }}" class="nav-link {{ request()->routeIs('admin.kyb.*') ? 'active' : '' }}">
                 <i class="bi bi-person-lines-fill"></i> Pengajuan Pivot
             </a>

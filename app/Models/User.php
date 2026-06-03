@@ -60,4 +60,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(MerchantKybDetail::class);
     }
+    // Tambahkan relasi ini di dalam class User
+    public function loginHistories()
+    {
+        return $this->hasMany(LoginHistory::class)->latest(); // Otomatis urut dari terbaru
+    }
 }

@@ -57,12 +57,22 @@ class PostController extends Controller
             'image' => $imagePath,
             'status' => 'published',
         ]);
+        // Catat log
+            \App\Models\UserActivity::log(
+                'create_post', 
+                "Membuat artikel baru: {$request->title}"
+            );
 
         return redirect()->route('client.posts.index', $website->id)->with('success', 'Artikel berhasil diterbitkan');
     }
 
     public function destroy(Website $website, Post $post)
     {
+             // Catat log
+    \App\Models\UserActivity::log(
+        'delete_post', 
+        "Menghapus artikel: {$post->title}"
+    );
         if ($post->website_id !== $website->id) abort(403);
         
         if ($post->image && Storage::disk('public')->exists($post->image)) {
@@ -70,6 +80,8 @@ class PostController extends Controller
         }
         
         $post->delete();
+
+   
         return redirect()->back()->with('success', 'Artikel dihapus');
     }
 
@@ -110,6 +122,11 @@ class PostController extends Controller
         }
 
         $post->update($data);
+             // Catat log
+    \App\Models\UserActivity::log(
+        'update_post', 
+        "Memperbarui artikel: {$post->title}"
+    );
 
         return redirect()->route('client.posts.index', $website->id)->with('success', 'Artikel berhasil diperbarui');
     }

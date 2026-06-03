@@ -77,6 +77,11 @@ class DomainController extends Controller
         }
 
         $website->save();
+        // Catat log
+        \App\Models\UserActivity::log(
+            'update_domain', 
+            "Memperbarui domain toko: {$website->subdomain}.ashop.asia" . ($website->custom_domain ? " → {$website->custom_domain}" : " (tanpa custom domain)")
+        );
 
         return back()->with('success', 'Identitas domain toko berhasil diperbarui!');
     }
@@ -96,6 +101,12 @@ class DomainController extends Controller
             // 'domain_status' => 'none' // Uncomment jika masih menggunakan kolom ini
         ]);
         
+        // Catat log
+        \App\Models\UserActivity::log(
+            'update_domain', 
+            "Menghapus domain custom: {$website->subdomain}.ashop.asia" . ($website->custom_domain ? " → {$website->custom_domain}" : " (tanpa custom domain)")
+        );
+
         return redirect()->back()->with('success', 'Custom domain dihapus. Website kembali ke subdomain.');
     }
 
