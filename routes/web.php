@@ -83,6 +83,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/api/pivot/industries', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchIndustries'])->name('api.pivot.industries');
         Route::get('/api/pivot/districts', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchDistricts'])->name('api.pivot.districts');
         Route::get('/api/pivot/banks', [\App\Http\Controllers\Client\PivotReferenceController::class, 'searchBanks'])->name('api.pivot.banks');
+        Route::get('/pivot/countries', [\App\Http\Controllers\Client\PivotReferenceController::class, 'getCountries'])->name('api.pivot.countries');
     // 3. Dashboard Admin Toko (CMS)
     Route::prefix('manage/{website}')
     ->middleware(['auth', App\Http\Middleware\CheckSubscription::class])

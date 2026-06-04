@@ -309,7 +309,8 @@ class ProductController extends Controller
                 $alertType = 'warning';
                 $alertMessage = 'Produk tersimpan, namun sinkronisasi Accurate gagal (Cek SKU/Koneksi).';
             }
-
+            $tipe = $hasVariants ? 'beserta variannya' : 'satuan';
+            \App\Models\UserActivity::log('create_product', "Menambahkan produk baru {$tipe}: {$request->name}");
             // 🚨 RETURN DENGAN VARIABEL DINAMIS
             return redirect()->route('client.products.index', $website->id)
                 ->with($alertType, $alertMessage);
@@ -579,7 +580,7 @@ public function update(Request $request, Website $website, Product $product)
                     $alertMessage = 'Produk diperbarui, namun sinkronisasi Accurate gagal (Cek SKU/Koneksi).';
                 }
             }
-
+            \App\Models\UserActivity::log('update_product', "Memperbarui data/harga produk: {$request->name}");
             // 🚨 RETURN DENGAN VARIABEL DINAMIS
             return redirect()->route('client.products.index', $website->id)
                 ->with($alertType, $alertMessage);
@@ -619,7 +620,8 @@ public function update(Request $request, Website $website, Product $product)
         if ($product->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($product->image)) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
         }
-        
+        $namaProduk = $product->name; // Ambil namanya dulu
+        \App\Models\UserActivity::log('delete_product', "Menghapus permanen produk: {$namaProduk}");
         $product->delete();
 
         return redirect()->back()->with('success', 'Produk berhasil dihapus permanen.');
@@ -719,8 +721,9 @@ public function syncAccurate(Request $request, $websiteId)
     // Panggil Mesin Penyedot Data
     $accurateService = new AccurateService($website);
     $success = $accurateService->syncProductsFromAccurate();
-
+    
     if ($success) {
+        \App\Models\UserActivity::log('update_product', "Menarik pembaruan massal (stok & harga) dari Accurate Online.");
         return back()->with('success', 'Sinkronisasi berhasil! Data produk (Harga, Stok, dan Status) telah diperbarui sesuai dengan Accurate Online.');
     } else {
         return back()->with('error', 'Gagal menarik data dari Accurate. Silakan cek log sistem atau pastikan koneksi API valid.');
@@ -863,7 +866,8 @@ public function destroyAll(Request $request, $websiteId)
 
             // Hitung ulang jumlah produk aktif untuk memperbarui angka di UI
             $newActiveCount = $website->products()->where('is_active', true)->count();
-
+            $statusText = $newStatus ? 'Mengaktifkan' : 'Menonaktifkan';
+            \App\Models\UserActivity::log('update_product', "{$statusText} produk: {$product->name}");
             return response()->json([
                 'status' => 'success',
                 'active_count' => $newActiveCount,
@@ -928,6 +932,7 @@ public function destroyAll(Request $request, $websiteId)
         if ($stats['failed'] > 0) {
             return back()->with('warning', $message . ' (Cek file storage/logs/laravel.log untuk detail yang gagal).');
         }
+        \App\Models\UserActivity::log('update_product', "Mendorong seluruh katalog etalase ke sistem Accurate Online.");
         return back()->with('success', $message);
     }
     /**

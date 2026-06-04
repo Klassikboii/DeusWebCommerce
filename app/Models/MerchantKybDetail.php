@@ -46,5 +46,13 @@ class MerchantKybDetail extends Model
                         
         return $reference ? $reference->name : "Kecamatan ID: {$this->district_id}";
     }
+    public function getCountryNameAttribute()
+    {
+        if (!$this->country_of_entity) return '-';
+        
+        $country = DB::table('pivot_countries')->where('code', $this->country_of_entity)->first();
+        
+        return $country ? $country->name . ' (' . $country->code . ')' : $this->country_of_entity;
+    }
     
 }

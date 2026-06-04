@@ -138,10 +138,12 @@
                                 <td class="ps-3 py-2 text-muted small">Jenis Perdagangan<br> (Merchant Type)</td>
                                 <td>
                                     <div class="d-flex justify-content-between align-items-center pe-2">
-                                        <strong>{{ $kyb->business_type }}</strong>
-                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->business_type) }}')" title="Salin">
-                                            <i class="bi bi-clipboard"></i> Salin
-                                        </button>
+                                        @if($kyb->business_type == 'INDIVIDUAL')
+                                            <span class="badge bg-info text-dark">Perorangan</span>
+                                        @else
+                                            <span class="badge bg-primary">Firma</span>
+                                        @endif
+                                        
                                     </div>
                                 </td>
                             </tr>
@@ -164,9 +166,7 @@
                                 <td>
                                     <div class="d-flex justify-content-between align-items-center pe-2">
                                         <strong>{{ $kyb->digital_status }}</strong>
-                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->digital_status) }}')" title="Salin">
-                                            <i class="bi bi-clipboard"></i> Salin
-                                        </button>
+                                        
                                     </div>
                                 </td>
                             </tr>
@@ -176,9 +176,7 @@
                                 <td>
                                     <div class="d-flex justify-content-between align-items-center pe-2">
                                         <strong>{{ $kyb->business_structure }}</strong>
-                                        <button class="btn btn-outline-secondary btn-sm ms-2 flex-shrink-0" onclick="copyText('{{ addslashes($kyb->business_structure) }}')" title="Salin">
-                                            <i class="bi bi-clipboard"></i> Salin
-                                        </button>
+                                        
                                     </div>
                                 </td>
                             </tr>

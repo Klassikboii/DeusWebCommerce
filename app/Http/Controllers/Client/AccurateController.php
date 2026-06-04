@@ -186,7 +186,10 @@ class AccurateController extends Controller
             // =========================================================================
         
         }
-        
+        \App\Models\UserActivity::log(
+            'update_accurate_config', 
+            "Menghubungkan sistem dengan Database Accurate (ID: {$request->accurate_database_id})."
+        );
 
         return redirect()->back()->with('success', 'Database Accurate berhasil dihubungkan ke toko ini!');
     }
@@ -199,6 +202,10 @@ class AccurateController extends Controller
         if ($website->accurateIntegration) {
             $website->accurateIntegration->delete();
         }
+        \App\Models\UserActivity::log(
+            'update_accurate_config', 
+            "Memutuskan koneksi integrasi Accurate Online."
+        );
 
         return redirect()->back()->with('success', 'Koneksi Accurate berhasil diputuskan. Silakan hubungkan kembali dengan akun atau database yang baru.');
     }

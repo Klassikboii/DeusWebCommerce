@@ -71,4 +71,22 @@ class PivotReferenceController extends Controller
         'text' => $item->bank_name
     ]));
 }
+public function getCountries(\Illuminate\Http\Request $request)
+    {
+        $search = $request->q;
+
+        $countries = \App\Models\PivotCountry::when($search, function($query) use ($search) {
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%");
+        })->limit(50)->get();
+
+        $formatted = $countries->map(function($country) {
+            return [
+                'id' => $country->code, // 🚨 Kirim Code (ID) untuk disimpan ke DB
+                'text' => $country->name . ' (' . $country->code . ')' // Tampilan di dropdown
+            ];
+        });
+
+        return response()->json($formatted);
+    }
 }

@@ -131,6 +131,7 @@ class SettingController extends Controller
             'name' => 'required|string|max:255',
             'short_name' => 'required|string|max:25',
             'website_id_reference' => 'required|exists:websites,id',
+            'business_type' => 'required|in:INDIVIDUAL,COMPANY',
             'business_structure' => 'required',
             'country_of_entity' => 'required|string', // <-- BARU
             'digital_status' => 'required|string',    // <-- BARU
@@ -181,15 +182,15 @@ class SettingController extends Controller
                 'digital_status' => $request->digital_status,
                 
                 // Pivot butuh 2 parameter: businessType (COMPANY/INDIVIDUAL) & businessStructure (FIRMA/PT/dll)
-                'business_type' => $request->business_structure === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'COMPANY',
+                'business_type' => $request->business_type,
                 
-                'auto_withdrawal' => $request->has('auto_withdrawal') ? 'ON' : 'OFF',
+                'auto_withdrawal' => $request->auto_withdrawal === 'ON' ? 'ON' : 'OFF',
             ])
         );
         // Catat log
     \App\Models\UserActivity::log(
         'update_kyb_details', 
-        "Memperbarui detail KYB untuk toko: {$website->name}"
+        "Memperbarui detail KYB untuk toko: {$websiteUrl}"
     );
 
         return redirect()->back()->with('success', 'Data verifikasi berhasil dikirim. Kami akan meninjau pengajuan Anda segera.');

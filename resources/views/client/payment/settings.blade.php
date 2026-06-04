@@ -135,16 +135,23 @@
                             </div>
                             {{-- TIGA INPUT BARU SESUAI REQUEST --}}
                             <div class="col-md-4">
-                                <label class="form-label small fw-bold text-muted">Negara Terdaftar <span class="text-danger">*</span></label>
-                                <input type="text" name="country_of_entity" class="form-control" placeholder="Contoh: Indonesia" value="{{ old('country_of_entity', $kyb->country_of_entity ?? 'Indonesia') }}" {{ $isPending ? 'readonly' : 'required' }}>
-                            </div>
+                                    <label class="form-label small fw-bold text-muted">Negara Terdaftar <span class="text-danger">*</span></label>
+                                    <select name="country_of_entity" class="form-select select2-country" {{ $isPending ? 'disabled' : 'required' }}>
+                                        @if($kyb && $kyb->country_of_entity)
+                                            <option value="{{ $kyb->country_of_entity }}" selected>{{ $kyb->country_name }}</option>
+                                        @else
+                                            {{-- Default ke Indonesia jika baru pertama kali buka --}}
+                                            <option value="ID" selected>Indonesia (ID)</option>
+                                        @endif
+                                    </select>
+                                </div>
 
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold text-muted">Merchant Type <span class="text-danger">*</span></label>
                                 <select name="business_type" class="form-select" {{ $isPending ? 'disabled' : 'required' }}>
                                     <option value="">-- Pilih Tipe --</option>
-                                    <option value="PERORANGAN" {{ (old('business_type', $kyb->business_type ?? '') == 'PERORANGAN') ? 'selected' : '' }}>Perorangan</option>
-                                    <option value="FIRMA" {{ (old('business_type', $kyb->business_type ?? '') == 'FIRMA') ? 'selected' : '' }}>Firma</option>
+                                    <option value="INDIVIDUAL" {{ (old('business_type', $kyb->business_type ?? '') == 'INDIVIDUAL') ? 'selected' : '' }}>Perorangan</option>
+                                    <option value="COMPANY" {{ (old('business_type', $kyb->business_type ?? '') == 'COMPANY') ? 'selected' : '' }}>Firma</option>
                                 
                                 </select>
                             </div>
@@ -268,12 +275,23 @@
                             <div class="col-12 mt-4">
                                 <div class="form-check form-switch p-3 bg-light rounded border">
                                     {{-- Hidden input agar nilai auto_withdrawal tetap terkirim OFF jika switch tidak dicentang --}}
-                                    <input type="hidden" name="auto_withdrawal" value="OFF">
-                                    
-                                    @php
-                                        $isAutoOn = old('auto_withdrawal', $kyb->auto_withdrawal ?? 'OFF') === 'ON';
-                                    @endphp
-                                    <input class="form-check-input ms-0 me-3" type="checkbox" name="auto_withdrawal" value="ON" id="autoWithdrawal" {{ $isAutoOn ? 'checked' : '' }} {{ $isPending ? 'disabled' : '' }}>
+                                    {{-- Hidden input mengirimkan state terakhir --}}
+                                        <input type="hidden" name="auto_withdrawal" value="OFF">
+
+                                        @php
+                                            $isAutoOn = old('auto_withdrawal', $kyb->auto_withdrawal ?? 'OFF') === 'ON';
+                                        @endphp
+
+                                        {{-- 
+                                        Jika disabled, ubah name menjadi atribut kosong (misal: data-name) agar browser tidak mengirimkannya,
+                                        sehingga backend hanya akan membaca nilai dari hidden input di atas!
+                                        --}}
+                                        <input class="form-check-input ms-0 me-3" type="checkbox" 
+                                            {{ $isPending ? 'data-name' : 'name' }}="auto_withdrawal" 
+                                            value="ON" 
+                                            id="autoWithdrawal" 
+                                            {{ $isAutoOn ? 'checked' : '' }} 
+                                            {{ $isPending ? 'disabled' : '' }}>
                                     <label class="form-check-label fw-bold" for="autoWithdrawal">
                                         Auto-Withdrawal (Pencairan Otomatis)
                                     </label>
@@ -354,6 +372,20 @@
            disabled: isFormDisabled,
            ajax: {
                url: "{{ route('api.pivot.banks') }}",
+               dataType: 'json',
+               delay: 250,
+               processResults: function (data) {
+                   return { results: data };
+               }
+           }
+       });
+       // Dropdown Negara ISO
+       $('.select2-country').select2({
+           theme: 'bootstrap-5',
+           placeholder: "Cari Negara (Ketik Nama / Kode ISO)...",
+           disabled: isFormDisabled,
+           ajax: {
+               url: "{{ route('api.pivot.countries') }}", 
                dataType: 'json',
                delay: 250,
                processResults: function (data) {

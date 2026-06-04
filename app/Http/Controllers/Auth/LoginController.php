@@ -38,20 +38,38 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
         $this->middleware('auth')->only('logout');
     }
+    // --- 1. MENCATAT LOGIN ---
     protected function authenticated(Request $request, $user)
     {
-        // 1. Simpan history login saat ini
+        // Fitur lama: Simpan IP untuk UI History (tetap biarkan)
         $user->loginHistories()->create([
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
-
-        // 2. Batasi hanya menyimpan 3 data terakhir (Hapus sisanya)
         $historiesToKeep = $user->loginHistories()->take(3)->pluck('id');
-        
         $user->loginHistories()->whereNotIn('id', $historiesToKeep)->delete();
 
-        // 3. Lanjutkan redirect bawaan Laravel (ke halaman home/dashboard)
+        // 🚨 Fitur Baru: Catat ke Audit Log Superadmin
+        \App\Models\UserActivity::log('login', 'User berhasil login ke dalam sistem.');
+
         return redirect()->intended($this->redirectPath());
+    }
+
+    // --- 2. MENCATAT LOGOUT (Override Fungsi Bawaan) ---
+    public function logout(Request $request)
+    {
+        // 🚨 Catat Log SEBELUM user dikeluarkan oleh sistem
+        if (\Illuminate\Support\Facades\Auth::check()) {
+            \App\Models\UserActivity::log('logout', 'User keluar (logout) dari sistem.');
+        }
+
+        // Jalankan perintah logout bawaan Laravel
+        $this->guard()->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return $request->wantsJson()
+            ? new \Illuminate\Http\JsonResponse([], 204)
+            : redirect('/');
     }
 }
