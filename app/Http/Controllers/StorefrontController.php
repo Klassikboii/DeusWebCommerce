@@ -66,6 +66,10 @@ public function index(Request $request)
 public function products(Request $request)
     {
         $website = $request->website;
+        // 🚨 JARING PENGAMAN: Jika website tidak ditemukan (Null), buang ke 404!
+        if (!$website) {
+            abort(404, 'Toko tidak ditemukan.');
+        }
         
         // 1. QUERY DASAR
         // Kita mulai dari relasi products() tanpa filter status dulu
@@ -136,6 +140,10 @@ public function product(Request $request, $slug)
 {
     // 1. Ambil Data Website
     $website = $request->website;
+    // 🚨 JARING PENGAMAN: Jika website tidak ditemukan (Null), buang ke 404!
+        if (!$website) {
+            abort(404, 'Toko tidak ditemukan.');
+        }
 
     // 2. Cari Produk berdasarkan Slug
     $product = $website->products()

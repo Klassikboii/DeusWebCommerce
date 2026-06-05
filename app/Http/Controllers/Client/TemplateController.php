@@ -28,7 +28,7 @@ class TemplateController extends Controller
             ],
             [
                 'id' => 'simple',
-                'name' => 'Clean Minimalist',
+                'name' => 'Simple Minimalist',
                 'description' => 'Fokus pada produk dengan desain putih bersih.',
                 'image' => 'https://via.placeholder.com/300x200?text=Simple+Theme'
             ]
@@ -37,7 +37,7 @@ class TemplateController extends Controller
         return view('client.templates.index', compact('website', 'templates'));
     }
 
-    public function update(Request $request, Website $website)
+   public function update(Request $request, Website $website)
     {
         $this->authorize('update', $website);
         $request->validate(['template_id' => 'required|string|in:modern,classic,simple']);
@@ -46,37 +46,49 @@ class TemplateController extends Controller
 
         // 1. Siapkan Preset Gaya (Vibe) untuk masing-masing template
         $newConfig = $website->theme_config ?? [];
+        
+        // 🚨 SIAPKAN VARIABEL UNTUK WARNA HERO
+        $heroBgColor = $website->hero_bg_color; 
 
         if ($templateId === 'classic') {
-            $newConfig['typography']['heading'] = 'Playfair Display'; // Judul Elegan
-        $newConfig['typography']['body'] = 'Lora';
-            $newConfig['shapes']['radius'] = '0px';                // Sudut tajam
-            $newConfig['shapes']['shadow'] = 'none';               // Flat design
-            $newConfig['colors']['primary'] = '#000000';           // Hitam premium
-            $newConfig['colors']['bg_base'] = '#Fcfcfc';           // Off-white
+            $newConfig['typography']['heading'] = 'Playfair Display'; 
+            $newConfig['typography']['body'] = 'Lora';
+            $newConfig['shapes']['radius'] = '0px';                
+            $newConfig['shapes']['shadow'] = 'none';               
+            $newConfig['colors']['primary'] = '#000000';           
+            $newConfig['colors']['bg_base'] = '#Fcfcfc';
+            
+            // Hero abu-abu elegan agar kontras dengan body Fcfcfc
+            $heroBgColor = '#e9ecef'; 
         } 
         elseif ($templateId === 'modern') {
-            $newConfig['typography']['heading'] = 'Plus Jakarta Sans'; // Judul Profesional
-        $newConfig['typography']['body'] = 'Inter';           // Font santai
-            $newConfig['shapes']['radius'] = '0.75rem';            // Melengkung (12px)
-            $newConfig['shapes']['shadow'] = '0 10px 15px -3px rgba(0,0,0,0.1)'; // Bayangan melayang
-            $newConfig['colors']['primary'] = '#0d6efd';           // Biru modern
-            $newConfig['colors']['bg_base'] = '#f8f9fa';           // Abu-abu sangat muda
+            $newConfig['typography']['heading'] = 'Plus Jakarta Sans'; 
+            $newConfig['typography']['body'] = 'Inter';           
+            $newConfig['shapes']['radius'] = '0.75rem';            
+            $newConfig['shapes']['shadow'] = '0 10px 15px -3px rgba(0,0,0,0.1)'; 
+            $newConfig['colors']['primary'] = '#0d6efd';           
+            $newConfig['colors']['bg_base'] = '#f8f9fa';
+            
+            // Hero gelap pekat agar terlihat modern dan mencolok
+            $heroBgColor = '#212529'; 
         }
         elseif ($templateId === 'simple') {
-            $newConfig['typography']['heading'] = 'Montserrat';       // Judul Tegas
-        $newConfig['typography']['body'] = 'Lato';
-            $newConfig['shapes']['radius'] = '0.25rem';            // Sedikit melengkung (4px)
-            $newConfig['shapes']['shadow'] = '0 1px 3px rgba(0,0,0,0.1)'; // Bayangan tipis
+            $newConfig['typography']['heading'] = 'Montserrat';       
+            $newConfig['typography']['body'] = 'Lato';
+            $newConfig['shapes']['radius'] = '0.25rem';            
+            $newConfig['shapes']['shadow'] = '0 1px 3px rgba(0,0,0,0.1)'; 
             $newConfig['colors']['primary'] = '#333333';
-            $newConfig['colors']['bg_base'] = '#ffffff';           // Putih bersih
+            $newConfig['colors']['bg_base'] = '#ffffff';
+            
+            // Hero abu-abu sangat muda agar berpisah dari background putih bersih
+            $heroBgColor = '#f8f9fa'; 
         }
 
-        // 2. Simpan Template Aktif & Config Baru
-        // KITA TIDAK MENYENTUH KOLOM 'sections' SAMA SEKALI! KONTEN AMAN!
+        // 2. Simpan Template Aktif, Config Baru, DAN Warna Hero Baru
         $website->update([
             'active_template' => $templateId,
-            'theme_config' => $newConfig
+            'theme_config' => $newConfig,
+            'hero_bg_color' => $heroBgColor // 🚨 Suntikkan warna ke tabel websites
         ]);
 
         return redirect()->back()->with('success', 'Template berhasil diganti! Tampilan web Anda telah menyesuaikan gaya baru.');

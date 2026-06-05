@@ -283,32 +283,28 @@
                             <div class="col-md-6 border-start ps-md-4">
                                 <label class="form-label fw-bold small text-muted mb-3">PILIH TAMPILAN (TEMPLATE)</label>
                                 
-                                <label class="template-option w-100 mb-3">
-                                    <input type="radio" name="template" value="simple" checked>
-                                    <div class="template-card p-2 d-flex align-items-center gap-3">
-                                        <div class="template-img rounded" style="width: 60px; height: 40px; background: #eee;">
-                                            <i class="bi bi-layout-text-window-reverse"></i>
+                               @foreach($availableTemplates as $index => $template)
+                                    <label class="template-option w-100 {{ !$loop->last ? 'mb-3' : '' }}">
+                                        {{-- Tema pertama (index 0) otomatis terpilih (checked) --}}
+                                        <input type="radio" name="template" value="{{ $template['id'] }}" {{ $index === 0 ? 'checked' : '' }}>
+                                        
+                                        <div class="template-card p-2 d-flex align-items-center gap-3">
+                                            <div class="template-img rounded d-flex align-items-center justify-content-center" 
+                                                style="width: 60px; height: 40px; background: {{ $template['bg_color'] }}; color: {{ str_contains($template['text_color'], 'white') ? 'white' : '#333' }};">
+                                                <i class="bi {{ $template['icon'] }}"></i>
+                                            </div>
+                                            
+                                            <div>
+                                                <div class="fw-bold text-dark">{{ $template['name'] }}</div>
+                                                <div class="small text-muted" style="font-size: 11px;">{{ $template['description'] }}</div>
+                                            </div>
+                                            
+                                            <div class="ms-auto">
+                                                <i class="bi bi-check-circle-fill text-primary d-none checked-icon"></i>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Simple Clean</div>
-                                            <div class="small text-muted" style="font-size: 11px;">Minimalis, fokus pada produk.</div>
-                                        </div>
-                                        <div class="ms-auto"><i class="bi bi-check-circle-fill text-primary d-none checked-icon"></i></div>
-                                    </div>
-                                </label>
-
-                                <label class="template-option w-100">
-                                    <input type="radio" name="template" value="modern">
-                                    <div class="template-card p-2 d-flex align-items-center gap-3">
-                                        <div class="template-img rounded" style="width: 60px; height: 40px; background: #333; color: white;">
-                                            <i class="bi bi-grid-1x2-fill"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-dark">Modern Dark</div>
-                                            <div class="small text-muted" style="font-size: 11px;">Elegan, warna kontras tinggi.</div>
-                                        </div>
-                                    </div>
-                                </label>
+                                    </label>
+                                    @endforeach
 
                             </div>
                         </div>

@@ -163,8 +163,13 @@
         // Amankan data menu
         $rawMenu = $website->navigation_menu;
         $navMenus = is_string($rawMenu) ? json_decode($rawMenu, true) : $rawMenu;
+        // 🚨 KUNCI PERBAIKAN: Jika menu kosong, beri default yang seragam dan PASTI MUNCUL!
         if (!is_array($navMenus) || empty($navMenus)) {
-            $navMenus = [['label' => 'Home', 'url' => '#']];
+            $navMenus = [
+                ['label' => 'Beranda', 'url' => '/'],
+                ['label' => 'Produk', 'url' => '/products'], // <-- Ubah di sini
+                ['label' => 'Blog', 'url' => '/blog'],       // <-- Ubah di sini
+            ];
         }
     @endphp
 
@@ -181,8 +186,27 @@
 
                     {{-- Menu Desktop (Hanya muncul di layar besar) --}}
                     <nav class="d-none d-lg-flex gap-4 flex-wrap">
+                        
                         @foreach($navMenus as $menu)
-                            <a class="text-decoration-none text-dark hover-dark text-uppercase small fw-bold tracking-widest" href="{{ url('/' . ltrim($menu['url'], '/')) }}">
+                         @php
+                                $url = $menu['url'];
+                                $href = $url; // Default untuk link eksternal (https://...)
+
+                                // KASUS 1: Anchor Link (#) - Scroll di halaman Home
+                                if (str_starts_with($url, '#')) {
+                                    if (!request()->routeIs('store.home')) {
+                                        // Jika sedang tidak di home, arahkan ke home dulu + anchor
+                                        $href = route('store.home', $website->active_domain) . $url; 
+                                    }
+                                } 
+                                // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
+                                elseif (str_starts_with($url, '/')) {
+                                    // FIX: Gunakan helper 'url' manual agar path-nya bersih
+                                    // Hasil: http://domain.com/s/elecjos/blog
+                                    $href = url($url);
+                                }
+                            @endphp
+                            <a class="text-decoration-none text-dark hover-dark text-uppercase small fw-bold tracking-widest" href="{{ url($menu['url']) }}">
                                 {{ $menu['label'] }}
                             </a>
                         @endforeach

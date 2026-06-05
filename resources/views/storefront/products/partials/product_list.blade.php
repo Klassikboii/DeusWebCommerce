@@ -1,10 +1,13 @@
 {{-- resources/views/storefront/products/partials/product_list.blade.php --}}
-@extends('layouts.' . ($website->active_template ?? 'simple'))
-
 @if($products->count() > 0)
-    <div class="row g-4">
+    {{-- 🚨 PERBAIKAN: Gunakan row-cols untuk memaksa grid dari level induk! --}}
+    {{-- row-cols-2 = Paksa 2 kolom di HP --}}
+    {{-- row-cols-md-3 = Paksa 3 kolom di Tablet --}}
+    {{-- row-cols-lg-4 = Paksa 4 kolom di Desktop --}}
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
         @foreach($products as $product)
-            <div class="col-6 col-md-4">
+            {{-- Hapus col-6 col-md-4, cukup gunakan class 'col' biasa --}}
+            <div class="col">
                 <div class="card h-100 border-0 shadow-sm product-card hover-up">
                     <div class="position-relative overflow-hidden rounded-top"  style="background-color: white;">
                         <a href="{{ route('store.product', ['slug' => $product->slug]) }}">
@@ -18,20 +21,20 @@
                         </a>
                         @if($product->stock <= 0)
                             <div class="position-absolute top-0 end-0 m-2">
-                                <span class="badge bg-danger">Habis</span>
+                                <span class="badge bg-danger" style="font-size: 0.7rem;">Habis</span>
                             </div>
                         @endif
                     </div>
-                    <div class="card-body p-3 text-center">
+                    <div class="card-body p-2 p-md-3 text-center">
                         @if($product->category)
-                            <small class="text-muted d-block mb-1">{{ $product->category->name }}</small>
+                            <small class="text-muted d-block mb-1" style="font-size: 0.75rem;">{{ $product->category->name }}</small>
                         @endif
-                        <h6 class="card-title text-truncate mb-2">
+                        <h6 class="card-title text-truncate mb-1 mb-md-2" style="font-size: 0.9rem;">
                             <a href="{{ route('store.product', ['slug' => $product->slug]) }}" class="text-decoration-none text-dark stretched-link">
                                 {{ $product->name }}
                             </a>
                         </h6>
-                        <p class="text-primary fw-bold mb-0">
+                        <p class="text-primary fw-bold mb-0" style="font-size: 0.95rem;">
                             Rp {{ number_format($product->price, 0, ',', '.') }}
                         </p>
                     </div>
@@ -41,7 +44,7 @@
     </div>
 
     {{-- PAGINATION (Penting: Class ajax-pagination untuk JS) --}}
-    <div class="mt-5 d-flex justify-content-center ajax-pagination">
+    <div class="mt-4 mt-md-5 d-flex justify-content-center ajax-pagination">
         {{ $products->links() }} 
     </div>
 

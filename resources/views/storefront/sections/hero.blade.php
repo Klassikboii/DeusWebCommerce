@@ -15,31 +15,32 @@
     
     $sectionId = $data['id'] ?? 'hero-' . uniqid();
     $layout = $settings['layout'] ?? 'center'; // Opsi: 'center', 'left', 'right'
-   // 2. AMBIL PENGATURAN GAYA / SETTINGS
+    
+    // 2. AMBIL PENGATURAN GAYA / SETTINGS
     $settings = $settings ?? []; 
     $colorMode = $settings['color_mode'] ?? 'global';
     
-    // Logika Warna: Jika Global, ambil dari CSS Variable. Jika Custom, ambil dari Hex.
+    // 🚨 PERBAIKAN 1: Panggil hero_bg_color dari tabel websites!
     if ($colorMode === 'global') {
-        $bgColor = 'var(--bg-base)';
+        $bgColor = $website->hero_bg_color ?? 'var(--bg-base)';
         $textColor = 'var(--text-base)';
     } else {
-        $bgColor = $settings['bg_color'] ?? '#ffffff';
-        $textColor = $settings['text_color'] ?? '#000000';
+        $bgColor = $settings['bg_color'] ?? $website->hero_bg_color ?? '#ffffff';
+        $textColor = $settings['text_color'] ?? 'var(--text-base)';
     }
 
-    // Logika Jarak (Padding)
     $paddingY = $settings['padding'] ?? 'py-5';
     
-    // Logika warna teks jika ada gambar latar belakang
-    $finalTextColor = $website->hero_image ? $textColor: '#ffffff' ;
+    // 🚨 PERBAIKAN 2: Logika Warna Teks (DIBALIK)
+    // Jika ADA gambar (pakai overlay gelap), teks WAJIB putih (#ffffff).
+    // Jika TIDAK ADA gambar, ikuti warna teks dari tema ($textColor).
+    $finalTextColor = $website->hero_image ? '#ffffff' : $textColor;
 
-    // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
+    // AMBIL VARIABEL TIPOGRAFI
     $textTransform = $settings['text_transform'] ?? 'none';
-    $fontWeight = $settings['font_weight'] ?? 'bold'; // Default hero biasanya bold
+    $fontWeight = $settings['font_weight'] ?? 'bold'; 
     $fontStyle = $settings['font_style'] ?? 'normal';
-    $headingSize = $settings['heading_size'] ?? 'display-3'; // Default ukuran judul
-    // ----------------------------------------------------
+    $headingSize = $settings['heading_size'] ?? 'display-3';
 
     // Logika Perataan Bootstrap
     $alignmentClass = 'justify-content-center text-center';
@@ -68,8 +69,7 @@
         <div class="row {{ $alignmentClass }}">
             <div class="col-12 col-lg-8">
                 
-                {{-- Judul menggunakan gaya Serif (Playfair Display) dari classic.blade.php --}}
-                <h1 class="display-3 fw-bold mb-3 live-editable serif" 
+                <h1 class="{{ $headingSize }} fw-bold mb-3 live-editable serif" 
                     data-section-id="{{ $sectionId }}" 
                     data-key="title"
                     style="color: {{ $finalTextColor }}; letter-spacing: 1px;font-family: var(--font-heading); text-transform: {{ $textTransform }}; font-weight: {{ $fontWeight }};">
@@ -84,17 +84,17 @@
                 </p>
                 
                 @if($btnText)
-                {{-- Tombol dibuat kotak (rounded-0) dan transparan agar berkesan 'Classic' --}}
+                {{-- 🚨 PERBAIKAN 3: Warna border, text, dan hover tombol dibuat otomatis! --}}
                 <a href="{{ $btnLink }}" 
                    class="btn rounded-0 px-5 py-3 fw-bold text-uppercase live-editable shadow-sm"
-                   style="border: 2px solid {{ $website->hero_image ? '#fff' : '#000' }}; 
-                          color: {{ $website->hero_image ? '#fff' : '#000' }}; 
+                   style="border: 2px solid {{ $finalTextColor }}; 
+                          color: {{ $finalTextColor }}; 
                           background-color: transparent; 
-                          font-size: 0.85rem; letter-spacing: 2px;"
+                          font-size: 0.85rem; letter-spacing: 2px; transition: all 0.3s ease;"
                    data-section-id="{{ $sectionId }}" 
                    data-key="button_text"
-                   onmouseover="this.style.backgroundColor='{{ $website->hero_image ? '#fff' : '#000' }}'; this.style.color='{{ $website->hero_image ? '#000' : '#fff' }}';"
-                   onmouseout="this.style.backgroundColor='transparent'; this.style.color='{{ $website->hero_image ? '#fff' : '#000' }}';">
+                   onmouseover="this.style.backgroundColor='{{ $finalTextColor }}'; this.style.color='{{ $bgColor }}';"
+                   onmouseout="this.style.backgroundColor='transparent'; this.style.color='{{ $finalTextColor }}';">
                     {{ $btnText }}
                 </a>
                 @endif

@@ -163,8 +163,13 @@
    @php
         $rawMenu = $website->navigation_menu;
         $navMenus = is_string($rawMenu) ? json_decode($rawMenu, true) : $rawMenu;
+        // 🚨 KUNCI PERBAIKAN: Jika menu kosong, beri default yang seragam dan PASTI MUNCUL!
         if (!is_array($navMenus) || empty($navMenus)) {
-            $navMenus = [['label' => 'Home', 'url' => '#'], ['label' => 'Shop', 'url' => '#shop']];
+            $navMenus = [
+                ['label' => 'Beranda', 'url' => '/'],
+                ['label' => 'Produk', 'url' => '/products'], // <-- Ubah di sini
+                ['label' => 'Blog', 'url' => '/blog'],       // <-- Ubah di sini
+            ];
         }
         $menuCount = count($navMenus);
         
@@ -233,7 +238,26 @@
             <div class="collapse navbar-collapse border-top" id="classicNavContent">
                 <div class="container">
                     <ul class="navbar-nav w-100 justify-content-center gap-lg-5 py-3 py-lg-2">
+                        
                         @foreach($navMenus as $menu)
+                         @php
+                                $url = $menu['url'];
+                                $href = $url; // Default untuk link eksternal (https://...)
+
+                                // KASUS 1: Anchor Link (#) - Scroll di halaman Home
+                                if (str_starts_with($url, '#')) {
+                                    if (!request()->routeIs('store.home')) {
+                                        // Jika sedang tidak di home, arahkan ke home dulu + anchor
+                                        $href = route('store.home', $website->active_domain) . $url; 
+                                    }
+                                } 
+                                // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
+                                elseif (str_starts_with($url, '/')) {
+                                    // FIX: Gunakan helper 'url' manual agar path-nya bersih
+                                    // Hasil: http://domain.com/s/elecjos/blog
+                                    $href = url($url);
+                                }
+                            @endphp
                             <li class="nav-item text-center">
                                 <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest py-2 py-lg-1" href="{{ url($menu['url']) }}">
                                     {{ $menu['label'] }}

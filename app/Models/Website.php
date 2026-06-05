@@ -273,5 +273,37 @@ class Website extends Model
 {
     return $this->hasMany(Customer::class);
 }
+/**
+     * Daftar semua template yang tersedia di sistem DeusWebCommerce
+     */
+    public static function getAvailableTemplates()
+    {
+        return [
+            [
+                'id' => 'simple',
+                'name' => 'Simple Minimalist',
+                'description' => 'Minimalis, fokus pada produk.',
+                'icon' => 'bi-layout-text-window-reverse',
+                'bg_color' => '#f8f9fa', // Terang
+                'text_color' => 'text-dark'
+            ],
+            [
+                'id' => 'modern',
+                'name' => 'Modern Dark',
+                'description' => 'Elegan, warna kontras tinggi.',
+                'icon' => 'bi-grid-1x2-fill',
+                'bg_color' => '#212529', // Gelap
+                'text_color' => 'text-white'
+            ],
+            [
+                'id' => 'classic',
+                'name' => 'Classic Elegant',
+                'description' => 'Gaya butik premium dengan font Serif.',
+                'icon' => 'bi-award',
+                'bg_color' => '#e9ecef', // Abu-abu elegan
+                'text_color' => 'text-dark'
+            ]
+        ];
+    }
     
 }

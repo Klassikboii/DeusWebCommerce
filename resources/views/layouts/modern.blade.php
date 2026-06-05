@@ -139,15 +139,20 @@
     </div>
     @endif
 @php
-    if ($website->custom_domain) {
-        $storeUrl = 'http://' . $website->custom_domain . ':8000';
-    } else {
-        $appUrl = env('APP_URL');
-        $cleanAppUrl = str_replace(['http://', 'https://'], '', $appUrl);
-        $storeUrl = 'http://' . $website->active_domain . '.' . $cleanAppUrl;
-        if (str_contains($appUrl, ':')) { $storeUrl = 'http://' . $website->active_domain . '.localhost:8000'; }
-    }
-@endphp
+        if ($website->custom_domain) {
+            // Gunakan custom domain murni (tambahkan port jika di local development)
+            $port = str_contains(config('app.url'), ':8000') ? ':8000' : '';
+            $storeUrl = 'http://' . $website->custom_domain . $port;
+        } else {
+            // Ambil domain utama dari config secara elegan tanpa replace manual
+            $parsedUrl = parse_url(config('app.url'));
+            $host = $parsedUrl['host'] ?? 'localhost';
+            $port = isset($parsedUrl['port']) ? ':' . $parsedUrl['port'] : '';
+            $scheme = $parsedUrl['scheme'] ?? 'http';
+            
+            $storeUrl = $scheme . '://' . $website->active_domain . '.' . $host . $port;
+        }
+    @endphp
 @php
             $navItems = $website->navigation_menu ?? [];
             $menuCount = count($navItems);
@@ -165,7 +170,7 @@
     <nav class="navbar {{ $expandClass }} navbar-light bg-white shadow-sm sticky-top" style="box-shadow: var(--shadow-base)">
         <div class="container gap-lg-4">
             {{-- LOGO --}}
-            <a class="navbar-brand fw-bold me-0" href="#">
+            <a class="navbar-brand fw-bold me-0" href="/">
                 <img src="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}" id="logo-img-preview" style="height: 40px; {{ $website->logo ? '' : 'display:none;' }}" alt="Logo">
                 <span id="site-name-text" style="{{ $website->logo ? 'display:none;' : '' }}">{{ $website->site_name }}</span>
             </a>
@@ -230,34 +235,56 @@
 
                     {{-- MENU NAVIGASI --}}
                     @php
-                        $navMenus = $website->navigation_menu ?? [['label' => 'Beranda', 'url' => '#'], ['label' => 'Produk', 'url' => '#products']];
-                    @endphp
-                   @foreach($navMenus as $menu)
-                        <li class="nav-item">
-                            @php
-                                $url = $menu['url'];
-                                $href = $url; // Default untuk link eksternal (https://...)
+                            // Amankan data menu
+                            $rawMenu = $website->navigation_menu;
+                            $navMenus = is_string($rawMenu) ? json_decode($rawMenu, true) : $rawMenu;
+                            
+                            if (!is_array($navMenus) || empty($navMenus)) {
+            $navMenus = [
+                ['label' => 'Beranda', 'url' => '/'],
+                ['label' => 'Produk', 'url' => '/products'], // <-- Ubah di sini
+                ['label' => 'Blog', 'url' => '/blog'],       // <-- Ubah di sini
+            ];
+        }
+                        @endphp
+                 @foreach($navMenus as $menu)
+    @php
+        $rawUrl = $menu['url'];
+        
+        // 🚨 PEMBERSIH URL OTOMATIS (Mencegah data usang dari database)
+        // Kita pecah URL-nya untuk membuang domain yang salah (shop.test)
+        $parsed = parse_url($rawUrl);
+        $pathOnly = $parsed['path'] ?? '';
+        $fragment = isset($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
+        $cleanPath = $pathOnly . $fragment; // Hasilnya pasti bersih, contoh: "/products" atau "#shop"
 
-                                // KASUS 1: Anchor Link (#) - Scroll di halaman Home
-                                if (str_starts_with($url, '#')) {
-                                    if (!request()->routeIs('store.home')) {
-                                        // Jika sedang tidak di home, arahkan ke home dulu + anchor
-                                        $href = route('store.home', $website->active_domain) . $url; 
-                                    }
-                                } 
-                                // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
-                                elseif (str_starts_with($url, '/')) {
-                                    // FIX: Gunakan helper 'url' manual agar path-nya bersih
-                                    // Hasil: http://domain.com/s/elecjos/blog
-                                    $href = url($url);
-                                }
-                            @endphp
+        // KASUS 1: Jika link eksternal murni (misal klien menaruh link ke Instagram)
+        if (isset($parsed['host']) && !str_contains($parsed['host'], 'shop.test') && !str_contains($parsed['host'], 'localhost') && !str_contains($parsed['host'], $website->active_domain)) {
+            $href = $rawUrl;
+        }
+        // KASUS 2: Anchor Link murni (#)
+        elseif (str_starts_with($cleanPath, '#') && empty($pathOnly)) {
+            if (!request()->routeIs('store.home')) {
+                // Jika buka anchor tapi tidak di halaman home, lempar ke home dulu
+                $href = rtrim($storeUrl, '/') . '/' . $cleanPath; 
+            } else {
+                $href = $cleanPath;
+            }
+        } 
+        // KASUS 3: Internal Path (Ini akan memperbaiki link bocor secara instan!)
+        else {
+            // Kita paksa path yang sudah bersih menempel ke URL Toko Klien
+            $href = rtrim($storeUrl, '/') . '/' . ltrim($cleanPath, '/');
+        }
+    @endphp
 
-                            <a class="nav-link text-dark" href="{{ $href }}">
-                                {{ $menu['label'] }}
-                            </a>
-                        </li>
-                        @endforeach
+    {{-- Ganti class sesuai dengan desain layout Anda masing-masing --}}
+    <li class="nav-item text-center">
+        <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest py-2 py-lg-1" href="{{ $href }}">
+            {{ $menu['label'] }}
+        </a>
+    </li>
+@endforeach
                        
                     {{-- Cek apakah pelanggan sudah login menggunakan guard 'customer' --}}
                         @if(Auth::guard('customer')->check())
@@ -539,10 +566,16 @@
             console.log("Mode Preview Aktif: Link dan Form dimatikan.");
 
             // 1. Blokir Link & Form HANYA jika di preview
+            // 1. Blokir Link & Form HANYA jika di preview
             document.querySelectorAll('a, form').forEach(el => {
-                if (el.tagName === 'A' && el.getAttribute('href').startsWith('#')) return; 
-                el.addEventListener('submit', e => {
+                if (el.tagName === 'A' && el.getAttribute('href') && el.getAttribute('href').startsWith('#')) return; 
+                
+                // 🚨 FIX: Gunakan 'click' untuk link <a>, dan 'submit' untuk form!
+                const eventType = el.tagName === 'A' ? 'click' : 'submit';
+                
+                el.addEventListener(eventType, e => {
                     e.preventDefault();
+                    console.log('Navigasi dinonaktifkan sementara di mode Preview.');
                 });
             });
 

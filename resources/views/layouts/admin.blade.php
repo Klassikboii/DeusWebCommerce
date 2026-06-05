@@ -36,7 +36,7 @@
             </a>
 
             <a href="{{ route('admin.transactions.index') }}" class="nav-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
-                <i class="bi bi-cash-stack"></i> Transaksi
+                <i class="bi bi-cash-stack"></i> Transaksi Langgangan
             </a>
             
 
