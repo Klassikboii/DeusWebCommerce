@@ -240,51 +240,51 @@
                             $navMenus = is_string($rawMenu) ? json_decode($rawMenu, true) : $rawMenu;
                             
                             if (!is_array($navMenus) || empty($navMenus)) {
-            $navMenus = [
-                ['label' => 'Beranda', 'url' => '/'],
-                ['label' => 'Produk', 'url' => '/products'], // <-- Ubah di sini
-                ['label' => 'Blog', 'url' => '/blog'],       // <-- Ubah di sini
-            ];
-        }
-                        @endphp
-                 @foreach($navMenus as $menu)
-    @php
-        $rawUrl = $menu['url'];
-        
-        // 🚨 PEMBERSIH URL OTOMATIS (Mencegah data usang dari database)
-        // Kita pecah URL-nya untuk membuang domain yang salah (shop.test)
-        $parsed = parse_url($rawUrl);
-        $pathOnly = $parsed['path'] ?? '';
-        $fragment = isset($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
-        $cleanPath = $pathOnly . $fragment; // Hasilnya pasti bersih, contoh: "/products" atau "#shop"
+                                    $navMenus = [
+                                        ['label' => 'Beranda', 'url' => '/'],
+                                        ['label' => 'Produk', 'url' => '/products'], // <-- Ubah di sini
+                                        ['label' => 'Blog', 'url' => '/blog'],       // <-- Ubah di sini
+                                    ];
+                                }
+                                                @endphp
+                                        @foreach($navMenus as $menu)
+                            @php
+                                $rawUrl = $menu['url'];
+                                
+                                // 🚨 PEMBERSIH URL OTOMATIS (Mencegah data usang dari database)
+                                // Kita pecah URL-nya untuk membuang domain yang salah (shop.test)
+                                $parsed = parse_url($rawUrl);
+                                $pathOnly = $parsed['path'] ?? '';
+                                $fragment = isset($parsed['fragment']) ? '#' . $parsed['fragment'] : '';
+                                $cleanPath = $pathOnly . $fragment; // Hasilnya pasti bersih, contoh: "/products" atau "#shop"
 
-        // KASUS 1: Jika link eksternal murni (misal klien menaruh link ke Instagram)
-        if (isset($parsed['host']) && !str_contains($parsed['host'], 'shop.test') && !str_contains($parsed['host'], 'localhost') && !str_contains($parsed['host'], $website->active_domain)) {
-            $href = $rawUrl;
-        }
-        // KASUS 2: Anchor Link murni (#)
-        elseif (str_starts_with($cleanPath, '#') && empty($pathOnly)) {
-            if (!request()->routeIs('store.home')) {
-                // Jika buka anchor tapi tidak di halaman home, lempar ke home dulu
-                $href = rtrim($storeUrl, '/') . '/' . $cleanPath; 
-            } else {
-                $href = $cleanPath;
-            }
-        } 
-        // KASUS 3: Internal Path (Ini akan memperbaiki link bocor secara instan!)
-        else {
-            // Kita paksa path yang sudah bersih menempel ke URL Toko Klien
-            $href = rtrim($storeUrl, '/') . '/' . ltrim($cleanPath, '/');
-        }
-    @endphp
+                                // KASUS 1: Jika link eksternal murni (misal klien menaruh link ke Instagram)
+                                if (isset($parsed['host']) && !str_contains($parsed['host'], 'shop.test') && !str_contains($parsed['host'], 'localhost') && !str_contains($parsed['host'], $website->active_domain)) {
+                                    $href = $rawUrl;
+                                }
+                                // KASUS 2: Anchor Link murni (#)
+                                elseif (str_starts_with($cleanPath, '#') && empty($pathOnly)) {
+                                    if (!request()->routeIs('store.home')) {
+                                        // Jika buka anchor tapi tidak di halaman home, lempar ke home dulu
+                                        $href = rtrim($storeUrl, '/') . '/' . $cleanPath; 
+                                    } else {
+                                        $href = $cleanPath;
+                                    }
+                                } 
+                                // KASUS 3: Internal Path (Ini akan memperbaiki link bocor secara instan!)
+                                else {
+                                    // Kita paksa path yang sudah bersih menempel ke URL Toko Klien
+                                    $href = rtrim($storeUrl, '/') . '/' . ltrim($cleanPath, '/');
+                                }
+                            @endphp
 
-    {{-- Ganti class sesuai dengan desain layout Anda masing-masing --}}
-    <li class="nav-item text-center">
-        <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest py-2 py-lg-1" href="{{ $href }}">
-            {{ $menu['label'] }}
-        </a>
-    </li>
-@endforeach
+                            {{-- Ganti class sesuai dengan desain layout Anda masing-masing --}}
+                            <li class="nav-item text-center">
+                                <a class="nav-link text-dark hover-dark  small  tracking-widest py-2 py-lg-1" href="{{ $href }}">
+                                    {{ $menu['label'] }}
+                                </a>
+                            </li>
+                        @endforeach
                        
                     {{-- Cek apakah pelanggan sudah login menggunakan guard 'customer' --}}
                         @if(Auth::guard('customer')->check())
@@ -373,7 +373,7 @@
                             {{-- Jika TIDAK BISA remove branding, maka tampilkan iklan SaaS Anda --}}
                             @if(!$canRemoveBranding)
                                 <div class="mt-2 text-muted small">
-                                    Powered by <a href="https://shop.ashop.asia" target="_blank" class="fw-bold text-decoration-none text-primary">Elecios WebCommerce</a>
+                                    Powered by <a href="https://shop.ashop.asia" target="_blank" class="fw-bold text-decoration-none text-primary">ASHOP WebCommerce</a>
                                 </div>
                             @endif
                     {{-- Tombol Sosial Media / Contact (Dari desain lama Anda) --}}

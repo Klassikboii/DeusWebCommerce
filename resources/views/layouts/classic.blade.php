@@ -325,7 +325,7 @@
                     <div class="d-flex flex-column gap-3">
                         <a href="/" class="text-decoration-none text-muted hover-dark text-uppercase small tracking-wider">Beranda</a>
                         <a href="/products" class="text-decoration-none text-muted hover-dark text-uppercase small tracking-wider">Katalog Produk</a>
-                        <a href="/track" class="text-decoration-none text-muted hover-dark text-uppercase small tracking-wider">Lacak Pesanan</a>
+                        <a href="{{ route('store.track') }}" class="text-decoration-none text-muted hover-dark text-uppercase small tracking-wider">Lacak Pesanan</a>
                     </div>
                 </div>
 
@@ -343,7 +343,7 @@
             <div class="text-center mt-5">
                 <p class="text-muted" style="font-size: 10px; letter-spacing: 3px; text-transform: uppercase;">
                     &copy; {{ date('Y') }} {{ $website->site_name }}. All rights reserved. <br>
-                    <span class="opacity-50">Powered by DeusWebCommerce</span>
+                    <span class="opacity-50">Powered by ASHOP Webcommerce</span>
                 </p>
             </div>
         </div>
