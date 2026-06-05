@@ -280,7 +280,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
         Route::post('/withdrawals/{withdrawal}/approve', [\App\Http\Controllers\Admin\WithdrawalController::class, 'approve'])->name('withdrawals.approve');
         Route::post('/withdrawals/{withdrawal}/reject', [\App\Http\Controllers\Admin\WithdrawalController::class, 'reject'])->name('withdrawals.reject');
         // ... (Rute admin lainnya seperti dashboard, dll) ...
-
+        // ... route admin lainnya ...
+        Route::get('/audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit_logs.index');
         
     });
 
