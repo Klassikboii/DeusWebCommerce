@@ -17,8 +17,26 @@
         @foreach($templates as $template)
         <div class="col-md-4">
             <div class="card h-100 {{ $website->active_template == $template['id'] ? 'border-primary border-2' : '' }}">
-                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
-                    <span class="text-muted">{{ $template['name'] }} Preview</span>
+                {{-- 🚨 MENAMPILKAN GAMBAR PREVIEW --}}
+                {{-- 🚨 MENAMPILKAN GAMBAR PREVIEW DENGAN RENDER KUALITAS TINGGI --}}
+               {{-- 🚨 MENAMPILKAN GAMBAR PREVIEW --}}
+                <div class="position-relative overflow-hidden" style="height: 180px;">
+                    <img src="{{ $template['preview_image'] }}" 
+                         alt="{{ $template['name'] }} Preview" 
+                         class="w-100 h-100 object-fit-cover"
+                         {{-- 🚨 TAMBAHAN: object-position: top; agar Navbar selalu terlihat --}}
+                         style="transition: transform 0.3s ease; object-position: top;"
+                         onmouseover="this.style.transform='scale(1.05)'"
+                         onmouseout="this.style.transform='scale(1)'">
+                         
+                    {{-- Badge Tema Aktif di pojok gambar --}}
+                    @if($website->active_template == $template['id'])
+                        <div class="position-absolute top-0 end-0 m-2">
+                            <span class="badge bg-success shadow-sm">
+                                <i class="bi bi-star-fill me-1"></i> Dipakai
+                            </span>
+                        </div>
+                    @endif
                 </div>
                 
                 <div class="card-body">

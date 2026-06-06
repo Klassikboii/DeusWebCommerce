@@ -285,7 +285,9 @@ class Website extends Model
                 'description' => 'Minimalis, fokus pada produk.',
                 'icon' => 'bi-layout-text-window-reverse',
                 'bg_color' => '#f8f9fa', // Terang
-                'text_color' => 'text-dark'
+                'text_color' => 'text-dark',
+                'preview_image' => asset('images/templates/simple.png')
+                
             ],
             [
                 'id' => 'modern',
@@ -293,7 +295,8 @@ class Website extends Model
                 'description' => 'Elegan, warna kontras tinggi.',
                 'icon' => 'bi-grid-1x2-fill',
                 'bg_color' => '#212529', // Gelap
-                'text_color' => 'text-white'
+                'text_color' => 'text-white',
+                'preview_image' => asset('images/templates/modern.png')
             ],
             [
                 'id' => 'classic',
@@ -301,7 +304,8 @@ class Website extends Model
                 'description' => 'Gaya butik premium dengan font Serif.',
                 'icon' => 'bi-award',
                 'bg_color' => '#e9ecef', // Abu-abu elegan
-                'text_color' => 'text-dark'
+                'text_color' => 'text-dark',
+                'preview_image' => asset('images/templates/classic.png')
             ]
         ];
     }

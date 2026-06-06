@@ -12,32 +12,14 @@ class TemplateController extends Controller
     {
         $this->authorize('viewAny', $website);
         
-        // Data Dummy Template yang tersedia
-        $templates = [
-            [
-                'id' => 'modern',
-                'name' => 'Modern Blue',
-                'description' => 'Tampilan profesional dengan banner besar.',
-                'image' => 'https://via.placeholder.com/300x200?text=Modern+Theme' // Nanti bisa diganti screenshot asli
-            ],
-            [
-                'id' => 'classic', // <-- TEMA BARU KITA
-                'name' => 'Classic Elegant',
-                'description' => 'Desain premium bergaya butik dengan logo di tengah dan font Serif.',
-                'image' => 'https://via.placeholder.com/300x200?text=Classic+Theme'
-            ],
-            [
-                'id' => 'simple',
-                'name' => 'Simple Minimalist',
-                'description' => 'Fokus pada produk dengan desain putih bersih.',
-                'image' => 'https://via.placeholder.com/300x200?text=Simple+Theme'
-            ]
-        ];
+        // 🚨 Cukup panggil dari Model. 
+        // Array panjang yang sebelumnya ada di sini SUDAH KITA HAPUS!
+        $templates = \App\Models\Website::getAvailableTemplates();
 
         return view('client.templates.index', compact('website', 'templates'));
     }
 
-   public function update(Request $request, Website $website)
+    public function update(Request $request, Website $website)
     {
         $this->authorize('update', $website);
         $request->validate(['template_id' => 'required|string|in:modern,classic,simple']);
