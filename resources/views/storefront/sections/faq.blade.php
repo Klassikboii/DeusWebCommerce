@@ -54,17 +54,18 @@
                 <div class="accordion accordion-flush" id="accordion-{{ $sectionId }}">
                     
                     {{-- Loop 3 kali sesuai jumlah maksimal FAQ kita --}}
+                   {{-- Loop 3 kali sesuai jumlah maksimal FAQ kita --}}
                     @for($i = 1; $i <= 3; $i++)
                         @php
                             $ask = $data["q{$i}_ask"] ?? '';
                             $ans = $data["q{$i}_ans"] ?? '';
                             
-                            // Jika pertanyaannya kosong, lewati (jangan di-render)
-                            if(empty($ask) && empty($ans)) continue;
+                            // 🚨 FIX 1: Jangan pakai continue. Gunakan display:none jika kosong
+                            $displayStyle = (empty($ask) && empty($ans)) ? 'display: none !important;' : 'display: block;';
                         @endphp
                         
-                        {{-- KOTAK ACCORDION KLASIK: Tanpa shadow, tanpa rounded --}}
-                        <div class="accordion-item classic-accordion-item mb-3">
+                        {{-- 🚨 FIX 2: Tambahkan class live-item-wrapper dan terapkan style display --}}
+                        <div class="accordion-item classic-accordion-item mb-3 live-item-wrapper" style="{{ $displayStyle }}">
                             <h2 class="accordion-header" id="heading-{{ $sectionId }}-{{ $i }}">
                                 <button class="accordion-button classic-accordion-button {{ $i !== 1 ? 'collapsed' : '' }} fw-bold" 
                                         type="button" 
@@ -72,14 +73,12 @@
                                         data-bs-target="#collapse-{{ $sectionId }}-{{ $i }}" 
                                         aria-expanded="{{ $i === 1 ? 'true' : 'false' }}">
                                     
-                                    {{-- Sensor Live Preview Teks Pertanyaan --}}
                                     <span class="live-editable" 
                                           data-section-id="{{ $sectionId }}" 
                                           data-key="q{{ $i }}_ask"
                                           style="letter-spacing: 0.5px;">
                                         {{ $ask }}
                                     </span>
-                                    
                                 </button>
                             </h2>
                             <div id="collapse-{{ $sectionId }}-{{ $i }}" 
@@ -87,7 +86,6 @@
                                  data-bs-parent="#accordion-{{ $sectionId }}">
                                 <div class="accordion-body pt-3 pb-4">
                                     
-                                    {{-- Sensor Live Preview Teks Jawaban --}}
                                     <span class="live-editable d-block" 
                                           data-section-id="{{ $sectionId }}" 
                                           data-key="q{{ $i }}_ans" 

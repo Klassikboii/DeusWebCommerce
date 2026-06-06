@@ -45,6 +45,10 @@
     // ----------------------------------------------------
     
     
+// 🚨 TAMBAHAN BARU: Cek apakah fitur ini dikosongkan oleh Klien
+    $f1_display = (empty($f1_title) && empty($f1_desc)) ? 'display: none !important;' : 'display: block;';
+    $f2_display = (empty($f2_title) && empty($f2_desc)) ? 'display: none !important;' : 'display: block;';
+    $f3_display = (empty($f3_title) && empty($f3_desc)) ? 'display: none !important;' : 'display: block;';
 @endphp
 
 <section id="{{ $sectionId }}" class="{{ $paddingY }} live-section" style="background-color: {{ $bgColor }};text-transform: {{ $textTransform }}; 
@@ -65,7 +69,7 @@
         <div class="row g-5 text-center">
             
             {{-- FITUR 1 --}}
-            <div class="col-md-4">
+            <div class="col-md-4 live-item-wrapper" style="{{ $f1_display }}">
                 {{-- Dibuat transparan dan tanpa border (border-0 bg-transparent) --}}
                 <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
                     <div class="display-4 mb-4">
@@ -90,7 +94,7 @@
             </div>
 
             {{-- FITUR 2 --}}
-            <div class="col-md-4">
+            <div class="col-md-4 live-item-wrapper" style="{{ $f2_display }}">
                 <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f2_icon }} live-editable" 
@@ -114,7 +118,7 @@
             </div>
 
             {{-- FITUR 3 --}}
-            <div class="col-md-4">
+            <div class="col-md-4 live-item-wrapper" style="{{ $f3_display }}">
                 <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f3_icon }} live-editable" 

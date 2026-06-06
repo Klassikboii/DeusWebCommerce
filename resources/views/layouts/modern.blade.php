@@ -635,12 +635,33 @@
                         const elements = document.querySelectorAll(`[data-section-id="${data.sectionId}"][data-key="${data.key}"]`);
                         elements.forEach(el => {
                             if (el.tagName === 'IMG') el.src = data.value;
-                            else if (el.tagName !== 'DIV' && el.tagName !== 'SECTION') el.innerHTML = data.value.replace(/\n/g, '<br>');
+                            else if (el.tagName !== 'DIV' && el.tagName !== 'SECTION') {
+                                el.innerHTML = data.value.replace(/\n/g, '<br>');
+                                
+                                // 👇 LOGIKA LIVE PREVIEW FAQ, TESTIMONIAL & FEATURES 👇
+                                const wrapper = el.closest('.live-item-wrapper');
+                                if (wrapper) {
+                                    let hasText = false;
+                                    wrapper.querySelectorAll('[data-key]').forEach(child => {
+                                        if (child.tagName === 'I') {
+                                            // Jika ini ikon, cek apakah class-nya masih punya 'bi-*'
+                                            const classes = Array.from(child.classList);
+                                            if (classes.some(c => c.startsWith('bi-'))) hasText = true;
+                                        } else {
+                                            // Bersihkan tanda kutip (") lalu cek apakah masih ada teksnya
+                                            let text = child.textContent.replace(/[""]/g, '').trim();
+                                            if (text !== '') hasText = true;
+                                        }
+                                    });
+                                    // Munculkan jika ada teks/icon, sembunyikan jika benar-benar kosong
+                                    wrapper.style.setProperty('display', hasText ? 'block' : 'none', 'important');
+                                }
+                            }
                         });
                     }
                 }
 
-                // C. UPDATE GAMBAR LOGO / HERO
+               // C. UPDATE GAMBAR LOGO / HERO
                 else if (data.type === 'updateImage') {
                     if (data.target === 'logo') {
                         const img = document.getElementById('logo-img-preview');
@@ -653,21 +674,44 @@
                             if(txt) txt.style.display = 'none';
                         }
                     } else if (data.target === 'hero') {
-                        const heroSimple = document.querySelector('.hero-section');
-                        if (data.action === 'remove') {
-                            if(heroSimple) {
-                                heroSimple.style = "background-color: var(--hero-bg-color); background-image: none; color: var(--primary-color); text-shadow: none;";
-                                const p = heroSimple.querySelector('p');
-                                if(p) { p.classList.remove('text-white'); p.classList.add('text-secondary'); }
-                            }
-                        } else {
-                            if(heroSimple) {
-                                heroSimple.style.backgroundImage = `url('${data.src}')`;
-                                heroSimple.style.backgroundColor = 'transparent';
-                                heroSimple.style.color = 'white'; 
-                                heroSimple.style.textShadow = '0 2px 4px rgba(0,0,0,0.5)';
-                                const p = heroSimple.querySelector('p');
-                                if(p) { p.classList.remove('text-secondary'); p.classList.add('text-white'); }
+                        // 🚨 FIX 1: Cari section hero berdasarkan tipe datanya (bukan class lama)
+                        const heroSection = document.querySelector('h1[data-key="title"]').closest('section');
+                        
+                        if (heroSection) {
+                            // Cari div pembungkus gambar (yang punya position-absolute)
+                            let imgDiv = heroSection.querySelector('.position-absolute.top-0.start-0');
+                            
+                            if (data.action === 'remove') {
+                                if (imgDiv) imgDiv.remove(); // Hapus div gambar jika dicentang "Hapus"
+                                // Kembalikan warna tombol & teks ke tema awal
+                                heroSection.querySelectorAll('h1, p').forEach(el => { el.style.color = 'var(--text-base)'; });
+                                const btn = heroSection.querySelector('.btn');
+                                if (btn) { btn.style.borderColor = 'var(--text-base)'; btn.style.color = 'var(--text-base)'; }
+                                
+                            } else {
+                                // Jika div gambar belum ada (misal web baru), kita buatkan elemennya
+                                if (!imgDiv) {
+                                    imgDiv = document.createElement('div');
+                                    imgDiv.className = 'position-absolute top-0 start-0 w-100 h-100';
+                                    imgDiv.style.zIndex = '0';
+                                    imgDiv.style.backgroundSize = 'cover';
+                                    imgDiv.style.backgroundPosition = 'center';
+                                    
+                                    const overlay = document.createElement('div');
+                                    overlay.className = 'position-absolute top-0 start-0 w-100 h-100 bg-dark';
+                                    overlay.style.opacity = '0.6';
+                                    imgDiv.appendChild(overlay);
+                                    
+                                    heroSection.prepend(imgDiv);
+                                }
+                                
+                                // Setel gambar baru (Base64 dari Builder)
+                                imgDiv.style.backgroundImage = `url('${data.src}')`;
+                                
+                                // Paksa warna teks & tombol jadi putih agar kontras dengan gambar gelap
+                                heroSection.querySelectorAll('h1, p').forEach(el => { el.style.color = '#ffffff'; });
+                                const btn = heroSection.querySelector('.btn');
+                                if (btn) { btn.style.borderColor = '#ffffff'; btn.style.color = '#ffffff'; }
                             }
                         }
                     }

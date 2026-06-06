@@ -58,7 +58,7 @@
     {{-- Gambar Latar Belakang --}}
     @if($website->hero_image)
         <div class="position-absolute top-0 start-0 w-100 h-100" 
-             style="background-image: url('{{ asset('storage/'.$website->hero_image) }}'); background-size: cover; background-position: center; z-index: 0;">
+             style="background-image: url('{{ asset('storage/'.$website->hero_image) }}'); background-size: cover; background-position: center; z-index: 0; ">
             {{-- Overlay Hitam agar teks putih terbaca --}}
             <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark" style="opacity: 0.6;"></div> 
         </div>

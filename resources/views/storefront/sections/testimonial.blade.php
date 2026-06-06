@@ -51,27 +51,26 @@
         <div class="row g-4 justify-content-center">
             
             {{-- Loop 3 kali sesuai jumlah ulasan kita --}}
+           {{-- Loop 3 kali sesuai jumlah ulasan kita --}}
             @for($i = 1; $i <= 3; $i++)
                 @php
                     $name = $data["t{$i}_name"] ?? '';
                     $role = $data["t{$i}_role"] ?? '';
                     $review = $data["t{$i}_review"] ?? '';
                     
-                    // Lewati jika kosong semua
-                    if(empty($name) && empty($review)) continue;
+                    // 🚨 FIX 1: Tentukan apakah harus disembunyikan
+                    $displayStyle = (empty($name) && empty($review)) ? 'display: none !important;' : 'display: block;';
                 @endphp
                 
-                <div class="col-md-6 col-lg-4">
-                    {{-- KARTU KLASIK: Tanpa shadow, tanpa rounded, transparan, dengan border tipis --}}
+                {{-- 🚨 FIX 2: Tambahkan class live-item-wrapper dan style display pada col --}}
+                <div class="col-md-6 col-lg-4 live-item-wrapper" style="{{ $displayStyle }}">
                     <div class="card h-100 rounded-0 p-4 p-md-5 text-center classic-testimonial-card"
                          style="background-color: transparent; border: 1px solid rgba(0,0,0,0.08);">
                         
-                        {{-- Icon Kutipan (Dibuat Monokrom) --}}
                         <div class="mb-4" style="color: {{ $textColor }}; opacity: 0.15;">
                             <i class="bi bi-quote" style="font-size: 3.5rem; line-height: 0;"></i>
                         </div>
                         
-                        {{-- Bintang (Monokrom elegan, bukan kuning) --}}
                         <div class="mb-4" style="color: {{ $textColor }}; opacity: 0.8; font-size: 0.8rem;">
                             <i class="bi bi-star-fill mx-1"></i>
                             <i class="bi bi-star-fill mx-1"></i>
@@ -80,7 +79,6 @@
                             <i class="bi bi-star-fill mx-1"></i>
                         </div>
 
-                        {{-- Teks Ulasan --}}
                         <p class="card-text fst-italic flex-grow-1 live-editable" 
                            data-section-id="{{ $sectionId }}" 
                            data-key="t{{ $i }}_review"
@@ -88,16 +86,13 @@
                             "{!! nl2br(e($review)) !!}"
                         </p>
                         
-                        {{-- Profil Penulis --}}
                         <div class="mt-4 pt-4" style="border-top: 1px solid rgba(0,0,0,0.05);">
-                            {{-- Nama: Serif dan Uppercase --}}
                             <h6 class="fw-bold mb-1 live-editable serif text-uppercase" 
                                 data-section-id="{{ $sectionId }}" 
                                 data-key="t{{ $i }}_name"
                                 style="color: {{ $textColor }}; letter-spacing: 1px;">
                                 {{ $name }}
                             </h6>
-                            {{-- Role: Kecil, berjarak lebar --}}
                             <small class="live-editable text-uppercase" 
                                    data-section-id="{{ $sectionId }}" 
                                    data-key="t{{ $i }}_role"
