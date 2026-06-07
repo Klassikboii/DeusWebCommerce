@@ -65,12 +65,12 @@
             </h2>
         </div>
 
-        {{-- GRID FITUR --}}
-        <div class="row g-5 text-center">
+        {{-- 🚨 FIX: Gunakan Flexbox justify-content-center agar otomatis ke tengah! --}}
+        <div class="row g-5 text-center justify-content-center">
             
             {{-- FITUR 1 --}}
-            <div class="col-md-4 live-item-wrapper" style="{{ $f1_display }}">
-                {{-- Dibuat transparan dan tanpa border (border-0 bg-transparent) --}}
+            {{-- 🚨 FIX: Gunakan col-md-auto atau minimal width, jangan col-md-4 yang kaku --}}
+            <div class="col-12 col-sm-6 col-md-4 live-item-wrapper" style="{{ $f1_display }}">
                 <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f1_icon }} live-editable" 
@@ -87,14 +87,14 @@
                     <p class="small live-editable mt-3" 
                        data-section-id="{{ $sectionId }}" 
                        data-key="f1_desc"
-                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;font-family: var(--font-body);    ">
+                       style="color: {{ $textColor }}; opacity: 0.7; line-height: 1.8;font-family: var(--font-body);">
                         {{ $f1_desc }}
                     </p>
                 </div>
             </div>
 
             {{-- FITUR 2 --}}
-            <div class="col-md-4 live-item-wrapper" style="{{ $f2_display }}">
+            <div class="col-12 col-sm-6 col-md-4 live-item-wrapper" style="{{ $f2_display }}">
                 <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f2_icon }} live-editable" 
@@ -118,7 +118,7 @@
             </div>
 
             {{-- FITUR 3 --}}
-            <div class="col-md-4 live-item-wrapper" style="{{ $f3_display }}">
+            <div class="col-12 col-sm-6 col-md-4 live-item-wrapper" style="{{ $f3_display }}">
                 <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f3_icon }} live-editable" 
