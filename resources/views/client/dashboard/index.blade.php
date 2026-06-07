@@ -3,7 +3,6 @@
 @section('content')
 
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-
 {{-- ==================================================== --}}
         {{-- WIDGET ONBOARDING CHECKLIST (Tampil Jika Belum 100%) --}}
         {{-- ==================================================== --}}
@@ -13,7 +12,7 @@
                 <div class="d-flex justify-content-between align-items-end mb-3">
                     <div>
                         <h5 class="fw-bold text-primary mb-1">Persiapan Toko Anda ({{ round($setupProgress) }}%)</h5>
-                        <p class="text-muted small mb-0">Selesaikan langkah-langkah di bawah ini agar toko Anda siap menerima pembeli.</p>
+                        <p class="text-muted small mb-0">Selesaikan kelima langkah fundamental ini agar toko Anda siap menerima pembeli.</p>
                     </div>
                 </div>
 
@@ -21,15 +20,17 @@
                     <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: {{ $setupProgress }}%"></div>
                 </div>
 
-                <div class="row g-3">
-                    {{-- Langkah 1: Profil --}}
-                    <div class="col-md-6 col-lg-3">
+                {{-- 🚨 FIX: Gunakan row-cols-xl-5 agar 5 kotak berbaris sejajar rata --}}
+                <div class="row g-3 row-cols-1 row-cols-md-2 row-cols-xl-5">
+                    
+                    {{-- Langkah 1: Profil & Kontak --}}
+                    <div class="col">
                         <div class="p-3 border rounded {{ $setupStatus['profile'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
                             @if($setupStatus['profile'])
                                 <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-6"></i></span>
                             @endif
-                            <h6 class="fw-bold {{ $setupStatus['profile'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">1. Profil & Alamat</h6>
-                            <p class="small text-muted mb-3">Atur alamat toko agar ongkir dapat dihitung otomatis.</p>
+                            <h6 class="fw-bold {{ $setupStatus['profile'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">1. Info & Kontak</h6>
+                            <p class="small text-muted mb-3" style="font-size: 0.8rem;">Lengkapi WhatsApp, Email, dan Alamat asal pengiriman.</p>
                             @if(!$setupStatus['profile'])
                                 <a href="{{ route('client.settings.index', $website->id) }}" class="btn btn-sm btn-outline-primary w-100">Atur Profil</a>
                             @endif
@@ -37,42 +38,55 @@
                     </div>
 
                     {{-- Langkah 2: Produk --}}
-                    <div class="col-md-6 col-lg-3">
+                    <div class="col">
                         <div class="p-3 border rounded {{ $setupStatus['product'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
                             @if($setupStatus['product'])
                                 <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-6"></i></span>
                             @endif
                             <h6 class="fw-bold {{ $setupStatus['product'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">2. Tambah Produk</h6>
-                            <p class="small text-muted mb-3">Upload produk pertama yang ingin Anda jual.</p>
+                            <p class="small text-muted mb-3" style="font-size: 0.8rem;">Upload produk pertama yang ingin Anda jual ke pelanggan.</p>
                             @if(!$setupStatus['product'])
                                 <a href="{{ route('client.products.create', $website->id) }}" class="btn btn-sm btn-outline-primary w-100">Tambah Produk</a>
                             @endif
                         </div>
                     </div>
 
-                    {{-- Langkah 3: Pengiriman (Menggantikan Pivot) --}}
-                    <div class="col-md-6 col-lg-3">
+                    {{-- Langkah 3: Pengiriman --}}
+                    <div class="col">
                         <div class="p-3 border rounded {{ $setupStatus['shipping'] ?? false ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
                             @if($setupStatus['shipping'] ?? false)
                                 <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-6"></i></span>
                             @endif
                             <h6 class="fw-bold {{ $setupStatus['shipping'] ?? false ? 'text-muted text-decoration-line-through' : 'text-dark' }}">3. Pengiriman</h6>
-                            <p class="small text-muted mb-3">Pilih kurir yang akan digunakan toko Anda.</p>
+                            <p class="small text-muted mb-3" style="font-size: 0.8rem;">Pilih kurir otomatis atau buat tarif ongkir manual.</p>
                             @if(!($setupStatus['shipping'] ?? false))
                                 <a href="{{ route('client.shipping.index', $website->id) }}" class="btn btn-sm btn-outline-primary w-100">Atur Kurir</a>
                             @endif
                         </div>
                     </div>
 
-                    {{-- Langkah 4: Accurate --}}
-                    <div class="col-md-6 col-lg-3">
+                    {{-- Langkah 4: Pembayaran (BARU!) --}}
+                    <div class="col">
+                        <div class="p-3 border rounded {{ $setupStatus['payment'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
+                            @if($setupStatus['payment'])
+                                <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-6"></i></span>
+                            @endif
+                            <h6 class="fw-bold {{ $setupStatus['payment'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">4. Pembayaran</h6>
+                            <p class="small text-muted mb-3" style="font-size: 0.8rem;">Isi rekening bank untuk menerima transfer dari pembeli.</p>
+                            @if(!$setupStatus['payment'])
+                                <a href="{{ route('client.settings.index', $website->id) }}#payment-section" class="btn btn-sm btn-outline-primary w-100">Atur Rekening</a>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Langkah 5: Accurate --}}
+                    <div class="col">
                         <div class="p-3 border rounded {{ $setupStatus['accurate'] ? 'bg-light border-success' : 'bg-white border-primary border-opacity-50' }} h-100 position-relative">
                             @if($setupStatus['accurate'])
                                 <span class="position-absolute top-0 end-0 p-2 text-success"><i class="bi bi-check-circle-fill fs-6"></i></span>
                             @endif
-                            <h6 class="fw-bold {{ $setupStatus['accurate'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">4. Pembukuan</h6>
-                            <p class="small text-muted mb-3">Sinkronisasi dengan Accurate Online (Opsional).</p>
-                            {{-- Tombol Accurate --}}
+                            <h6 class="fw-bold {{ $setupStatus['accurate'] ? 'text-muted text-decoration-line-through' : 'text-dark' }}">5. Pembukuan</h6>
+                            <p class="small text-muted mb-3" style="font-size: 0.8rem;">Integrasi Accurate Online agar stok sinkron.</p>
                             @if(!$setupStatus['accurate'])
                                 <div class="d-flex gap-2">
                                     <a href="{{ route('client.settings.index', $website->id) }}#accurate-section" class="btn btn-sm btn-outline-secondary flex-grow-1">Hubungkan</a>
@@ -83,6 +97,7 @@
                             @endif
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>

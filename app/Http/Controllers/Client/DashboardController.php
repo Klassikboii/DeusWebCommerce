@@ -21,10 +21,13 @@ class DashboardController extends Controller
 
         // 1. CEK STATUS SETUP (ONBOARDING)
         $setupStatus = [
-            'profile'  => !empty($website->address) && !empty($website->city_id), // Syarat Komerce
+            'profile'  => !empty($website->address)&& !empty($website->email_contact) && !empty($website->whatsapp_number) && !empty($website->city_id), // Syarat Komerce
             'product'  => $website->products()->count() > 0,                      // Syarat jualan
             // 3. Pengiriman (PENGGANTI PIVOT): 
             // Selesai jika Klien sudah memilih kurir RajaOngkir ATAU punya 1 tarif ongkir manual
+            // 4. Pembayaran (Baru!): Cek apakah Rekening Manual diisi LENGKAP atau Payment Gateway aktif
+            // (Sesuaikan nama kolom 'bank_account_number' dengan yang ada di database Anda)
+            'payment'  => (!empty($website->bank_name) && !empty($website->bank_account_number) && !empty($website->bank_account_holder)),
             'shipping' => !empty($website->active_couriers) || $website->shippingRates()->count() > 0,
             'accurate' => $website->accurateIntegration && $website->accurateIntegration->access_token ? true : false, // Opsional tapi direkomendasikan
         ];

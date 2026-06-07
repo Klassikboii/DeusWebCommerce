@@ -539,11 +539,26 @@
                 } 
                 else if (data.type === 'moveSection') {
                     const sectionEl = document.getElementById(data.sectionId);
-                    if (sectionEl) {
-                        const parent = sectionEl.parentNode;
-                        if (data.direction === 'up' && sectionEl.previousElementSibling) parent.insertBefore(sectionEl, sectionEl.previousElementSibling);
-                        else if (data.direction === 'down' && sectionEl.nextElementSibling) parent.insertBefore(sectionEl, sectionEl.nextElementSibling.nextElementSibling);
+                    if (!sectionEl) return;
+                    
+                    const allSections = Array.from(document.querySelectorAll('.live-section'));
+                    const currentIndex = allSections.indexOf(sectionEl);
+
+                    if (data.direction === 'up' && currentIndex > 0) {
+                        const prevSection = allSections[currentIndex - 1];
+                        // 🚨 FIX: Gunakan fitur modern .before()
+                        // Sisipkan seksi ini TEPAT SEBELUM prevSection
+                        prevSection.before(sectionEl);
+                    } 
+                    else if (data.direction === 'down' && currentIndex < allSections.length - 1) {
+                        const nextSection = allSections[currentIndex + 1];
+                        // 🚨 FIX: Gunakan fitur modern .after()
+                        // Sisipkan seksi ini TEPAT SETELAH nextSection
+                        nextSection.after(sectionEl);
                     }
+                    
+                    // Gulir layar dengan halus mengikuti elemen yang berpindah
+                    sectionEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
                 
                 // E. UPDATE SETTING (WARNA CUSTOM & PADDING) 

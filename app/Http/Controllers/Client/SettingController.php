@@ -32,25 +32,54 @@ class SettingController extends Controller
 
         
     }
-
-    public function update(Request $request, Website $website)
+public function update(Request $request, Website $website)
     {
         $this->authorize('update', $website);
 
-        $request->validate([
+        // 1. Aturan Dasar (Bisa disimpan meskipun Toko Tutup)
+        $rules = [
             'site_name' => 'required|string|max:50',
             'whatsapp_number' => 'nullable|numeric',
             'email_contact' => 'nullable|email',
             'address' => 'nullable|string|max:500',
-            'icon' => 'nullable|image|max:1024', // Validasi Icon Toko
-
+            'icon' => 'nullable|image|max:1024',
             'bank_name' => 'nullable|string|max:50',
             'bank_account_number' => 'nullable|string|max:50',
             'bank_account_holder' => 'nullable|string|max:100',
             'city_id' => 'nullable|numeric',
             'active_couriers' => 'nullable|array',
-        ]);
+        ];
 
+        $customMessages = [
+            'site_name.required' => 'Nama Toko wajib diisi.',
+        ];
+
+        // 🚨 2. THE GATEKEEPER: Aturan Ketat Jika Toko Dibuka
+        if ($request->has('is_open')) {
+            $rules['whatsapp_number'] = 'required|numeric';
+            $rules['email_contact'] = 'required|email';
+            $rules['address'] = 'required|string|max:500';
+            $rules['city_id'] = 'required|numeric';
+            
+            // Wajibkan Kredensial Bank Manual
+            $rules['bank_name'] = 'required|string|max:50';
+            $rules['bank_account_number'] = 'required|string|max:50';
+            $rules['bank_account_holder'] = 'required|string|max:100';
+
+            // Pesan Error Khusus
+            $customMessages['whatsapp_number.required'] = 'Nomor WhatsApp wajib diisi untuk membuka toko.';
+            $customMessages['email_contact.required'] = 'Email Resmi wajib diisi untuk membuka toko.';
+            $customMessages['address.required'] = 'Alamat Lengkap wajib diisi agar ongkir dapat dihitung.';
+            $customMessages['city_id.required'] = 'Kota Asal Pengiriman wajib dipilih.';
+            $customMessages['bank_name.required'] = 'Nama Bank wajib diisi agar pembeli bisa melakukan pembayaran.';
+            $customMessages['bank_account_number.required'] = 'Nomor Rekening wajib diisi.';
+            $customMessages['bank_account_holder.required'] = 'Nama Pemilik Rekening wajib diisi.';
+        }
+
+        // 3. Jalankan Validasi! (Jika gagal, otomatis kembali ke halaman sebelumnya membawa error)
+        $request->validate($rules, $customMessages);
+
+        // 4. Lanjut Menyimpan Data
         $data = [
             'site_name' => $request->site_name,
             'whatsapp_number' => $request->whatsapp_number,
@@ -60,23 +89,18 @@ class SettingController extends Controller
             'bank_account_number' => $request->bank_account_number,
             'bank_account_holder' => $request->bank_account_holder,
             'is_open' => $request->has('is_open'),
-            'city_id' =>$request->city_id,
-            'active_couriers' => $request->active_couriers ?? ['jne'], // Beri default JNE jika klien hapus semua centang
+            'city_id' => $request->city_id,
+            'active_couriers' => $request->active_couriers ?? ['jne'], 
         ];
-
-        // Fitur Tambahan: Upload Icon/Logo Toko (Opsional jika ingin dipakai nanti)
-        // Pastikan Anda sudah menambah kolom 'icon' di database jika ingin pakai ini.
-        // Untuk sekarang kita simpan data teks dulu.
 
         $website->update($data);
 
-        // Catat log
         \App\Models\UserActivity::log(
             'update_website_settings',
             "Memperbarui pengaturan toko: {$website->name}"
         );
 
-        return redirect()->back()->with('success', 'Identitas toko berhasil diperbarui.');
+        return redirect()->back()->with('success', 'Pengaturan toko berhasil diperbarui.');
     }
     public function updatePayment(Request $request, \App\Models\Website $website)
     {

@@ -69,59 +69,90 @@
 
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-white py-3 fw-bold text-primary">
-                <i class="bi bi-geo-alt me-2"></i>Kontak & Alamat
+                <i class="bi bi-geo-alt me-2"></i>Kontak, Alamat & Pembayaran
             </div>
             <div class="card-body p-4">
+                
+                {{-- 🚨 Notifikasi Umum Jika Ada Error --}}
+                @if($errors->any() && old('is_open'))
+                    <div class="alert alert-danger mb-4 small border-0 shadow-sm">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Gagal Membuka Toko!</strong> Silakan lengkapi kolom yang berwarna merah di bawah ini terlebih dahulu.
+                    </div>
+                @endif
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Nomor WhatsApp Toko</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light">+62</span>
-                            <input type="number" name="whatsapp_number" class="form-control" value="{{ old('whatsapp_number', $website->whatsapp_number) }}" placeholder="8123456789">
+                            <input type="number" name="whatsapp_number" class="form-control @error('whatsapp_number') is-invalid @enderror" value="{{ old('whatsapp_number', $website->whatsapp_number) }}" placeholder="8123456789">
+                            @error('whatsapp_number')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Email Resmi</label>
-                        <input type="email" name="email_contact" class="form-control" value="{{ old('email_contact', $website->email_contact) }}" placeholder="toko@email.com">
+                        <input type="email" name="email_contact" class="form-control @error('email_contact') is-invalid @enderror" value="{{ old('email_contact', $website->email_contact) }}" placeholder="toko@email.com">
+                        @error('email_contact')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold">Alamat Lengkap</label>
-                    <textarea name="address" class="form-control" rows="3" placeholder="Jl. Contoh No. 123, Kota...">{{ old('address', $website->address) }}</textarea>
+                    <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="3" placeholder="Jl. Contoh No. 123, Kota...">{{ old('address', $website->address) }}</textarea>
+                    @error('address')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-bold">Kota Asal Pengiriman</label>
-                    <select name="city_id" class="form-select select2" required>
+                    {{-- 🚨 Hapus atribut 'required' agar klien bisa save sebagian --}}
+                    <select name="city_id" class="form-select select2 @error('city_id') is-invalid @enderror">
                         <option value="">-- Pilih Kota Asal Toko --</option>
                         @foreach($cities as $city)
-                            <option value="{{ $city->id }}" {{ $website->city_id == $city->id ? 'selected' : '' }}>
+                            <option value="{{ $city->id }}" {{ old('city_id', $website->city_id) == $city->id ? 'selected' : '' }}>
                                 {{ $city->type }} {{ $city->name }} - Prov. {{ $city->province->name }}
                             </option>
                         @endforeach
                     </select>
+                    @error('city_id')
+                        <div class="invalid-feedback text-danger small mt-1">{{ $message }}</div>
+                    @enderror
                 </div>
 
                 <hr class="my-4">
                 
-                <h6 class="fw-bold mb-3"><i class="bi bi-bank me-2"></i>Rekening Manual (Opsional)</h6>
+                {{-- 🚨 Ganti label 'Opsional' menjadi 'Wajib' --}}
+                <h6 class="fw-bold mb-3"><i class="bi bi-bank me-2"></i>Rekening Manual <span class="text-muted fw-normal">(Wajib untuk Buka Toko)</span></h6>
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nama Bank</label>
-                        <input type="text" name="bank_name" class="form-control" placeholder="BCA / Mandiri" value="{{ old('bank_name', $website->bank_name) }}">
+                        <input type="text" name="bank_name" class="form-control @error('bank_name') is-invalid @enderror" placeholder="BCA / Mandiri" value="{{ old('bank_name', $website->bank_name) }}">
+                        @error('bank_name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nomor Rekening</label>
-                        <input type="number" name="bank_account_number" class="form-control" placeholder="1234567890" value="{{ old('bank_account_number', $website->bank_account_number) }}">
+                        <input type="number" name="bank_account_number" class="form-control @error('bank_account_number') is-invalid @enderror" placeholder="1234567890" value="{{ old('bank_account_number', $website->bank_account_number) }}">
+                        @error('bank_account_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Atas Nama</label>
-                        <input type="text" name="bank_account_holder" class="form-control" placeholder="John Doe" value="{{ old('bank_account_holder', $website->bank_account_holder) }}">
+                        <input type="text" name="bank_account_holder" class="form-control @error('bank_account_holder') is-invalid @enderror" placeholder="John Doe" value="{{ old('bank_account_holder', $website->bank_account_holder) }}">
+                        @error('bank_account_holder')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
             </div>
-            
             
             <div class="card-footer bg-light p-3 text-end">
                 <button type="submit" class="btn btn-primary px-4">
@@ -341,6 +372,14 @@
         </div>
     </div>
 </div>
-{{-- SCRIPT UNTUK TOMBOL SALIN (Letakkan di bagian bawah file atau di dalam tumpukan @push('scripts')) --}}
-
+<style>
+    /* CSS Khusus agar kotak Select2 ikut menjadi merah saat ada error */
+    .is-invalid + .select2-container--default .select2-selection--single {
+        border-color: #dc3545 !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-radius;
+        background-position: right 1.75rem center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+</style>
 @endsection
