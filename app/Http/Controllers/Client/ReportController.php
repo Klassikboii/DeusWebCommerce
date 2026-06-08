@@ -13,15 +13,12 @@ class ReportController extends Controller
     public function index(Request $request, Website $website)
     {
         $this->authorize('viewAny', $website);
-
-        // Filter Bulan (Default: Bulan Ini)
         $month = $request->get('month', date('m'));
         $year = $request->get('year', date('Y'));
 
-        // QUERY: Ambil data order yang statusnya BUKAN 'cancelled'
-        // Kelompokkan per Tanggal
+        // Query Utama
         $reports = $website->orders()
-            ->where('status', '!=', 'cancelled')
+            ->whereIn('status', ['paid', 'processing', 'shipped', 'completed']) // Hanya order yang sah
             ->whereMonth('created_at', $month)
             ->whereYear('created_at', $year)
             ->select(
@@ -30,13 +27,16 @@ class ReportController extends Controller
                 DB::raw('SUM(total_amount) as revenue')
             )
             ->groupBy('date')
-            ->orderBy('date', 'desc')
+            ->orderBy('date', 'asc')
             ->get();
 
-        // Hitung Total Keseluruhan di bulan terpilih
+        // 🚨 Persiapan data untuk Grafik (Label tanggal, Nilai pendapatan)
+        $chartLabels = $reports->pluck('date');
+        $chartValues = $reports->pluck('revenue');
+
         $grandTotal = $reports->sum('revenue');
         $totalTrx = $reports->sum('total_orders');
 
-        return view('client.reports.index', compact('website', 'reports', 'grandTotal', 'totalTrx', 'month', 'year'));
+        return view('client.reports.index', compact('website', 'reports', 'grandTotal', 'totalTrx', 'month', 'year', 'chartLabels', 'chartValues'));
     }
 }
