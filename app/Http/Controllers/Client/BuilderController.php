@@ -95,33 +95,54 @@ class BuilderController extends Controller
         }
         
 
-        // 4. Handle Gambar (Kode Anda sudah benar, saya rapikan sedikit)
-        if ($request->hasFile('logo')) {
-            if ($website->logo) Storage::disk('public')->delete($website->logo); // Hapus lama
-            $website->logo = $request->file('logo')->store('logos', 'public');
+       // 4. Handle Gambar (Dengan Penjaga Keamanan / Gatekeeper Hapus)
+    if ($request->hasFile('logo')) {
+        // Cek apakah logo saat ini milik klien (ada di folder logos/)
+        if ($website->logo && str_starts_with($website->logo, 'logos/')) {
+            Storage::disk('public')->delete($website->logo); 
         }
+        $website->logo = $request->file('logo')->store('logos', 'public');
+    }
 
-        if ($request->hasFile('hero_image')) {
-            if ($website->hero_image) Storage::disk('public')->delete($website->hero_image);
-            $website->hero_image = $request->file('hero_image')->store('heroes', 'public');
+    if ($request->hasFile('hero_image')) {
+        if ($website->hero_image && str_starts_with($website->hero_image, 'heroes/')) {
+            Storage::disk('public')->delete($website->hero_image);
         }
-        
-        if ($request->hasFile('favicon')) {
-            if ($website->favicon) Storage::disk('public')->delete($website->favicon);
-            $website->favicon = $request->file('favicon')->store('favicons', 'public');
+        $website->hero_image = $request->file('hero_image')->store('heroes', 'public');
+    }
+    
+    // 🚨 FIX: Amankan file Favicon Platform
+    if ($request->hasFile('favicon')) {
+        if ($website->favicon && str_starts_with($website->favicon, 'favicons/')) {
+            Storage::disk('public')->delete($website->favicon);
         }
+        $website->favicon = $request->file('favicon')->store('favicons', 'public');
+    }
 
-        // Handle Hapus
-        if ($request->boolean('remove_hero_image')) {
-            if ($website->hero_image) Storage::disk('public')->delete($website->hero_image);
-            $website->hero_image = null;
+    // Handle Hapus Manual via Checkbox
+    if ($request->boolean('remove_hero_image')) {
+        if ($website->hero_image && str_starts_with($website->hero_image, 'heroes/')) {
+            Storage::disk('public')->delete($website->hero_image);
         }
-        if ($request->boolean('remove_logo')) {
-             if ($website->logo) Storage::disk('public')->delete($website->logo);
-             $website->logo = null;
+        $website->hero_image = null;
+    }
+    
+    if ($request->boolean('remove_logo')) {
+        if ($website->logo && str_starts_with($website->logo, 'logos/')) {
+            Storage::disk('public')->delete($website->logo);
         }
+        $website->logo = null;
+    }
 
-        $website->save();
+    // Handle Checkbox Hapus Favicon
+    if ($request->boolean('remove_favicon')) {
+        if ($website->favicon && str_starts_with($website->favicon, 'favicons/')) {
+            Storage::disk('public')->delete($website->favicon);
+        }
+        $website->favicon = null;
+    }
+
+    $website->save();
      // Catat log
     \App\Models\UserActivity::log(
         'update_website_frontend', 

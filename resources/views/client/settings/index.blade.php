@@ -86,7 +86,7 @@
                         <label class="form-label fw-bold">Nomor WhatsApp Toko</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light">+62</span>
-                            <input type="number" name="whatsapp_number" class="form-control @error('whatsapp_number') is-invalid @enderror" value="{{ old('whatsapp_number', $website->whatsapp_number) }}" placeholder="8123456789">
+                            <input type="number" name="whatsapp_number" class="form-control @error('whatsapp_number') is-invalid @enderror" value="{{ old('whatsapp_number', $website->whatsapp_number) }}" placeholder="contoh: 8123456789" required>
                             @error('whatsapp_number')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -94,7 +94,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label fw-bold">Email Resmi</label>
-                        <input type="email" name="email_contact" class="form-control @error('email_contact') is-invalid @enderror" value="{{ old('email_contact', $website->email_contact) }}" placeholder="toko@email.com">
+                        <input type="email" name="email_contact" class="form-control @error('email_contact') is-invalid @enderror" value="{{ old('email_contact', $website->email_contact) }}" placeholder="toko@email.com" required>
                         @error('email_contact')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -103,7 +103,7 @@
 
                 <div class="mb-3">
                     <label class="form-label fw-bold">Alamat Lengkap</label>
-                    <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="3" placeholder="Jl. Contoh No. 123, Kota...">{{ old('address', $website->address) }}</textarea>
+                    <textarea name="address" class="form-control @error('address') is-invalid @enderror" rows="3" placeholder="Jl. Contoh No. 123, Kota..." required>{{ old('address', $website->address) }}</textarea>
                     @error('address')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
@@ -112,7 +112,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-bold">Kota Asal Pengiriman</label>
                     {{-- 🚨 Hapus atribut 'required' agar klien bisa save sebagian --}}
-                    <select name="city_id" class="form-select select2 @error('city_id') is-invalid @enderror">
+                    <select name="city_id" class="form-select select2 @error('city_id') is-invalid @enderror" required>
                         <option value="">-- Pilih Kota Asal Toko --</option>
                         @foreach($cities as $city)
                             <option value="{{ $city->id }}" {{ old('city_id', $website->city_id) == $city->id ? 'selected' : '' }}>
@@ -132,21 +132,21 @@
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nama Bank</label>
-                        <input type="text" name="bank_name" class="form-control @error('bank_name') is-invalid @enderror" placeholder="BCA / Mandiri" value="{{ old('bank_name', $website->bank_name) }}">
+                        <input type="text" name="bank_name" class="form-control @error('bank_name') is-invalid @enderror" placeholder="BCA / Mandiri" value="{{ old('bank_name', $website->bank_name) }}" required>
                         @error('bank_name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Nomor Rekening</label>
-                        <input type="number" name="bank_account_number" class="form-control @error('bank_account_number') is-invalid @enderror" placeholder="1234567890" value="{{ old('bank_account_number', $website->bank_account_number) }}">
+                        <input type="number" name="bank_account_number" class="form-control @error('bank_account_number') is-invalid @enderror" placeholder="1234567890" value="{{ old('bank_account_number', $website->bank_account_number) }}" required>
                         @error('bank_account_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label">Atas Nama</label>
-                        <input type="text" name="bank_account_holder" class="form-control @error('bank_account_holder') is-invalid @enderror" placeholder="John Doe" value="{{ old('bank_account_holder', $website->bank_account_holder) }}">
+                        <input type="text" name="bank_account_holder" class="form-control @error('bank_account_holder') is-invalid @enderror" placeholder="John Doe" value="{{ old('bank_account_holder', $website->bank_account_holder) }}" required>
                         @error('bank_account_holder')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

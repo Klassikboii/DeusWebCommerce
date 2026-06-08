@@ -33,8 +33,13 @@
     {{-- PERBAIKAN: Tambahkan ID dan gunakan wght@400;700 saja --}}
     <link id="google-font-link" href="https://fonts.googleapis.com/css2?family={{ $fontUrl }}:wght@400;600;700&display=swap" rel="stylesheet">
 
+    {{-- FAVICON TOKO DENGAN CACHE BUSTER & FALLBACK --}}
     @if($website->favicon)
-        <link rel="icon" href="{{ asset('storage/'.$website->favicon) }}">
+        {{-- Jika Klien upload favicon, gunakan timestamp agar browser selalu mengambil gambar terbaru --}}
+        <link rel="icon" href="{{ asset('storage/'.$website->favicon) }}?v={{ $website->updated_at->timestamp }}">
+    @else
+        {{-- Jika Klien belum upload, gunakan Favicon platform sebagai cadangan --}}
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
     @endif
 
     <style>

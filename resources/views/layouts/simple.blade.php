@@ -30,8 +30,13 @@
     {{-- 🚨 MENGGUNAKAN API V1: Lebih aman dan anti-error untuk Web Builder --}}
     <link id="google-font-link" href="https://fonts.googleapis.com/css?family={{ $headingUrl }}:300,400,600,700|{{ $bodyUrl }}:300,400,400i,600,700&display=swap" rel="stylesheet">
     
-    @if($website->logo)
-        <link rel="icon" type="image/png" href="{{ asset('storage/'.$website->logo) }}">
+    {{-- FAVICON TOKO DENGAN CACHE BUSTER & FALLBACK --}}
+    @if($website->favicon)
+        {{-- Jika Klien upload favicon, gunakan timestamp agar browser selalu mengambil gambar terbaru --}}
+        <link rel="icon" href="{{ asset('storage/'.$website->favicon) }}?v={{ $website->updated_at->timestamp }}">
+    @else
+        {{-- Jika Klien belum upload, gunakan Favicon platform sebagai cadangan --}}
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
     @endif
 
     <style>
@@ -195,11 +200,11 @@
 
             <div class="header-center text-center" style="flex: 1;">
                 <a href="/" class="text-decoration-none text-dark">
-                    @if($website->logo)
-                        <img src="{{ Storage::url($website->logo) }}" alt="Logo" class="site-logo" style="max-height: 45px;">
-                    @else
-                        <span class="fs-3 fw-bold text-uppercase serif tracking-widest">{{ $website->site_name }}</span>
-                    @endif
+                   
+                         <img src="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}" id="logo-img-preview" style="height: 40px; {{ $website->logo ? '' : 'display:none;' }}" alt="Logo">
+                   
+                        <span class="fs-3 fw-bold text-uppercase serif tracking-widest" id="site-name-text" style="{{ $website->logo ? 'display:none;' : '' }}">{{ $website->site_name }}</span>
+                   
                 </a>
             </div>
 
@@ -458,16 +463,22 @@
                             else if (el.tagName !== 'DIV' && el.tagName !== 'SECTION') {
                                 el.innerHTML = data.value.replace(/\n/g, '<br>');
                                 
-                                // 👇 TAMBAHAN BARU: FIX LIVE PREVIEW FAQ & TESTIMONIAL 👇
-                                // Cari pembungkus kotak ini (misal: .accordion-item atau .card)
+                                // 👇 LOGIKA LIVE PREVIEW FAQ, TESTIMONIAL & FEATURES 👇
                                 const wrapper = el.closest('.live-item-wrapper');
                                 if (wrapper) {
-                                    // Cek apakah ada teks di dalam kotak ini
                                     let hasText = false;
                                     wrapper.querySelectorAll('[data-key]').forEach(child => {
-                                        if (child.textContent.trim() !== '') hasText = true;
+                                        if (child.tagName === 'I') {
+                                            // Jika ini ikon, cek apakah class-nya masih punya 'bi-*'
+                                            const classes = Array.from(child.classList);
+                                            if (classes.some(c => c.startsWith('bi-'))) hasText = true;
+                                        } else {
+                                            // Bersihkan tanda kutip (") lalu cek apakah masih ada teksnya
+                                            let text = child.textContent.replace(/[""]/g, '').trim();
+                                            if (text !== '') hasText = true;
+                                        }
                                     });
-                                    // Munculkan jika ada teks, sembunyikan jika Klien menghapus teksnya
+                                    // Munculkan jika ada teks/icon, sembunyikan jika benar-benar kosong
                                     wrapper.style.setProperty('display', hasText ? 'block' : 'none', 'important');
                                 }
                             }
