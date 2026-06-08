@@ -1,176 +1,185 @@
-@extends('layouts.admin') @section('content')
+@extends('layouts.admin') 
+
+@section('content')
 <div class="container py-4">
     <div class="row mb-4">
         <div class="col">
             <h2 class="fw-bold text-primary">Super Admin Panel</h2>
-            <p class="text-muted">Selamat datang, Bos! Ini area kendali pusat.</p>
+            <p class="text-muted">Pantau pertumbuhan platform dan status operasional harian.</p>
         </div>
     </div>
 
+    {{-- ========================================== --}}
+    {{-- 1. BARIS METRIK UTAMA (4 KOLOM) --}}
+    {{-- ========================================== --}}
     <div class="row g-4">
-        <div class="col-md-4">
+        <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm bg-primary text-white h-100">
                 <div class="card-body">
-                    <h5 class="opacity-75">Total Klien</h5>
-                    <h1 class="display-4 fw-bold mb-0">{{ $totalUsers }}</h1>
+                    <h6 class="opacity-75 mb-2"><i class="bi bi-people me-2"></i>Total Klien</h6>
+                    <h2 class="fw-bold mb-0">{{ number_format($totalUsers) }}</h2>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm bg-success text-white h-100">
                 <div class="card-body">
-                    <h5 class="opacity-75">Total Website Aktif</h5>
-                    <h1 class="display-4 fw-bold mb-0">{{ $totalWebsites }}</h1>
+                    <h6 class="opacity-75 mb-2"><i class="bi bi-globe me-2"></i>Website Aktif</h6>
+                    <h2 class="fw-bold mb-0">{{ number_format($totalWebsites) }}</h2>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="card border-0 shadow-sm text-white h-100" style="background-color: #6f42c1;">
+                <div class="card-body">
+                    <h6 class="opacity-75 mb-2" title="Total Perputaran Uang Toko Klien Bulan Ini"><i class="bi bi-graph-up-arrow me-2"></i>GMV (Bulan Ini)</h6>
+                    <h3 class="fw-bold mb-0 text-truncate">Rp {{ number_format($totalGMV, 0, ',', '.') }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
             <div class="card border-0 shadow-sm bg-warning text-dark h-100">
                 <div class="card-body">
-                    <h5 class="opacity-75">Pendapatan</h5>
-                    <h1 class="display-4 fw-bold mb-0">
-                        Rp {{ number_format($totalRevenue, 0, ',', '.') }}
-                    </h1>
+                    <h6 class="opacity-75 mb-2"><i class="bi bi-wallet2 me-2"></i>Pendapatan SaaS</h6>
+                    <h3 class="fw-bold mb-0 text-truncate">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</h3>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- ... (Setelah 3 Card Statistik) ... --}}
-    @php
-    // Deteksi URL admin (localhost:8000) secara manual
-    $adminUrl = env('APP_URL'); 
-    
-    // Tambah port 8000 jika di local (karena env biasanya cuma localhost tanpa port)
-    if (request()->server('SERVER_PORT') == '8000' && !str_contains($adminUrl, ':8000')) {
-        $adminUrl .= ':8000';
-    }
-    
-    // Pastikan ada http
-    if (!str_starts_with($adminUrl, 'http')) {
-        $adminUrl = 'http://' . $adminUrl;
-    }
-@endphp
-    {{-- ALERT JIKA ADA TRANSAKSI PENDING --}}
-    @if($pendingTransactions > 0)
-    <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mt-4" role="alert">
-        <i class="bi bi-exclamation-circle-fill fs-4 me-3"></i>
-        <div>
-            <strong>Perhatian!</strong> Ada <span class="badge bg-dark">{{ $pendingTransactions }}</span> pembayaran baru menunggu verifikasi.
-            <a href="{{ route('admin.transactions.index') }}" class="alert-link">Cek Sekarang &rarr;</a>
-        </div>
-    </div>
-    @endif
-
+    {{-- ========================================== --}}
+    {{-- 2. BARIS NOTIFIKASI (ALERT PENDING ACTIONS) --}}
+    {{-- ========================================== --}}
     <div class="row mt-4">
-        {{-- KOLOM KIRI: TRANSAKSI TERBARU --}}
-        <div class="col-lg-8 mb-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold m-0">Transaksi Terakhir</h6>
-                    <a href="{{ route('admin.transactions.index') }}" class="btn btn-sm btn-light">Lihat Semua</a>
-                </div>
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
-                        <thead class="bg-light small">
-                            <tr>
-                                <th>User</th>
-                                <th>Paket</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                                <th>Tanggal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($latestTransactions as $trx)
-                            <tr>
-                                <td>{{ $trx->user->name ?? 'Deleted User' }}</td>
-                                <td><span class="badge bg-info text-dark">{{ $trx->package_name }}</span></td>
-                                <td class="fw-bold text-success">Rp {{ number_format($trx->amount) }}</td>
-                                <td>
-                                    @if($trx->status == 'pending')
-                                        <span class="badge bg-warning text-dark">Menunggu</span>
-                                    @elseif($trx->status == 'approved')
-                                        <span class="badge bg-success">Diterima</span>
-                                    @else
-                                        <span class="badge bg-danger">Ditolak</span>
-                                    @endif
-                                </td>
-                                <td class="small text-muted">{{ $trx->created_at->diffForHumans() }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+        <div class="col-12">
+            @if($pendingTransactions > 0)
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-3" role="alert">
+                <i class="bi bi-receipt fs-4 me-3"></i>
+                <div>
+                    <strong>Perhatian!</strong> Ada <span class="badge bg-dark">{{ $pendingTransactions }}</span> pembayaran langganan paket menunggu verifikasi.
+                    <a href="{{ route('admin.transactions.index') }}" class="alert-link ms-2">Cek Sekarang &rarr;</a>
                 </div>
             </div>
-        </div>
+            @endif
 
-        {{-- KOLOM KANAN: USER BARU --}}
+            @if($pendingKybCount > 0)
+            <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-3" role="alert">
+                <i class="bi bi-shield-lock fs-4 me-3"></i>
+                <div>
+                    <strong>Prioritas!</strong> Ada <span class="badge bg-dark">{{ $pendingKybCount }}</span> pengajuan KYB Pivot dari Klien yang menunggu untuk diproses.
+                    <a href="{{ route('admin.kyb.index') }}" class="alert-link ms-2">Proses KYB &rarr;</a>
+                </div>
+            </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- ========================================== --}}
+    {{-- 3. BARIS LIST TERBARU (3 KOLOM SEJAJAR) --}}
+    {{-- ========================================== --}}
+    <div class="row mt-2 g-4">
+        
+        {{-- KOLOM 1: TRANSAKSI LANGGANAN --}}
         <div class="col-lg-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white py-3">
-                    <h6 class="fw-bold m-0">Website Baru Daftar</h6>
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom-0">
+                    <h6 class="fw-bold m-0"><i class="bi bi-receipt me-2 text-primary"></i>Transaksi Langganan</h6>
+                    <a href="{{ route('admin.transactions.index') }}" class="small text-decoration-none">Lihat Semua</a>
                 </div>
                 <div class="list-group list-group-flush">
-                    @foreach($latestWebsites as $web)
-
-                   @php
-                        $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
-
-                        // Scheme dinamis berdasarkan environment
-                        $scheme = app()->environment('local') ? 'http://' : 'https://';
-
-                        // Port hanya untuk local
-                        $port = app()->environment('local') ? ':8000' : '';
-
-                        $storeUrl = $scheme . $web->subdomain . '.' . $mainDomain . $port;
-                    @endphp
-                    <div class="list-group-item px-3 py-3">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1 fw-bold">{{ $web->site_name }}</h6>
-                            <small class="text-muted">{{ $web->created_at->format('d M') }}</small>
+                    @forelse($latestTransactions as $trx)
+                        <div class="list-group-item px-3 py-3">
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-truncate" style="max-width: 150px;">{{ $trx->user->name ?? 'User Dihapus' }}</span>
+                                <span class="fw-bold text-success">Rp {{ number_format($trx->amount, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <small class="text-muted">{{ $trx->package_name }}</small>
+                                @if($trx->status == 'pending')
+                                    <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">Pending</span>
+                                @elseif($trx->status == 'approved')
+                                    <span class="badge bg-success" style="font-size: 0.65rem;">Lunas</span>
+                                @else
+                                    <span class="badge bg-danger" style="font-size: 0.65rem;">Ditolak</span>
+                                @endif
+                            </div>
                         </div>
-                        <p class="mb-1 small text-muted">Owner: {{ $web->user->name ?? '-' }}</p>
-                        <small>
-                            <a href="{{ $storeUrl }}" target="_blank" class="text-decoration-none">
-                                <i class="bi bi-box-arrow-up-right"></i> Kunjungi
-                            </a>
-                        </small>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- WIDGET PENDING PENARIKAN DANA -->
-            <div class="card shadow-sm border-0 mt-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 fw-bold">Request Penarikan Dana</h6>
-                    <a href="{{ route('admin.withdrawals.index') }}" class="btn btn-sm btn-link text-decoration-none">Lihat Semua</a>
-                </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush">
-                        @forelse($pendingWithdrawals as $wd)
-                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
-                                <div>
-                                    <h6 class="mb-1 text-dark fw-bold">{{ $wd->website->name ?? 'Toko Tidak Diketahui' }}</h6>
-                                    <small class="text-muted">{{ $wd->created_at->diffForHumans() }}</small>
-                                </div>
-                                <div class="text-end">
-                                    <span class="fw-bold text-danger d-block">Rp {{ number_format($wd->amount, 0, ',', '.') }}</span>
-                                    <a href="{{ route('admin.withdrawals.index') }}" class="badge bg-warning text-dark text-decoration-none">Proses</a>
-                                </div>
-                            </li>
-                        @empty
-                            <li class="list-group-item text-center text-muted py-4">
-                                Tidak ada request penarikan tertunda.
-                            </li>
-                        @endforelse
-                    </ul>
+                    @empty
+                        <div class="list-group-item text-center text-muted py-4">Belum ada transaksi.</div>
+                    @endforelse
                 </div>
             </div>
         </div>
+
+        {{-- KOLOM 2: WEBSITE BARU DAFTAR --}}
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom-0">
+                    <h6 class="fw-bold m-0"><i class="bi bi-globe me-2 text-success"></i>Website Baru</h6>
+                    <a href="{{ route('admin.websites.index') }}" class="small text-decoration-none">Lihat Semua</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    @forelse($latestWebsites as $web)
+                        @php
+                            $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
+                            $scheme = app()->environment('local') ? 'http://' : 'https://';
+                            $port = app()->environment('local') ? ':8000' : '';
+                            $storeUrl = $scheme . $web->subdomain . '.' . $mainDomain . $port;
+                        @endphp
+                        <div class="list-group-item px-3 py-3">
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <h6 class="mb-0 fw-bold text-truncate" style="max-width: 160px;">{{ $web->site_name }}</h6>
+                                <small class="text-muted" style="font-size: 0.7rem;">{{ $web->created_at->format('d M y') }}</small>
+                            </div>
+                            <div class="d-flex w-100 justify-content-between align-items-center mt-2">
+                                <p class="mb-0 small text-muted text-truncate" style="max-width: 140px;">Owner: {{ $web->user->name ?? '-' }}</p>
+                                <a href="{{ $storeUrl }}" target="_blank" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.7rem;">
+                                    <i class="bi bi-box-arrow-up-right"></i> Kunjungi
+                                </a>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="list-group-item text-center text-muted py-4">Belum ada website baru.</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
+        {{-- KOLOM 3: PENGAJUAN KYB (PIVOT) --}}
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom-0">
+                    <h6 class="fw-bold m-0"><i class="bi bi-shield-lock me-2 text-danger"></i>Pengajuan Pivot</h6>
+                    <a href="{{ route('admin.kyb.index') }}" class="small text-decoration-none">Lihat Semua</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    @forelse($latestKyb as $kyb)
+                        <div class="list-group-item px-3 py-3">
+                            <div class="d-flex w-100 justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-truncate" style="max-width: 160px;">{{ $kyb->short_name ?? 'Data Klien' }}</span>
+                                <small class="text-muted" style="font-size: 0.7rem;">{{ $kyb->created_at->diffForHumans() }}</small>
+                            </div>
+                            <div class="d-flex w-100 justify-content-between align-items-center mt-2">
+                                <span class="small text-muted text-truncate" style="max-width: 150px;">{{ $kyb->website }}</span>
+                                @if($kyb->status == 'pending')
+                                    <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">Menunggu</span>
+                                @elseif($kyb->status == 'approved')
+                                    <span class="badge bg-success" style="font-size: 0.65rem;">Disetujui</span>
+                                @else
+                                    <span class="badge bg-danger" style="font-size: 0.65rem;">Ditolak</span>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="list-group-item text-center text-muted py-4">Tidak ada pengajuan.</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 @endsection

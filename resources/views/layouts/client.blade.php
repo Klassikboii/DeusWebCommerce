@@ -216,24 +216,8 @@
                 class="nav-link {{ request()->routeIs('client.categories.*') ? 'active' : '' }}">
                     <i class="bi bi-tags"></i> Kategori
                 </a>
-                @if($website->hasFeature('has_shipping_markup'))
-                        
-                            <a class="nav-link" href="{{ route('client.shipping_markups.index', $website) }}">
-                                <i class="bi bi-graph-up"></i> Markup Ongkir
-                            </a>
-                        
-                    @else
-                       
-                            <a class="nav-link bg-light" href="{{ route('client.shipping_markups.index', $website) }}">
-                                <i class="bi bi-lock-fill"></i> Markup Ongkir (Pro)
-                            </a>
-                        
-                    @endif
-                <a href="{{ route('client.shipping.index', $website->id) }}" 
-                    class="nav-link {{ request()->routeIs('client.shipping.*') ? 'active' : '' }}">
-                        <i class="bi bi-truck nav-icon"></i>
-                        <span class="nav-link-text">Pengiriman</span>
-                    </a>
+                
+               
                     <a href="{{ route('client.vouchers.index', $website->id) }}" 
                     class="nav-link {{ request()->routeIs('client.vouchers.*') ? 'active' : '' }}">
                         <i class="bi bi-ticket-perforated nav-icon"></i>
@@ -243,7 +227,25 @@
                 class="nav-link {{ request()->routeIs('client.posts.*') ? 'active' : '' }}">
                     <i class="bi bi-journal-text"></i> Blog / Artikel
                 </a>
-
+                 <a href="{{ route('client.shipping.index', $website->id) }}" 
+                    class="nav-link {{ request()->routeIs('client.shipping.*') ? 'active' : '' }}">
+                        <i class="bi bi-truck nav-icon"></i>
+                        <span class="nav-link-text">Pengiriman</span>
+                    </a>
+                @if($website->hasFeature('has_shipping_markup'))
+                        
+                            <a class="nav-link" href="{{ route('client.shipping_markups.index', $website) }}">
+                                <i class="bi bi-graph-up"></i> Markup Ongkir
+                            </a>
+                        
+                    @else
+                       
+                            <a class="nav-link  bg-secondary text-white" href="{{ route('client.shipping_markups.index', $website) }}">
+                                <i class="bi bi-lock-fill"></i> Markup Ongkir (Pro)
+                            </a>
+                        
+                    @endif
+                
                 <div class="nav-group-label">Penjualan</div>
                 <a href="{{ route('client.orders.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.orders.*') ? 'active' : '' }}">
@@ -278,7 +280,7 @@
                         
                     @else
                         
-                            <a class="nav-link bg-light" href="{{ route('client.billing.index', $website) }}">
+                            <a class="nav-link bg-secondary text-white" href="{{ route('client.billing.index', $website) }}">
                                 <i class="bi bi-lock-fill"></i> AI Insights (Pro)
                             </a>
                         

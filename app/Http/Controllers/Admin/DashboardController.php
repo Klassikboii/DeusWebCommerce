@@ -6,8 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Website;
 use Illuminate\Http\Request;
-use App\Models\Transaction; // <--- Jangan lupa import ini
-use App\Models\Withdrawal; // <--- Import model Withdrawal untuk ambil data penarikan
+use App\Models\Transaction; 
+use App\Models\Order; // <--- Import model Order untuk hitung GMV
+use App\Models\MerchantKybDetail; // <--- Import model KYB
 
 class DashboardController extends Controller
 {
@@ -16,28 +17,29 @@ class DashboardController extends Controller
         $totalUsers = User::where('role', 'client')->count();
         $totalWebsites = Website::count();
         
-        // Asumsi Anda punya model Transaction
-        // Total uang masuk (status approved)
-        $totalRevenue = \App\Models\Transaction::where('status', 'approved')->sum('amount');
+        // 1. PENDAPATAN SAAS (Dari Transaksi Langganan Paket)
+        $totalRevenue = Transaction::where('status', 'approved')->sum('amount');
         
-        // 1. Cek berapa yang statusnya 'pending' (Butuh aksi Anda segera!)
-        $pendingTransactions = \App\Models\Transaction::where('status', 'pending')->count();
+        // 2. 🚀 TOTAL GMV PLATFORM BULAN INI (Perputaran Uang Seluruh Toko)
+        $startOfMonth = now()->startOfMonth();
+        // Kita hitung order yang sudah dibayar/selesai
+        $totalGMV = Order::whereIn('status', ['paid', 'processing', 'shipped', 'completed'])
+                         ->where('created_at', '>=', $startOfMonth)
+                         ->sum('total_amount');
+        
+        // 3. PENDING ACTIONS (Pekerjaan Admin yang Menunggu)
+        $pendingTransactions = Transaction::where('status', 'pending')->count();
+        $pendingKybCount = MerchantKybDetail::where('status', 'pending')->count();
 
-        // 2. Ambil 5 Transaksi Terakhir
-        $latestTransactions = \App\Models\Transaction::with('user')->latest()->take(5)->get();
-
-        // 3. Ambil 5 Website Terbaru
+        // 4. DATA TERBARU (Untuk List di Bawah)
+        $latestTransactions = Transaction::with('user')->latest()->take(5)->get();
         $latestWebsites = Website::with('user')->latest()->take(5)->get();
-        // 🚨 AMBIL 5 REQUEST PENARIKAN TERBARU YANG BERSTATUS 'PENDING'
-        $pendingWithdrawals = Withdrawal::with('website')
-                                ->where('status', 'pending')
-                                ->latest()
-                                ->take(5)
-                                ->get();
+        $latestKyb = MerchantKybDetail::latest()->take(5)->get(); // 🚨 KYB Terbaru
 
         return view('admin.dashboard', compact(
-            'totalUsers', 'totalWebsites', 'totalRevenue', 
-            'pendingTransactions', 'latestTransactions', 'latestWebsites', 'pendingWithdrawals'
+            'totalUsers', 'totalWebsites', 'totalRevenue', 'totalGMV',
+            'pendingTransactions', 'pendingKybCount', 
+            'latestTransactions', 'latestWebsites', 'latestKyb'
         ));
     }
 }

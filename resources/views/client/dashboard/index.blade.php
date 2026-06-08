@@ -274,6 +274,12 @@
         @endif
         {{-- WIDGET SALDO MASTER WALLET (BARU) --}}
         @if($preferences['show_stat_wallet'] ?? true)
+                @php
+                            $kyb = auth()->user()->kybDetail ?? null;
+                            // Menu HANYA TAMPIL jika Pivot aktif DAN Auto-Withdrawal dimatikan
+                            $showWithdrawal = $kyb && $kyb->status === 'approved' && $kyb->auto_withdrawal === 'OFF';
+                        @endphp
+                @if($showWithdrawal)
         <div class="{{ $colClass }}">
             <div class="card border-0 shadow-sm h-100 bg-primary text-white" style="background: linear-gradient(135deg, #0d6efd, #0b5ed7);">
                 <div class="card-body d-flex flex-column justify-content-between">
@@ -291,6 +297,7 @@
                 </div>
             </div>
         </div>
+        @endif
         @endif
     </div>
     
@@ -837,11 +844,18 @@
                                 <i class="bi bi-box-seam-fill text-info me-2"></i>
                                 <span>Total Produk Aktif</span>
                             </label>
+                                    @php
+                                        $kyb = auth()->user()->kybDetail ?? null;
+                                        // Menu HANYA TAMPIL jika Pivot aktif DAN Auto-Withdrawal dimatikan
+                                        $showWithdrawal = $kyb && $kyb->status === 'approved' && $kyb->auto_withdrawal === 'OFF';
+                                    @endphp
+                            @if($showWithdrawal)
                             <label class="form-check form-switch mb-2 d-flex align-items-center" style="cursor: pointer;">
                                 <input class="form-check-input me-2" type="checkbox" name="show_stat_wallet" value="1" {{ ($preferences['show_stat_wallet'] ?? true) ? 'checked' : '' }}>
                                 <i class="bi bi-wallet2 text-primary me-2"></i>
                                 <span>Saldo Wallet (Pivot)</span>
                             </label>
+                            @endif
                         </div>
 
                         {{-- Kategori 2: Analitik Standar --}}
