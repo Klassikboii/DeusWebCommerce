@@ -159,6 +159,7 @@ Route::middleware(['auth'])->group(function () {
         // ... route customers ...
         // --- FITUR LAPORAN ---
         Route::get('/reports', [App\Http\Controllers\Client\ReportController::class, 'index'])->name('client.reports.index');
+        Route::get('/reports/export', [App\Http\Controllers\Client\ReportController::class, 'export'])->name('client.reports.export');
         Route::get('/insights', [\App\Http\Controllers\Client\CustomerInsightController::class, 'index'])->name('client.insights.index')->middleware('feature:has_ai_insights');;
         Route::put('/insights/mba-discount', [\App\Http\Controllers\Client\CustomerInsightController::class, 'updateMbaDiscount'])->name('client.insights.update_mba');
         // ... route produk/kategori ...
