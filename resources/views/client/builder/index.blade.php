@@ -128,15 +128,7 @@
                                 </optgroup>
                                 </select>
                             </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Rasio Gambar Produk</label>
-                            <select name="product_image_ratio" class="form-select live-update-style" data-style-var="--ratio-product">
-                                @php $currentRatio = $website->theme_config['shapes']['product_ratio'] ?? $website->product_image_ratio ?? '1/1'; @endphp
-                                <option value="1/1" {{ $currentRatio == '1/1' ? 'selected' : '' }}>Kotak (1:1)</option>
-                                <option value="3/4" {{ $currentRatio == '3/4' ? 'selected' : '' }}>Portrait (3:4)</option>
-                                <option value="4/3" {{ $currentRatio == '4/3' ? 'selected' : '' }}>Landscape (4:3)</option>
-                            </select>
-                        </div>
+                        
                         <hr>
                         
                         <h6 class="fw-bold mb-3">Bentuk & Dimensi</h6>
@@ -157,6 +149,15 @@
                                 <option value="none" {{ $currentShadow == 'none' ? 'selected' : '' }}>Tanpa Bayangan (Flat)</option>
                                 <option value="0 0.125rem 0.25rem rgba(0,0,0,0.075)" {{ $currentShadow == '0 0.125rem 0.25rem rgba(0,0,0,0.075)' ? 'selected' : '' }}>Halus (Soft)</option>
                                 <option value="0 0.5rem 1rem rgba(0,0,0,0.15)" {{ $currentShadow == '0 0.5rem 1rem rgba(0,0,0,0.15)' ? 'selected' : '' }}>Kuat (Bold)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Rasio Gambar Produk</label>
+                            <select name="product_image_ratio" class="form-select live-update-style" data-style-var="--ratio-product">
+                                @php $currentRatio = $website->theme_config['shapes']['product_ratio'] ?? $website->product_image_ratio ?? '1/1'; @endphp
+                                <option value="1/1" {{ $currentRatio == '1/1' ? 'selected' : '' }}>Kotak (1:1)</option>
+                                <option value="3/4" {{ $currentRatio == '3/4' ? 'selected' : '' }}>Portrait (3:4)</option>
+                                <option value="4/3" {{ $currentRatio == '4/3' ? 'selected' : '' }}>Landscape (4:3)</option>
                             </select>
                         </div>
                     </div>
