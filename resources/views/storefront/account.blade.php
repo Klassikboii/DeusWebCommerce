@@ -73,31 +73,42 @@
                                                 @endif
                                             </td>
 
-                                            {{-- BADGE STATUS PESANAN (Bisa disesuaikan dengan enum database Anda) --}}
-                                            <td class="py-3">
-                                                @php
-                                                    $statusColors = [
-                                                        'pending' => 'bg-secondary',
-                                                        'awaiting_confirmation' => 'bg-info text-dark',
-                                                        'processing' => 'bg-primary',
-                                                        'shipped' => 'bg-info',
-                                                        'completed' => 'bg-success',
-                                                        'cancelled' => 'bg-danger'
-                                                    ];
-                                                    $statusLabels = [
-                                                        'pending' => 'Menunggu Pembayaran',
-                                                        'awaiting_confirmation' => 'Verifikasi Admin',
-                                                        'processing' => 'Sedang Diproses',
-                                                        'shipped' => 'Sedang Dikirim',
-                                                        'completed' => 'Selesai',
-                                                        'cancelled' => 'Dibatalkan'
-                                                    ];
+                                                <td class="py-3">
+                                                    @php
+                                                        $statusColors = [
+                                                            'pending' => 'bg-secondary',
+                                                            'awaiting_confirmation' => 'bg-info text-dark',
+                                                            'processing' => 'bg-primary',
+                                                            'shipped' => 'bg-info',
+                                                            'completed' => 'bg-success',
+                                                            'cancelled' => 'bg-danger'
+                                                        ];
+                                                        $statusLabels = [
+                                                            'pending' => 'Menunggu Pembayaran',
+                                                            'awaiting_confirmation' => 'Verifikasi Admin',
+                                                            'processing' => 'Sedang Diproses',
+                                                            'shipped' => 'Sedang Dikirim',
+                                                            'completed' => 'Selesai',
+                                                            'cancelled' => 'Dibatalkan'
+                                                        ];
+                                                        
+                                                        $color = $statusColors[$order->status] ?? 'bg-secondary';
+                                                        $label = $statusLabels[$order->status] ?? strtoupper($order->status);
+                                                    @endphp
                                                     
-                                                    $color = $statusColors[$order->status] ?? 'bg-secondary';
-                                                    $label = $statusLabels[$order->status] ?? strtoupper($order->status);
-                                                @endphp
-                                                <span class="badge {{ $color }}">{{ $label }}</span>
-                                            </td>
+                                                    {{-- Badge Status Utama --}}
+                                                    <span class="badge {{ $color }}">{{ $label }}</span>
+                                                    
+                                                    {{-- 👇 Menampilkan Resi dengan format ringkas di bawah badge --}}
+                                                    @if(in_array($order->status, ['shipped', 'completed']) && $order->tracking_number)
+                                                        <div class="mt-2 text-muted" style="font-size: 0.75rem; max-width: 150px;">
+                                                            <span class="d-block mb-1"><i class="bi bi-truck me-1"></i>{{ $order->courier_name ?? 'Kurir' }}</span>
+                                                            <span class="d-inline-block bg-light border px-2 py-1 rounded text-dark user-select-all font-monospace" title="Salin Resi">
+                                                                {{ $order->tracking_number }}
+                                                            </span>
+                                                        </div>
+                                                    @endif
+                                                </td>
 
                                             <td class="px-4 py-3 text-end">
                                                 {{-- Tombol menuju halaman Invoice/Pembayaran --}}

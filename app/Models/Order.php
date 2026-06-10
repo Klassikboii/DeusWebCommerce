@@ -32,7 +32,8 @@ class Order extends Model
         'admin_note',
         'discount_amount',
         'voucher_discount',
-        'bundle_discount'   
+        'bundle_discount',
+        'tracking_number'
     ];
     // Relasi ke Item Belanja
     public function items()

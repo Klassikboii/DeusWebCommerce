@@ -11,6 +11,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
+    
     <div>
         <a href="{{ route('client.orders.index', $website->id) }}" class="text-decoration-none text-muted small">
             <button type="button" class="btn btn-light">
@@ -20,6 +21,9 @@
         </a>
         <h4 class="fw-bold mt-1">Order #{{ $order->order_number }}</h4>
         <span class="text-muted small">Dipesan pada: {{ $order->created_at->format('d M Y, H:i') }}</span>
+        @if(session('success'))
+        <div class="alert alert-success mb-4">{{ session('success') }}</div>
+    @endif
     </div>
     
     <div>
