@@ -296,14 +296,16 @@
             if (checkbox.checked) {
                 singleFields.style.display = 'none';
                 variantFields.style.display = 'block';
-                warningWholesale.style.display = 'block'; // Tampilkan peringatan grosir
+                warningWholesale.style.display = 'block'; 
                 toggleInputs(singleFields, true);
+                toggleInputs(variantFields, false); // 🚨 TAMBAHAN: Aktifkan input varian
                 if(tableBody.children.length === 0) window.addVariantRow();
             } else {
                 singleFields.style.display = 'block';
                 variantFields.style.display = 'none';
-                warningWholesale.style.display = 'none'; // Sembunyikan peringatan grosir
+                warningWholesale.style.display = 'none'; 
                 toggleInputs(singleFields, false);
+                toggleInputs(variantFields, true); // 🚨 TAMBAHAN: Matikan paksa input varian agar tidak memblokir form
             }
         }
 
