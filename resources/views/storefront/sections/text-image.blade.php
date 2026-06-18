@@ -22,10 +22,18 @@
     $imagePath = $data['image'] ?? null;
     $imageUrl = $imagePath ? asset('storage/' . $imagePath) : $svgPlaceholder;
 
-    // 2. AMBIL PENGATURAN GAYA / SETTINGS (Gaya Klasik via JSON)
+    // 🚨 2. TAMBAHKAN BLOK LOGIKA WARNA INI 
     $settings = $settings ?? []; 
-    $bgColor = $settings['bg_color'] ?? '#ffffff'; // Default putih
-    $textColor = $settings['text_color'] ?? '#000000'; // Default teks hitam
+    $colorMode = $settings['color_mode'] ?? 'global';
+    
+    if ($colorMode === 'global') {
+        $bgColor = 'var(--primary-color)';
+        $textColor = 'var(--text-base)';
+    } else {
+        $bgColor = $settings['bg_color'] ?? '#ffffff';
+        $textColor = $settings['text_color'] ?? '#000000';
+    }
+    
     $paddingY = $settings['padding'] ?? 'py-5 py-md-5';
     // 🚨 TAMBAHAN BARU: AMBIL VARIABEL TIPOGRAFI
     $textTransform = $settings['text_transform'] ?? 'none';

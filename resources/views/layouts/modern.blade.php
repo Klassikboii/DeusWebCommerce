@@ -42,27 +42,28 @@
         <link rel="icon" href="{{ asset('favicon.ico') }}">
     @endif
 
-    <style>
+   <style>
         html { scroll-behavior: smooth; }
         
         :root {
-            /* Tarik data dari Database / JSON */
-            --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#0d6efd' }}; 
-            [style*="color:"] h1, 
-        [style*="color:"] h2, 
-        [style*="color:"] h3, 
-        [style*="color:"] h4, 
-        [style*="color:"] h5, 
-        [style*="color:"] h6, 
-        [style*="color:"] p,
-        [style*="color:"] span {
-            color: inherit !important;
-        }
-            --secondary-color: {{ $website->theme_config['colors']['secondary'] ?? '#6c757d' }};
-            --hero-bg-color: {{ $website->theme_config['colors']['bg_hero'] ?? '#333333' }};
-            --bg-base: {{ $website->theme_config['colors']['bg_base'] ?? '#ffffff' }};
+            /* === REHAUL WARNA BARU === */
+            /* 1. Latar Belakang Seluruh Halaman */
+            --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#f8f9fa' }}; 
+            
+            /* 2. Warna Blok Elemen (Card, Dropdown, Accordion) */
+            --secondary-color: {{ $website->theme_config['colors']['secondary'] ?? '#ffffff' }};
+            
+            /* 3. Warna Aksen Brand (Tombol, Badge, Ikon) */
+            --accent-color: {{ $website->theme_config['colors']['accent'] ?? '#0d6efd' }};
+            
+            /* 4. Warna Teks Utama */
             --text-base: {{ $website->theme_config['colors']['text_base'] ?? '#212529' }};
             
+            /* Fallback untuk class lama / pencegahan error */
+            --hero-bg-color: var(--primary-color);
+            --bg-base: var(--primary-color);
+            
+            /* === TIPOGRAFI & BENTUK === */
             --font-heading: '{{ $headingFont ?? $fontHeading ?? "Playfair Display" }}', serif;
             --font-body: '{{ $bodyFont ?? "Inter" }}', sans-serif;
             
@@ -71,83 +72,73 @@
             --shadow-base: {{ $website->theme_config['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }};
         }
 
+        /* Mencegah styling inline dari TinyMCE/CKEditor merusak warna tema */
+        /* [style*="color:"] h1, [style*="color:"] h2, [style*="color:"] h3, 
+        [style*="color:"] h4, [style*="color:"] h5, [style*="color:"] h6, 
+        [style*="color:"] p, [style*="color:"] span {
+            color: inherit !important;
+        } */
+
         /* =========================================================
-           1. LOGIKA WARNA TEKS UTAMA & BACKGROUND (BODY)
+           1. LOGIKA LATAR BELAKANG & TEKS UTAMA (PRIMARY)
            ========================================================= */
         body { 
             font-family: var(--font-body);
-            /* 🚨 KUNCI PERBAIKAN: Tambahkan !important pada body */
-            background-color: var(--bg-base) !important; 
-            color: var(--text-base) !important;
+            background-color: var(--primary-color) !important; 
+            color: var(--text-base);
         }
-        /* Paksa class bawaan Bootstrap untuk mengikuti warna tema Klien */
-        .bg-white, .bg-light { background-color: var(--bg-base) !important; }
+        .bg-light { background-color: var(--primary-color) !important; }
         .text-dark { color: var(--text-base) !important; }
-        .card, .accordion-item, .accordion-button, .dropdown-menu, .section-box { 
-            background-color: var(--bg-base) !important; 
+        
+        /* Semua Judul */
+        h1, h2, h3, h4, h5, h6, .serif, .navbar-brand { 
+            font-family: var(--font-heading);
+            /* color: var(--text-base) !important; Judul mengikuti warna teks dasar agar kontras dengan background */
+        }
+
+        /* =========================================================
+           2. LOGIKA ELEMEN CARD & BLOK (SECONDARY)
+           ========================================================= */
+        .bg-white, .card, .accordion-item, .accordion-button, .dropdown-menu, .section-box { 
+            background-color: var(--secondary-color) !important; 
             color: var(--text-base) !important; 
         }
 
         /* =========================================================
-           2. LOGIKA PRIMARY COLOR (JUDUL, TOMBOL UTAMA, IKON)
+           3. LOGIKA AKSEN BRAND & TOMBOL (ACCENT)
            ========================================================= */
-        /* Semua Judul & Logo Teks */
-        h1, h2, h3, h4, h5, h6, .serif, .navbar-brand { 
-            font-family: var(--font-heading);
-            color: var(--primary-color) !important; 
-        }
-        /* Tombol Utama (Mencakup btn-primary, btn-classic, btn-custom) */
+        /* Tombol Utama */
         .btn-primary, .btn-custom, .btn-primary-custom, .btn-classic { 
-            background-color: var(--primary-color) !important; 
-            border-color: var(--primary-color) !important; 
+            background-color: var(--accent-color) !important; 
+            border-color: var(--accent-color) !important; 
             color: #ffffff !important; 
         }
         .btn-primary:hover, .btn-custom:hover, .btn-primary-custom:hover, .btn-classic:hover {
             opacity: 0.9;
         }
-        /* Ikon Navbar & Hover Link */
+        
+        /* Ikon & Teks Sorotan */
         .text-primary, .text-primary-custom, .nav-link:hover, .bi-cart, .bi-person, .bi-search {
-            color: var(--primary-color) !important;
+            color: var(--accent-color) !important;
         }
-        /* Tombol Outline Primary */
+        
+        /* Tombol Outline */
         .btn-outline-primary {
-            color: var(--primary-color) !important;
-            border-color: var(--primary-color) !important;
+            color: var(--accent-color) !important;
+            border-color: var(--accent-color) !important;
         }
         .btn-outline-primary:hover {
-            background-color: var(--primary-color) !important;
+            background-color: var(--accent-color) !important;
             color: #ffffff !important;
         }
-
-        /* =========================================================
-           3. LOGIKA SECONDARY COLOR (SUBTITLE, BADGE, TOMBOL SEKUNDER)
-           ========================================================= */
-        /* Subtitle menggunakan class text-muted di Laravel/Bootstrap */
+        
+        /* Badge / Subtitle khusus jika dibutuhkan */
         .text-muted, .small.text-muted { 
-            color: var(--secondary-color) !important; 
-            opacity: 0.9; 
-        }
-        /* Badge & Background Sekunder */
-        .bg-secondary, .badge.bg-secondary { 
-            background-color: var(--secondary-color) !important; 
-        }
-        /* Tombol Sekunder */
-        .btn-secondary {
-            background-color: var(--secondary-color) !important;
-            border-color: var(--secondary-color) !important;
-            color: #ffffff !important;
-        }
-        .btn-outline-secondary, .btn-outline-secondary-custom {
-            color: var(--secondary-color) !important;
-            border-color: var(--secondary-color) !important;
-        }
-        .btn-outline-secondary:hover, .btn-outline-secondary-custom:hover {
-            background-color: var(--secondary-color) !important;
-            color: #ffffff !important;
+            opacity: 0.8; /* Memanfaatkan opacity agar warna mengikuti text-base namun lebih redup */
         }
 
         /* =========================================================
-           4. SHAPE & BENTUK (RADIUS, SHADOW, GAMBAR)
+           4. SHAPE, BENTUK & KELAS UTILITAS (TIDAK DIHAPUS)
            ========================================================= */
         .card, .section-box, .feature-card, .accordion-item, .img-fluid.rounded, .btn:not(.rounded-pill), .form-control, .form-select {
             border-radius: var(--radius-base) !important;
@@ -159,14 +150,27 @@
         .product-img-wrapper img { border-radius: var(--radius-base); }
         .card-img-top { width: 100%; aspect-ratio: var(--ratio-product); object-fit: cover; }
         
-        /* Elemen Khusus Lainnya */
-        .hero-section { background-color: var(--hero-bg-color); color: white; padding: 80px 0; margin: 40px 0; background-size: cover; background-position: center; }
+        /* Elemen Khusus Layout (Tetap Aman) */
+        .hero-section { background-color: var(--primary-color); color: var(--text-base); padding: 80px 0; margin: 40px 0; background-size: cover; background-position: center; }
         .hero-section-simple { padding: 80px 0; margin: 40px 0; background-position: center; background-size: cover; background-repeat: no-repeat; }
         .no-arrow::-webkit-outer-spin-button, .no-arrow::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-arrow { -moz-appearance: textfield; }
         .hover-white:hover { color: white !important; text-decoration: underline !important; }
         .search-results-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; display: none; max-height: 400px; overflow-y: auto; }
         .search-results-dropdown.show { display: block; }
+
+        /* =========================================================
+           5. FIX GARIS PUTIH (BORDER BAWAAN BOOTSTRAP)
+           ========================================================= */
+        /* Menyamarkan seluruh garis pembatas kaku agar cocok di tema gelap maupun terang */
+        .border, .border-top, .border-bottom, .border-start, .border-end, hr {
+            border-color: rgba(128, 128, 128, 0.2) !important;
+        }
+        
+        /* Khusus untuk Header, hapus total garisnya karena sudah menggunakan efek Shadow (bayangan) */
+        header.border-bottom {
+            border-bottom: none !important;
+        }
     </style>
 </head>
 <body>

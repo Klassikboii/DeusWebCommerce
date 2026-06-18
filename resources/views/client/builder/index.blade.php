@@ -44,38 +44,42 @@
 
                 <div class="tab-content p-4">
                     <div class="tab-pane fade show active" id="tab-style">
-                        <h6 class="fw-bold mb-3">Warna</h6>
-                        <div class="mb-3">
-                            <label class="form-label small">Primary Color</label>
-                            <input type="color" name="primary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--primary-color" value="{{ $website->theme_config['colors']['primary'] ?? $website->primary_color ?? '#0d6efd' }}">                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small">Secondary Color</label>
-                            <input type="color" name="secondary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--secondary-color" value="{{ $website->theme_config['colors']['secondary'] ?? $website->secondary_color ?? '#6c757d' }}">
-                        </div>
-                        @if(!$website->hero_image)
-                        <div class="mb-3">
-                            <label class="form-label small">Background Banner</label>
-                            <div class="d-flex align-items-center gap-2">
-                                <input type="color" name="hero_bg_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--hero-bg-color" value="{{ $website->theme_config['colors']['bg_hero'] ??  $website->hero_bg_color ?? '#333333' }}">
+                       <h6 class="fw-bold mb-3">Skema Warna</h6>
+    
+                            <div id="contrast-warning" class="text-danger mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded d-none mb-3" style="font-size: 11px; font-weight: 600;">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Peringatan: Kontras terlalu rendah! Teks utama akan sangat sulit dibaca oleh pengunjung.
                             </div>
-                        </div>
-                        @endif
-                        <hr>
-                        <div class="mb-3">
-                              <div id="contrast-warning" class="text-danger mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded d-none" style="font-size: 11px; font-weight: 600;">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Peringatan: Kontras terlalu rendah! Teks akan sangat sulit dibaca oleh pengunjung.
-                            </div>
-                             <div class="mb-3">
-                                <label class="form-label small">Warna Background</label>
-                                <input type="color" name="bg_base_color" id="input_bg_base" class="form-control form-control-color w-100 live-update-style" data-style-var="--bg-base" value="{{ $website->theme_config['colors']['bg_base'] ?? '#ffffff' }}">
-                            </div>
-                            <label class="form-label small">Warna Teks Utama</label>
-                            <input type="color" name="text_base_color" id="input_text_base" class="form-control form-control-color w-100 live-update-style" data-style-var="--text-base" value="{{ $website->theme_config['colors']['text_base'] ?? '#212529' }}">
 
-                          
-                        </div>
-                       
-                        <hr>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Warna Latar Belakang</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" name="primary_color" id="input_primary" class="form-control form-control-color w-100 live-update-style" data-style-var="--primary-color" value="{{ $website->theme_config['colors']['primary'] ?? '#f8f9fa' }}">
+                                </div>
+                                <small class="text-muted" style="font-size: 10px;">Mengisi bagian belakang seluruh halaman website.</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Warna Elemen</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" name="secondary_color" id="input_secondary" class="form-control form-control-color w-100 live-update-style" data-style-var="--secondary-color" value="{{ $website->theme_config['colors']['secondary'] ?? '#ffffff' }}">
+                                </div>
+                                <small class="text-muted" style="font-size: 10px;">Mengisi warna area komponen (Card, Navbar, Footer).</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-primary">Warna Aksen Brand</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="color" name="accent_color" id="input_accent" class="form-control form-control-color w-100 live-update-style" data-style-var="--accent-color" value="{{ $website->theme_config['colors']['accent'] ?? '#0d6efd' }}">
+                                </div>
+                                <small class="text-muted" style="font-size: 10px;">Warna utama identitas toko (Untuk Tombol, Link, Badge Promo).</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Warna Teks Utama</label>
+                                <input type="color" name="text_base_color" id="input_text_base" class="form-control form-control-color w-100 live-update-style" data-style-var="--text-base" value="{{ $website->theme_config['colors']['text_base'] ?? '#212529' }}">
+                            </div>
+
+                            <hr>
                         
                         <h6 class="fw-bold mb-3">Tipografi</h6>
                             <div class="mb-3">
@@ -295,8 +299,8 @@
         input.addEventListener('input', function() {
             sendUpdate('updateStyle', { variable: this.dataset.styleVar, value: this.value });
 
-            // 👇 TAMBAHAN: Cek kontras tiap kali warna digeser
-            if (this.id === 'input_bg_base' || this.id === 'input_text_base') {
+            // Cek kontras antara Background Utama vs Text Utama
+            if (this.id === 'input_primary' || this.id === 'input_text_base') {
                 checkContrast();
             }
         });
@@ -890,7 +894,7 @@
 
     // === SISTEM SENSOR KONTRAS (WCAG STANDARD) ===
     function checkContrast() {
-        const bgInput = document.getElementById('input_bg_base');
+        const bgInput = document.getElementById('input_primary'); // Diubah: Sekarang mengambil dari Primary
         const textInput = document.getElementById('input_text_base');
         const warningBox = document.getElementById('contrast-warning');
 
@@ -915,7 +919,6 @@
         // Rumus Rasio Kontras Web Accessibility
         const contrast = (brightest + 0.05) / (darkest + 0.05);
 
-        // Jika rasio di bawah 4.5 (Standar minimum teks bisa dibaca) -> Munculkan Warning!
         if (contrast < 4.5) {
             warningBox.classList.remove('d-none');
         } else {

@@ -20,21 +20,24 @@
     $settings = $settings ?? []; 
     $colorMode = $settings['color_mode'] ?? 'global';
     
-    // 🚨 PERBAIKAN 1: Panggil hero_bg_color dari tabel websites!
     if ($colorMode === 'global') {
-        $bgColor = $website->hero_bg_color ?? 'var(--bg-base)';
+        $bgColor = 'var(--primary-color)'; // <-- Sesuaikan dengan rehaul baru
         $textColor = 'var(--text-base)';
+        
+        // Mode Global: Paksa teks putih jika ada gambar agar kontras
+        $finalTextColor = $website->hero_image ? '#ffffff' : $textColor;
     } else {
-        $bgColor = $settings['bg_color'] ?? $website->hero_bg_color ?? '#ffffff';
-        $textColor = $settings['text_color'] ?? 'var(--text-base)';
+        $bgColor = $settings['bg_color'] ?? '#ffffff';
+        $textColor = $settings['text_color'] ?? '#000000';
+        
+        // Mode Custom: Bebaskan Klien menggunakan warna pilihannya sendiri!
+        // (Sistem tidak lagi ikut campur memaksa warna putih)
+        $finalTextColor = $textColor;
     }
 
     $paddingY = $settings['padding'] ?? 'py-5';
     
-    // 🚨 PERBAIKAN 2: Logika Warna Teks (DIBALIK)
-    // Jika ADA gambar (pakai overlay gelap), teks WAJIB putih (#ffffff).
-    // Jika TIDAK ADA gambar, ikuti warna teks dari tema ($textColor).
-    $finalTextColor = $website->hero_image ? '#ffffff' : $textColor;
+  
 
     // AMBIL VARIABEL TIPOGRAFI
     $textTransform = $settings['text_transform'] ?? 'none';
