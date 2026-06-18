@@ -52,12 +52,14 @@
                             <label class="form-label small">Secondary Color</label>
                             <input type="color" name="secondary_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--secondary-color" value="{{ $website->theme_config['colors']['secondary'] ?? $website->secondary_color ?? '#6c757d' }}">
                         </div>
+                        @if(!$website->hero_image)
                         <div class="mb-3">
                             <label class="form-label small">Background Banner</label>
                             <div class="d-flex align-items-center gap-2">
                                 <input type="color" name="hero_bg_color" class="form-control form-control-color w-100 live-update-style" data-style-var="--hero-bg-color" value="{{ $website->theme_config['colors']['bg_hero'] ??  $website->hero_bg_color ?? '#333333' }}">
                             </div>
                         </div>
+                        @endif
                         <hr>
                         <div class="mb-3">
                               <div id="contrast-warning" class="text-danger mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded d-none" style="font-size: 11px; font-weight: 600;">

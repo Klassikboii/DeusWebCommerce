@@ -70,8 +70,8 @@
             
             {{-- FITUR 1 --}}
             {{-- 🚨 FIX: Gunakan col-md-auto atau minimal width, jangan col-md-4 yang kaku --}}
-            <div class="col-12 col-sm-6 col-md-4 live-item-wrapper" style="{{ $f1_display }}">
-                <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
+            <div class="col-12 col-sm-6 col-md-4 live-item-wrapper" style="{{ $f1_display }}" >
+                <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f1_icon }} live-editable" 
                            data-section-id="{{ $sectionId }}" 
@@ -95,7 +95,7 @@
 
             {{-- FITUR 2 --}}
             <div class="col-12 col-sm-6 col-md-4 live-item-wrapper" style="{{ $f2_display }}">
-                <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
+                <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f2_icon }} live-editable" 
                            data-section-id="{{ $sectionId }}" 
@@ -119,7 +119,7 @@
 
             {{-- FITUR 3 --}}
             <div class="col-12 col-sm-6 col-md-4 live-item-wrapper" style="{{ $f3_display }}">
-                <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card">
+                <div class="p-4 h-100 bg-transparent border-0 transition-all classic-feature-card card">
                     <div class="display-4 mb-4">
                         <i class="bi {{ $f3_icon }} live-editable" 
                            data-section-id="{{ $sectionId }}" 

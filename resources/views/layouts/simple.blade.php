@@ -41,117 +41,131 @@
 
     <style>
         html { scroll-behavior: smooth; }
-       :root {
-            /* Panggil dari JSON, jika kosong gunakan warna bawaan */
+        
+        :root {
+            /* Tarik data dari Database / JSON */
             --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#0d6efd' }}; 
+            [style*="color:"] h1, 
+        [style*="color:"] h2, 
+        [style*="color:"] h3, 
+        [style*="color:"] h4, 
+        [style*="color:"] h5, 
+        [style*="color:"] h6, 
+        [style*="color:"] p,
+        [style*="color:"] span {
+            color: inherit !important;
+        }
             --secondary-color: {{ $website->theme_config['colors']['secondary'] ?? '#6c757d' }};
             --hero-bg-color: {{ $website->theme_config['colors']['bg_hero'] ?? '#333333' }};
-            --font-heading: '{{ $headingFont }}', serif;
-        --font-body: '{{ $bodyFont }}', sans-serif;
-            --ratio-product: {{ $website->theme_config['shapes']['product_ratio'] ?? '1/1' }};
-            /* 👇 TAMBAHAN BARU: Variabel Radius & Shadow */
-            --radius-base: {{ $website->theme_config['shapes']['radius'] ?? '0.5rem' }};
-            --shadow-base: {{ $website->theme_config['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }};
             --bg-base: {{ $website->theme_config['colors']['bg_base'] ?? '#ffffff' }};
             --text-base: {{ $website->theme_config['colors']['text_base'] ?? '#212529' }};
+            
+            --font-heading: '{{ $headingFont ?? $fontHeading ?? "Playfair Display" }}', serif;
+            --font-body: '{{ $bodyFont ?? "Inter" }}', sans-serif;
+            
+            --ratio-product: {{ $website->theme_config['shapes']['product_ratio'] ?? '1/1' }};
+            --radius-base: {{ $website->theme_config['shapes']['radius'] ?? '0.5rem' }};
+            --shadow-base: {{ $website->theme_config['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }};
         }
-        
+
+        /* =========================================================
+           1. LOGIKA WARNA TEKS UTAMA & BACKGROUND (BODY)
+           ========================================================= */
         body { 
-           font-family: var(--font-body);
-            background-color: var(--bg-base);
-            color: var(--text-base);
+            font-family: var(--font-body);
+            /* 🚨 KUNCI PERBAIKAN: Tambahkan !important pada body */
+            background-color: var(--bg-base) !important; 
+            color: var(--text-base) !important;
         }
-        /* Terapkan secara agresif ke elemen-elemen penting */
-    
-    /* 1. Semua Card/Kotak */
-    .card, .section-box, .feature-card {
-        border-radius: var(--radius-base) !important;
-        box-shadow: var(--shadow-base) !important;
-        border: none !important; /* Opsional: hilangkan border agar shadow lebih cantik */
-    }
-
-    /* 2. Semua Tombol */
-    .btn {
-        border-radius: var(--radius-base) !important;
-    }
-
-    /* 3. Input Form */
-    .form-control, .form-select {
-        border-radius: var(--radius-base) !important;
-    }
-
-    /* 4. Gambar Produk */
-    .product-img-wrapper img {
-        border-radius: var(--radius-base);
-    }
-        h1, h2, h3, h4, h5, h6, .serif { font-family: var(--font-heading); }
-        /* 👇 TRIK AJAIB: Timpa class Bootstrap agar mengikuti tema warna pilihan klien */
+        /* Paksa class bawaan Bootstrap untuk mengikuti warna tema Klien */
         .bg-white, .bg-light { background-color: var(--bg-base) !important; }
         .text-dark { color: var(--text-base) !important; }
-        .text-muted { color: var(--secondary-color) !important; opacity: 0.9; }
-        
-        /* Pastikan elemen dalam kartu juga mengikuti warna tema */
-        .card, .accordion-item, .accordion-button, .dropdown-menu { 
+        .card, .accordion-item, .accordion-button, .dropdown-menu, .section-box { 
             background-color: var(--bg-base) !important; 
             color: var(--text-base) !important; 
         }
-        /* 👇 TAMBAHAN BARU: Paksa Bootstrap menggunakan Radius dan Shadow kustom kita */
-        .card, .accordion-item, .img-fluid.rounded, .btn:not(.rounded-pill) {
+
+        /* =========================================================
+           2. LOGIKA PRIMARY COLOR (JUDUL, TOMBOL UTAMA, IKON)
+           ========================================================= */
+        /* Semua Judul & Logo Teks */
+        h1, h2, h3, h4, h5, h6, .serif, .navbar-brand { 
+            font-family: var(--font-heading);
+            color: var(--primary-color) !important; 
+        }
+        /* Tombol Utama (Mencakup btn-primary, btn-classic, btn-custom) */
+        .btn-primary, .btn-custom, .btn-primary-custom, .btn-classic { 
+            background-color: var(--primary-color) !important; 
+            border-color: var(--primary-color) !important; 
+            color: #ffffff !important; 
+        }
+        .btn-primary:hover, .btn-custom:hover, .btn-primary-custom:hover, .btn-classic:hover {
+            opacity: 0.9;
+        }
+        /* Ikon Navbar & Hover Link */
+        .text-primary, .text-primary-custom, .nav-link:hover, .bi-cart, .bi-person, .bi-search {
+            color: var(--primary-color) !important;
+        }
+        /* Tombol Outline Primary */
+        .btn-outline-primary {
+            color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* =========================================================
+           3. LOGIKA SECONDARY COLOR (SUBTITLE, BADGE, TOMBOL SEKUNDER)
+           ========================================================= */
+        /* Subtitle menggunakan class text-muted di Laravel/Bootstrap */
+        .text-muted, .small.text-muted { 
+            color: var(--secondary-color) !important; 
+            opacity: 0.9; 
+        }
+        /* Badge & Background Sekunder */
+        .bg-secondary, .badge.bg-secondary { 
+            background-color: var(--secondary-color) !important; 
+        }
+        /* Tombol Sekunder */
+        .btn-secondary {
+            background-color: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+        .btn-outline-secondary, .btn-outline-secondary-custom {
+            color: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+        }
+        .btn-outline-secondary:hover, .btn-outline-secondary-custom:hover {
+            background-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* =========================================================
+           4. SHAPE & BENTUK (RADIUS, SHADOW, GAMBAR)
+           ========================================================= */
+        .card, .section-box, .feature-card, .accordion-item, .img-fluid.rounded, .btn:not(.rounded-pill), .form-control, .form-select {
             border-radius: var(--radius-base) !important;
         }
-        .shadow-sm, .card {
+        .shadow-sm, .card, .feature-card {
             box-shadow: var(--shadow-base) !important;
-            border: none !important; /* Hilangkan garis pinggir agar shadow lebih menonjol */
+            border: none !important;
         }
-        .navbar-brand { 
-            font-family: 'Helvetica', sans-serif; 
-            letter-spacing: 2px; 
-            text-transform: uppercase; 
-            color: var(--primary-color);
-        }
-        .nav-link { 
-            color: #333; 
-            font-size: 0.85rem; 
-            letter-spacing: 1px;
-        }
-        .nav-link:hover { color: var(--primary-color); }
-
-        .text-primary-custom { color: var(--primary-color) !important; }
-        .bg-primary-custom { background-color: var(--hero-bg-color) !important; }
-
-        .btn-custom { 
-            background-color: var(--primary-color); 
-            border-color: var(--primary-color); 
-            color: white;
-            border-radius: 0; 
-        }
-        .btn-custom:hover { opacity: 0.9; color: white; }
-
-        .hero-section-simple {
-            padding: 80px 0;
-            margin: 40px 0;
-            background-position: center;
-            background-size: cover;
-            background-repeat: no-repeat;
-        }
+        .product-img-wrapper img { border-radius: var(--radius-base); }
+        .card-img-top { width: 100%; aspect-ratio: var(--ratio-product); object-fit: cover; }
+        
+        /* Elemen Khusus Lainnya */
+        .hero-section { background-color: var(--hero-bg-color); color: white; padding: 80px 0; margin: 40px 0; background-size: cover; background-position: center; }
+        .hero-section-simple { padding: 80px 0; margin: 40px 0; background-position: center; background-size: cover; background-repeat: no-repeat; }
         .no-arrow::-webkit-outer-spin-button, .no-arrow::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .no-arrow { -moz-appearance: textfield; }
-
-        /* Search Dropdown Styling */
-        .search-results-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            display: none;
-            max-height: 400px;
-            overflow-y: auto;
-            border-radius: 0 !important; /* Kotak ala Simple Theme */
-            margin-top: 5px;
-        }
+        .hover-white:hover { color: white !important; text-decoration: underline !important; }
+        .search-results-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; display: none; max-height: 400px; overflow-y: auto; }
         .search-results-dropdown.show { display: block; }
     </style>
+
     @stack('styles')
 </head>
 <body>
@@ -585,7 +599,7 @@
 
                         section.style.backgroundColor = targetBg;
                         if (targetText) {
-                            section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)').forEach(el => { el.style.color = targetText; });
+                            section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)').forEach(el => { el.style.setProperty('color', targetText, 'important'); });
                             section.querySelectorAll('.btn, .classic-accordion-button').forEach(btn => {
                                 btn.style.borderColor = targetText; btn.style.color = targetText;
                             });

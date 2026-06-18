@@ -49,96 +49,126 @@
         html { scroll-behavior: smooth; }
         
         :root {
-            --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#000000' }}; 
+            /* Tarik data dari Database / JSON */
+            --primary-color: {{ $website->theme_config['colors']['primary'] ?? '#0d6efd' }}; 
+            [style*="color:"] h1, 
+        [style*="color:"] h2, 
+        [style*="color:"] h3, 
+        [style*="color:"] h4, 
+        [style*="color:"] h5, 
+        [style*="color:"] h6, 
+        [style*="color:"] p,
+        [style*="color:"] span {
+            color: inherit !important;
+        }
             --secondary-color: {{ $website->theme_config['colors']['secondary'] ?? '#6c757d' }};
-            --hero-bg-color: {{ $website->theme_config['colors']['bg_hero'] ?? '#f9fafb' }};
-            --font-heading: '{{ $fontHeading }}', serif;
-            --font-body: '{{ $fontBody }}', sans-serif;
-            --ratio-product: {{ $website->theme_config['shapes']['product_ratio'] ?? '1/1' }};
-            /* 👇 BIARKAN DINAMIS, TAPI BERI DEFAULT KLASIK JIKA KOSONG 👇 */
-            --radius-base: {{ $website->theme_config['shapes']['radius'] ?? '0px' }};
-            --shadow-base: {{ $website->theme_config['shapes']['shadow'] ?? 'none' }};
+            --hero-bg-color: {{ $website->theme_config['colors']['bg_hero'] ?? '#333333' }};
             --bg-base: {{ $website->theme_config['colors']['bg_base'] ?? '#ffffff' }};
             --text-base: {{ $website->theme_config['colors']['text_base'] ?? '#212529' }};
+            
+            --font-heading: '{{ $headingFont ?? $fontHeading ?? "Playfair Display" }}', serif;
+            --font-body: '{{ $bodyFont ?? "Inter" }}', sans-serif;
+            
+            --ratio-product: {{ $website->theme_config['shapes']['product_ratio'] ?? '1/1' }};
+            --radius-base: {{ $website->theme_config['shapes']['radius'] ?? '0.5rem' }};
+            --shadow-base: {{ $website->theme_config['shapes']['shadow'] ?? '0 0.125rem 0.25rem rgba(0,0,0,0.075)' }};
         }
-        /* 👇 Terapkan secara paksa di komponennya, BUKAN di variable root-nya 👇 */
-        * { border-radius: var(--radius-base) !important; }
 
+        /* =========================================================
+           1. LOGIKA WARNA TEKS UTAMA & BACKGROUND (BODY)
+           ========================================================= */
         body { 
-            font-family: var(--font-body); 
-            background-color: var(--bg-base);
-            color: var(--text-base);
+            font-family: var(--font-body);
+            /* 🚨 KUNCI PERBAIKAN: Tambahkan !important pada body */
+            background-color: var(--bg-base) !important; 
+            color: var(--text-base) !important;
         }
-
-        /* Tipografi Classic */
-        h1, h2, h3, h4, h5, .serif { font-family: var(--font-heading) }
-        .tracking-widest { letter-spacing: 0.15em; }
-        .tracking-wider { letter-spacing: 0.1em; }
-
-        /* Paksa semua elemen Bootstrap menjadi kaku/kotak */
-        * { border-radius: 0px !important; }
-
-        /* Kustomisasi Logo & Jarak */
-        .site-logo { height: 40px; width: auto; object-fit: contain; }
-        /* .template-section { padding-top: 80px; padding-bottom: 80px; } */
-        
-        /* Navigasi Hover */
-        .hover-dark { transition: color 0.3s ease; }
-        .hover-dark:hover { color: #000 !important; }
-
-        /* Trik Overrides Bootstrap */
+        /* Paksa class bawaan Bootstrap untuk mengikuti warna tema Klien */
         .bg-white, .bg-light { background-color: var(--bg-base) !important; }
         .text-dark { color: var(--text-base) !important; }
-        .text-muted { color: var(--secondary-color) !important; opacity: 0.9; }
-        .card, .dropdown-menu { 
+        .card, .accordion-item, .accordion-button, .dropdown-menu, .section-box { 
             background-color: var(--bg-base) !important; 
             color: var(--text-base) !important; 
-            border: 1px solid #eee !important;
-            box-shadow: none !important;
         }
-        /* .hero-section { background-color: var(--hero-bg-color); color: white; padding: 80px 0; margin: 40px 0; background-size: cover; background-position: center; } */
-        /* Terapkan secara agresif ke elemen-elemen penting */
-    
-        /* 1. Semua Card/Kotak */
-        .card, .section-box, .feature-card {
+
+        /* =========================================================
+           2. LOGIKA PRIMARY COLOR (JUDUL, TOMBOL UTAMA, IKON)
+           ========================================================= */
+        /* Semua Judul & Logo Teks */
+        h1, h2, h3, h4, h5, h6, .serif, .navbar-brand { 
+            font-family: var(--font-heading);
+            color: var(--primary-color) !important; 
+        }
+        /* Tombol Utama (Mencakup btn-primary, btn-classic, btn-custom) */
+        .btn-primary, .btn-custom, .btn-primary-custom, .btn-classic { 
+            background-color: var(--primary-color) !important; 
+            border-color: var(--primary-color) !important; 
+            color: #ffffff !important; 
+        }
+        .btn-primary:hover, .btn-custom:hover, .btn-primary-custom:hover, .btn-classic:hover {
+            opacity: 0.9;
+        }
+        /* Ikon Navbar & Hover Link */
+        .text-primary, .text-primary-custom, .nav-link:hover, .bi-cart, .bi-person, .bi-search {
+            color: var(--primary-color) !important;
+        }
+        /* Tombol Outline Primary */
+        .btn-outline-primary {
+            color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* =========================================================
+           3. LOGIKA SECONDARY COLOR (SUBTITLE, BADGE, TOMBOL SEKUNDER)
+           ========================================================= */
+        /* Subtitle menggunakan class text-muted di Laravel/Bootstrap */
+        .text-muted, .small.text-muted { 
+            color: var(--secondary-color) !important; 
+            opacity: 0.9; 
+        }
+        /* Badge & Background Sekunder */
+        .bg-secondary, .badge.bg-secondary { 
+            background-color: var(--secondary-color) !important; 
+        }
+        /* Tombol Sekunder */
+        .btn-secondary {
+            background-color: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+        .btn-outline-secondary, .btn-outline-secondary-custom {
+            color: var(--secondary-color) !important;
+            border-color: var(--secondary-color) !important;
+        }
+        .btn-outline-secondary:hover, .btn-outline-secondary-custom:hover {
+            background-color: var(--secondary-color) !important;
+            color: #ffffff !important;
+        }
+
+        /* =========================================================
+           4. SHAPE & BENTUK (RADIUS, SHADOW, GAMBAR)
+           ========================================================= */
+        .card, .section-box, .feature-card, .accordion-item, .img-fluid.rounded, .btn:not(.rounded-pill), .form-control, .form-select {
             border-radius: var(--radius-base) !important;
+        }
+        .shadow-sm, .card, .feature-card {
             box-shadow: var(--shadow-base) !important;
-            border: none !important; /* Opsional: hilangkan border agar shadow lebih cantik */
+            border: none !important;
         }
-
-        /* 2. Semua Tombol */
-        .btn {
-            border-radius: var(--radius-base) !important;
-        }
-
-        /* 3. Input Form */
-        .form-control, .form-select {
-            border-radius: var(--radius-base) !important;
-        }
-
-        /* 4. Gambar Produk */
-        .product-img-wrapper img {
-            border-radius: var(--radius-base);
-        }
-        /* Tombol Classic */
-        .btn-classic {
-            border: 1px solid #000;
-            padding: 12px 30px;
-            text-transform: uppercase;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            background-color: #000;
-            color: #fff;
-            transition: all 0.3s;
-        }
-        .btn-classic:hover { background-color: #fff; color: #000; }
-
-        /* Search Results Dropdown */
-        .search-results-dropdown {
-            position: absolute; top: 100%; left: 0; right: 0; z-index: 1000;
-            display: none; max-height: 400px; overflow-y: auto; border: 1px solid #000;
-        }
+        .product-img-wrapper img { border-radius: var(--radius-base); }
+        .card-img-top { width: 100%; aspect-ratio: var(--ratio-product); object-fit: cover; }
+        
+        /* Elemen Khusus Lainnya */
+        .hero-section { background-color: var(--hero-bg-color); color: white; padding: 80px 0; margin: 40px 0; background-size: cover; background-position: center; }
+        .hero-section-simple { padding: 80px 0; margin: 40px 0; background-position: center; background-size: cover; background-repeat: no-repeat; }
+        .no-arrow::-webkit-outer-spin-button, .no-arrow::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .no-arrow { -moz-appearance: textfield; }
+        .hover-white:hover { color: white !important; text-decoration: underline !important; }
+        .search-results-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 1000; display: none; max-height: 400px; overflow-y: auto; }
         .search-results-dropdown.show { display: block; }
     </style>
 </head>
@@ -178,40 +208,57 @@
         }
     @endphp
 
+    @php
+        // Amankan data menu
+        $rawMenu = $website->navigation_menu;
+        $navMenus = is_string($rawMenu) ? json_decode($rawMenu, true) : $rawMenu;
+        if (!is_array($navMenus) || empty($navMenus)) {
+            $navMenus = [
+                ['label' => 'Beranda', 'url' => '/'],
+                ['label' => 'Produk', 'url' => '/products'],
+                ['label' => 'Blog', 'url' => '/blog'],
+            ];
+        }
+
+        // LOGIKA RESPONSIVITAS NAVBAR (Diadaptasi dari Modern Theme)
+        $menuCount = count($navMenus);
+        // Default: Sembunyikan hamburger di desktop, tampilkan menu jajar
+        $desktopMenuDisplay = 'd-none d-lg-flex'; 
+        $hamburgerDisplay = 'd-lg-none';
+        
+        // Jika menu terlalu banyak (> 5), kita sembunyikan menu jajar dan paksa tampilkan hamburger
+        if ($menuCount > 5) {
+            $desktopMenuDisplay = 'd-none'; // Sembunyikan selamanya
+            $hamburgerDisplay = 'd-block';  // Tampilkan selamanya
+        }
+    @endphp
+
     <header class="bg-white border-bottom sticky-top py-3" style="box-shadow: var(--shadow-base); z-index: 1050;">
         <div class="container">
             <div class="row align-items-center">
                 
                 <div class="col-3 col-lg-5 d-flex align-items-center justify-content-start">
                     
-                    {{-- Tombol Hamburger untuk Mobile/Tablet --}}
-                    <button class="navbar-toggler d-lg-none border-0 shadow-none p-0 me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#classicSidebar">
-                        <i class="bi bi-list fs-2 text-dark"></i>
+                    {{-- Tombol Hamburger (Dinamis berdasarkan jumlah menu) --}}
+                    <button class="navbar-toggler border-0 shadow-none p-0 me-3 {{ $hamburgerDisplay }}" type="button" data-bs-toggle="offcanvas" data-bs-target="#classicSidebar">
+                        <i class="bi bi-list fs-2 text-primary"></i>
                     </button>
 
-                    {{-- Menu Desktop (Hanya muncul di layar besar) --}}
-                    <nav class="d-none d-lg-flex gap-4 flex-wrap">
-                        
+                    {{-- Menu Desktop (Hanya muncul jika menu <= 5) --}}
+                    <nav class="{{ $desktopMenuDisplay }} gap-4 flex-wrap">
                         @foreach($navMenus as $menu)
                          @php
                                 $url = $menu['url'];
-                                $href = $url; // Default untuk link eksternal (https://...)
-
-                                // KASUS 1: Anchor Link (#) - Scroll di halaman Home
+                                $href = $url;
                                 if (str_starts_with($url, '#')) {
                                     if (!request()->routeIs('store.home')) {
-                                        // Jika sedang tidak di home, arahkan ke home dulu + anchor
                                         $href = route('store.home', $website->active_domain) . $url; 
                                     }
-                                } 
-                                // KASUS 2: Internal Path (/) - Halaman seperti /blog, /products
-                                elseif (str_starts_with($url, '/')) {
-                                    // FIX: Gunakan helper 'url' manual agar path-nya bersih
-                                    // Hasil: http://domain.com/s/elecjos/blog
+                                } elseif (str_starts_with($url, '/')) {
                                     $href = url($url);
                                 }
                             @endphp
-                            <a class="text-decoration-none text-dark hover-dark text-uppercase small fw-bold tracking-widest" href="{{ url($menu['url']) }}">
+                            <a class="text-decoration-none text-primary hover-dark text-uppercase small fw-bold tracking-widest" href="{{ $href }}">
                                 {{ $menu['label'] }}
                             </a>
                         @endforeach
@@ -220,39 +267,36 @@
 
                 <div class="col-6 col-lg-2 text-center">
                     <a href="/" class="text-decoration-none text-dark d-inline-block">
-                        
-                            <img src="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}" id="logo-img-preview" style="height: 40px; {{ $website->logo ? '' : 'display:none;' }}" alt="Logo">
-                        
-                            <span class="fs-4 fw-bold text-uppercase serif tracking-widest" id="site-name-text" style="{{ $website->logo ? 'display:none;' : '' }}">{{ $website->site_name }}</span>
-                        
+                        <img src="{{ $website->logo ? asset('storage/'.$website->logo) : '' }}" id="logo-img-preview" style="height: 40px; {{ $website->logo ? '' : 'display:none;' }}" alt="Logo">
+                        <span class="fs-4 fw-bold text-uppercase serif tracking-widest text-primary" id="site-name-text" style="{{ $website->logo ? 'display:none;' : '' }}">{{ $website->site_name }}</span>
                     </a>
                 </div>
 
                 <div class="col-3 col-lg-5 d-flex align-items-center justify-content-end gap-3 gap-xl-4">
                     
                     {{-- Form Search Desktop --}}
-                    <form action="{{ route('store.products') }}" method="GET" class="d-none d-xl-flex align-items-center border-bottom border-dark pb-1 position-relative" style="max-width: 150px;">
-                        <input type="text" name="search" id="desktop-search-input" placeholder="CARI..." class="border-0 bg-transparent outline-none small text-uppercase w-100" style="font-size: 11px; box-shadow: none;" autocomplete="off">
-                        <button type="submit" class="btn btn-link text-dark p-0 border-0"><i class="bi bi-search"></i></button>
+                    <form action="{{ route('store.products') }}" method="GET" class="d-none d-xl-flex align-items-center border-bottom border-primary pb-1 position-relative" style="max-width: 150px;">
+                        <input type="text" name="search" id="desktop-search-input" placeholder="CARI..." class="border-0 bg-transparent outline-none small text-uppercase w-100 text-primary" style="font-size: 11px; box-shadow: none;" autocomplete="off">
+                        <button type="submit" class="btn btn-link text-primary p-0 border-0"><i class="bi bi-search"></i></button>
                         
                         <div id="desktop-search-results" class="search-results-dropdown bg-white mt-2 shadow-sm position-absolute top-100 start-0 w-100">
-                            <div id="desktop-search-loading" class="text-center py-3 d-none"><div class="spinner-border spinner-border-sm text-dark"></div></div>
+                            <div id="desktop-search-loading" class="text-center py-3 d-none"><div class="spinner-border spinner-border-sm text-primary"></div></div>
                             <div id="desktop-search-content"></div>
                         </div>
                     </form>
 
                     {{-- Search Icon Mobile/Tablet --}}
-                    <a href="#" class="d-xl-none text-dark"><i class="bi bi-search fs-5"></i></a> 
+                    <a href="#" class="d-xl-none text-primary"><i class="bi bi-search fs-5"></i></a> 
 
                     {{-- Akun Pelanggan --}}
                     @if(Auth::guard('customer')->check())
                         <div class="dropdown d-none d-md-block">
-                            <a class="text-decoration-none text-dark fw-bold text-uppercase small tracking-wider dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <a class="text-decoration-none text-primary fw-bold text-uppercase small tracking-wider dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                 {{ strtok(Auth::guard('customer')->user()->name, ' ') }}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 border-dark mt-3">
-                                <li><a class="dropdown-item py-2 small fw-bold text-uppercase" href="{{ route('store.account') }}">Riwayat</a></li>
-                                <li><hr class="dropdown-divider border-dark opacity-25"></li>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-0 mt-3" style="border-color: var(--primary-color);">
+                                <li><a class="dropdown-item py-2 small fw-bold text-uppercase text-primary" href="{{ route('store.account') }}">Riwayat</a></li>
+                                <li><hr class="dropdown-divider opacity-25" style="border-color: var(--primary-color);"></li>
                                 <li>
                                     <form action="{{ route('store.logout') }}" method="POST" class="m-0">@csrf
                                         <button type="submit" class="dropdown-item py-2 small fw-bold text-uppercase text-danger">Keluar</button>
@@ -261,18 +305,18 @@
                             </ul>
                         </div>
                     @else
-                        <a href="{{ route('store.login') }}" class="d-none d-md-block text-dark text-uppercase small fw-bold tracking-wider text-decoration-none">Login</a>
+                        <a href="{{ route('store.login') }}" class="d-none d-md-block text-primary text-uppercase small fw-bold tracking-wider text-decoration-none">Login</a>
                     @endif
                     
                     {{-- Akun Icon Mobile --}}
-                    <a href="{{ route('store.login') }}" class="d-md-none text-dark"><i class="bi bi-person fs-5"></i></a>
+                    <a href="{{ route('store.login') }}" class="d-md-none text-primary"><i class="bi bi-person fs-5"></i></a>
 
                     {{-- Keranjang (Cart) --}}
                     @php
                         $cartKey = 'cart_' . $website->id;
                         $cartCount = array_reduce(session()->get($cartKey, []), fn($carry, $item) => $carry + ($item['quantity'] ?? 0), 0);
                     @endphp
-                    <a href="{{ route('store.cart') }}" class="text-dark position-relative text-decoration-none d-flex align-items-center gap-1">
+                    <a href="{{ route('store.cart') }}" class="text-primary position-relative text-decoration-none d-flex align-items-center gap-1">
                         <i class="bi bi-bag fs-5"></i>
                         <span class="d-none d-md-inline small fw-bold tracking-wider">({{ $cartCount }})</span>
                         @if($cartCount > 0)
@@ -286,14 +330,14 @@
 
         <div class="offcanvas offcanvas-start bg-white" data-bs-scroll="true" tabindex="-1" id="classicSidebar" style="width: 300px; z-index: 1060;">
             <div class="offcanvas-header border-bottom py-4">
-                <h5 class="offcanvas-title serif tracking-widest text-uppercase fs-6">Menu Navigasi</h5>
+                <h5 class="offcanvas-title serif tracking-widest text-uppercase fs-6 text-primary">Menu Navigasi</h5>
                 <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas"></button>
             </div>
             <div class="offcanvas-body">
                 <ul class="navbar-nav w-100 gap-2">
                     @foreach($navMenus as $menu)
                         <li class="nav-item border-bottom border-light">
-                            <a class="nav-link text-dark hover-dark text-uppercase small fw-bold tracking-widest py-3"href="{{ url('/' . ltrim($menu['url'], '/')) }}">
+                            <a class="nav-link text-primary hover-dark text-uppercase small fw-bold tracking-widest py-3" href="{{ url('/' . ltrim($menu['url'], '/')) }}">
                                 {{ $menu['label'] }}
                             </a>
                         </li>
@@ -631,7 +675,7 @@
 
                         section.style.backgroundColor = targetBg;
                         if (targetText) {
-                            section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)').forEach(el => { el.style.color = targetText; });
+                            section.querySelectorAll('h1, h2, h3, h4, h5, h6, p, span, small, a:not(.btn)').forEach(el => { el.style.setProperty('color', targetText, 'important'); });
                             section.querySelectorAll('.btn, .classic-accordion-button').forEach(btn => {
                                 btn.style.borderColor = targetText; btn.style.color = targetText;
                             });
