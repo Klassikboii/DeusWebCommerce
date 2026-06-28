@@ -23,24 +23,21 @@ class AccurateController extends Controller
         // Kita simpan ID website di parameter 'state' agar saat callback kita tahu ini milik website mana
         $state = $website->id;
 
-        $url = "https://account.accurate.id/oauth/authorize?client_id={$clientId}&response_type=code&redirect_uri={$redirectUri}&scope=item_view item_save sales_invoice_save item_adjustment_save customer_view sales_invoice_view sales_receipt_save item_adjustment_view customer_save&state={$state}";
-
+        // $url = "https://account.accurate.id/oauth/authorize?client_id={$clientId}&response_type=code&redirect_uri={$redirectUri}&scope=item_view item_save sales_invoice_save item_adjustment_save customer_view sales_invoice_view sales_receipt_save item_adjustment_view customer_save&state={$state}";
+// Coba tambahkan &prompt=consent di akhir URL untuk memaksa Accurate menanyakan ulang izin
+        $url = "https://account.accurate.id/oauth/authorize?client_id={$clientId}&response_type=code&redirect_uri={$redirectUri}&scope=item_view%20item_save sales_invoice_save item_adjustment_save customer_view sales_invoice_view sales_receipt_save item_adjustment_view customer_save&state={$state}&prompt=consent";
         return redirect()->away($url);
     }
 
-    // 2. Menangkap Respon dari Accurate setelah User Login
     public function callback(Request $request)
     {
-        // 'state' berisi ID Website yang kita kirim di fungsi redirect
         $websiteId = $request->state;
         $website = Website::findOrFail($websiteId);
 
-        // Jika user membatalkan atau terjadi error
         if ($request->has('error')) {
             return redirect()->route('client.settings.index', $website)->with('error', 'Gagal menghubungkan ke Accurate: ' . $request->error_description);
         }
 
-        // Tukar Authorization Code dengan Access Token
         $response = Http::asForm()->withBasicAuth(
             config('services.accurate.client_id'), 
             config('services.accurate.client_secret')
@@ -52,10 +49,8 @@ class AccurateController extends Controller
 
         if ($response->successful()) {
             $data = $response->json();
-
-            // 🚨 PENYELAMATAN SAAT PERTAMA KALI LOGIN
             
-            // 1. Simpan atau update token untuk website yang SEDANG DI-SETTING ini
+            // HANYA Simpan atau update token untuk website yang sedang meminta koneksi ini
             \App\Models\AccurateIntegration::updateOrCreate(
                 ['website_id' => $website->id],
                 [
@@ -65,23 +60,7 @@ class AccurateController extends Controller
                 ]
             );
 
-            // 2. SINKRONISASI MASSAL KE WEBSITE LAIN MILIK USER YANG SAMA
-            // Jika user ini punya toko cabang (website lain) yang juga terkoneksi Accurate, 
-            // kita paksakan token baru ini ke sana agar toko cabangnya tidak mati.
-            if (isset($website->user_id)) {
-                $otherWebsiteIds = Website::where('user_id', $website->user_id)
-                                          ->where('id', '!=', $website->id)
-                                          ->pluck('id');
-                
-                if ($otherWebsiteIds->isNotEmpty()) {
-                    \App\Models\AccurateIntegration::whereIn('website_id', $otherWebsiteIds)
-                        ->update([
-                            'access_token' => $data['access_token'],
-                            'refresh_token' => $data['refresh_token'],
-                            'token_expires_at' => now()->addSeconds($data['expires_in']),
-                        ]);
-                }
-            }
+            // 🚨 HAPUS SELURUH BLOK KODE "SINKRONISASI MASSAL KE WEBSITE LAIN" DI SINI
 
             return redirect()->route('client.settings.index', $website)->with('success', 'Berhasil terhubung dengan Accurate Online!');
         }

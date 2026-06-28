@@ -25,7 +25,6 @@ class AccurateService
     {
         if (!$this->integration || !$this->integration->refresh_token) return null;
 
-        // Jika tidak dipaksa refresh, cek waktu (Gunakan Carbon::parse agar lebih aman)
         if (!$forceRefresh && $this->integration->token_expires_at) {
             $expiresAt = \Carbon\Carbon::parse($this->integration->token_expires_at);
             if ($expiresAt->subMinutes(5)->isFuture()) {
@@ -33,9 +32,7 @@ class AccurateService
             }
         }
 
-        // PROSES REFRESH TOKEN
         try {
-            // Hapus ->retry() di sini agar error bisa ditangani dengan elegan
             $response = \Illuminate\Support\Facades\Http::timeout(30)->asForm()->withBasicAuth(
                 config('services.accurate.client_id'),
                 config('services.accurate.client_secret')
@@ -47,22 +44,12 @@ class AccurateService
             if ($response->successful()) {
                 $data = $response->json();
                 
-                // 🚨 MAGIC FIX: PEWARISAN TOKEN (MASS UPDATE)
-                // Simpan refresh token lama sebelum ditimpa
-                $oldRefreshToken = $this->integration->refresh_token;
-
-                // Cari SEMUA website yang memakai refresh_token lama ini, lalu update serentak!
-                \App\Models\AccurateIntegration::where('refresh_token', $oldRefreshToken)
-                    ->update([
-                        'access_token' => $data['access_token'],
-                        'refresh_token' => $data['refresh_token'],
-                        'token_expires_at' => now()->addSeconds($data['expires_in']),
-                    ]);
-
-                // Update object di memori agar proses yang sedang berjalan saat ini tidak error
-                $this->integration->access_token = $data['access_token'];
-                $this->integration->refresh_token = $data['refresh_token'];
-                $this->integration->token_expires_at = now()->addSeconds($data['expires_in']);
+                // 🚨 FIX ISOLASI AKUN: Hanya update integrasi milik Website ini saja!
+                $this->integration->update([
+                    'access_token' => $data['access_token'],
+                    'refresh_token' => $data['refresh_token'],
+                    'token_expires_at' => now()->addSeconds($data['expires_in']),
+                ]);
 
                 return $data['access_token'];
             }

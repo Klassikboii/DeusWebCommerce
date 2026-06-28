@@ -167,7 +167,7 @@
     <div class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #0052cc !important;" id="accurate-section">
         <div class="card-header bg-white py-3 fw-bold" style="color: #0052cc;">
             <i class="bi bi-box-seam me-2"></i>Integrasi Accurate Online
-            <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalpanduanAccurate" title="Cara Setup">
+            <button type="button" class="btn btn-sm btn-light border text-muted" data-bs-toggle="modal" data-bs-target="#modalPanduanAccurate" title="Cara Setup">
             <i class="bi bi-question-circle"></i>
         </button>
         </div>
@@ -177,8 +177,9 @@
             @if($isAccurateConnected)
                 @if(!$selectedDbId)
                     <div class="alert border-warning bg-warning bg-opacity-10 mb-0">
-                        <h6 class="fw-bold text-warning-emphasis"><i class="bi bi-exclamation-triangle-fill me-2"></i>Satu Langkah Lagi!</h6>
-                        <p class="small mb-3">Pilih database Accurate mana yang akan dihubungkan:</p>
+                        <h6 class="fw-bold text-warning-emphasis"><i class="bi bi-info-circle-fill me-2"></i>Satu Langkah Lagi!</h6>
+                        {{-- 🚨 TAMBAHAN INDIKATOR JUMLAH DATABASE --}}
+                        <p class="small mb-3">Sistem berhasil login dan mendeteksi <strong>{{ count($accurateDatabases) }} Database</strong> di akun Accurate Anda. Pilih salah satu untuk dihubungkan:</p>
                         
                         <form action="{{ route('client.accurate.save_db', $website->id) }}" method="POST" class="d-flex gap-2">
                             @csrf
@@ -197,17 +198,20 @@
                         <div class="flex-grow-1">
                             <strong class="text-success-emphasis">Status: Terhubung Aktif</strong><br>
                             <span class="small text-muted">Toko Anda terhubung dengan Database ID: {{ $selectedDbId }}</span>
+                            <br>
+                            <span class="small text-muted fst-italic">*Jika ini bukan akun Accurate Anda, silakan putuskan koneksi.</span>
                         </div>
                         
-                        {{-- 🚨 TOMBOL REFRESH AKSES & DISCONNECT --}}
+                        {{-- 🚨 TOMBOL REFRESH AKSES & DISCONNECT (MODIFIKASI LOGOUT) --}}
                         <div class="d-flex gap-2">
                             <a href="{{ route('client.accurate.redirect', $website->id) }}" class="btn btn-sm btn-outline-success" title="Perbarui masa aktif Token API">
                                 <i class="bi bi-arrow-repeat me-1"></i> Refresh Akses
                             </a>
                             
-                            <form action="{{ route('client.accurate.disconnect', $website->id) }}" method="POST" class="m-0 p-0" onsubmit="return confirm('PERINGATAN! Memutuskan koneksi akan menghentikan sinkronisasi produk dan pesanan. Anda harus mengatur ulang koneksi setelah ini. Yakin ingin melanjutkan?');">
+                            {{-- Form id ditambahkan dan onsubmit dimatikan, diganti onclick di button --}}
+                            <form action="{{ route('client.accurate.disconnect', $website->id) }}" method="POST" class="m-0 p-0" id="formDisconnectAccurate">
                                 @csrf
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <button type="button" onclick="confirmDisconnect()" class="btn btn-sm btn-outline-danger">
                                     <i class="bi bi-plug-fill me-1"></i> Putus Koneksi
                                 </button>
                             </form>
@@ -341,6 +345,28 @@
             }
             
             textArea.remove();
+        }
+    }
+</script>
+<script>
+    function confirmDisconnect() {
+        // Konfirmasi 1: Pastikan user tidak salah klik
+        if(confirm("PERINGATAN! Memutuskan koneksi akan menghentikan sinkronisasi produk dan pesanan.\n\nAnda harus mengatur ulang koneksi setelah ini. Yakin ingin melanjutkan?")) {
+            
+            // Konfirmasi 2: Opsi Logout Akun yang Diperbarui
+            let wantToLogout = confirm(
+                "INFO PENTING:\n\n" +
+                "Apakah Anda berencana untuk MENGGANTI AKUN EMAIL Accurate Anda setelah ini?\n\n" +
+                "(Klik 'OK' jika YA. Kami akan membuka halaman Accurate di tab baru. Silakan klik Profil Anda di pojok kanan atas lalu pilih 'Log Out', setelah itu kembali ke halaman ini)"
+            );
+            
+            // Buka halaman utama Accurate, bukan URL /logout yang tidak ada
+            if(wantToLogout) {
+                window.open('https://account.accurate.id/', '_blank');
+            }
+            
+            // Lanjutkan eksekusi form putus koneksi di database lokal kita
+            document.getElementById('formDisconnectAccurate').submit();
         }
     }
 </script>
