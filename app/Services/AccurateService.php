@@ -971,30 +971,36 @@ class AccurateService
     {
         $sessionData = $this->openDatabaseSession();
         
-        // Auto-heal akan bekerja di openDatabaseSession jika token basi.
-        // Jika masih gagal mendapatkan sesi, batalkan perpanjangan.
-        if (!$sessionData) return false;
+        // 🚨 PENGAMAN 1: Jika gagal buka sesi karena token mati total, batalkan eksekusi!
+        if (!$sessionData) {
+            \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Dibatalkan untuk Web ID: {$this->website->id}. Token mati dan tidak bisa di-refresh.");
+            return false;
+        }
 
-       // 🚨 FIX: Gunakan POST, bukan GET!
         $response = \Illuminate\Support\Facades\Http::timeout(30)
             ->withHeaders([
                 'Authorization' => 'Bearer ' . $sessionData['token'],
                 'X-Session-ID'  => $sessionData['session_id']
-            ])->post($sessionData['host'] . '/api/webhook-renew.do'); // <-- UBAH KE POST
-
+                ])->get($sessionData['host'] . '/accurate/api/webhook-renew.do'); // <-- INI YANG BENAR!
         // AUTO-HEAL
         if ($response->status() === 401 && !$isRetry) {
-            $this->getValidAccessToken(true);
+            $newToken = $this->getValidAccessToken(true);
+            
+            // 🚨 PENGAMAN 2: Jika auto-heal gagal (karena invalid_grant), batalkan!
+            if (!$newToken) {
+                \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Auto-heal gagal, refresh token invalid untuk Web ID: {$this->website->id}.");
+                return false;
+            }
+            
             return $this->renewWebhook(true);
         }
-        $responseData = $response->json();
 
-        if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
-            \Illuminate\Support\Facades\Log::info("🔄 [WEBHOOK RENEW] Sukses memperpanjang Webhook untuk Web ID: {$this->website->id}");
+        if ($response->successful()) {
+            \Illuminate\Support\Facades\Log::info("🔄 [WEBHOOK RENEW] Sukses untuk Web ID: {$this->website->id}");
             return true;
         }
 
-        \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Gagal untuk Web ID: {$this->website->id}. Response: " . $response->body());
+        \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK RENEW] Gagal. Response: " . $response->body());
         return false;
     }
 
@@ -1156,5 +1162,48 @@ class AccurateService
         }
 
         return true;
+    }
+    /**
+     * 12. Mendaftarkan Webhook ke Database Klien secara Spesifik (Tipe 2)
+     */
+    public function registerWebhook($isRetry = false)
+    {
+        $sessionData = $this->openDatabaseSession();
+        if (!$sessionData) return false;
+
+        // Sesuaikan URL ini dengan rute webhook Accurate di file api.php Anda
+        $webhookUrl = url('/api/accurate/webhook'); 
+
+        $response = \Illuminate\Support\Facades\Http::connectTimeout(30)
+            ->timeout(60)
+            ->retry(3, 2000)
+            ->withHeaders([
+                'Authorization' => 'Bearer ' . $sessionData['token'],
+                'X-Session-ID'  => $sessionData['session_id']
+            ])->post($sessionData['host'] . '/api/webhook.do', [
+                'url' => $webhookUrl
+            ]);
+
+        // 🚨 AUTO-HEAL
+        if ($response->status() === 401 && !$isRetry) {
+            $this->getValidAccessToken(true);
+            return $this->registerWebhook(true);
+        }
+
+        $responseData = $response->json();
+
+        if ($response->successful() && isset($responseData['s']) && $responseData['s'] === true) {
+            \Illuminate\Support\Facades\Log::info("✅ [WEBHOOK REGISTER] Berhasil mendaftarkan webhook untuk Web ID: {$this->website->id}");
+            return true;
+        }
+
+        // Jika error "Sudah ada", anggap saja sukses (Bypass)
+        if (stripos($response->body(), 'sudah ada') !== false) {
+            \Illuminate\Support\Facades\Log::info("✅ [WEBHOOK REGISTER] Webhook sudah terdaftar sebelumnya untuk Web ID: {$this->website->id}");
+            return true;
+        }
+
+        \Illuminate\Support\Facades\Log::error("❌ [WEBHOOK REGISTER] Gagal untuk Web ID: {$this->website->id}. Response: " . $response->body());
+        return false;
     }
 }

@@ -165,6 +165,7 @@ class AccurateController extends Controller
             // =========================================================================
         
         }
+        
         \App\Models\UserActivity::log(
             'update_accurate_config', 
             "Menghubungkan sistem dengan Database Accurate (ID: {$request->accurate_database_id})."
@@ -180,6 +181,14 @@ class AccurateController extends Controller
         // Hapus data integrasi dari database lokal
         if ($website->accurateIntegration) {
             $website->accurateIntegration->delete();
+        }
+
+        // 🚨 DAFTARKAN WEBHOOK SEBAGAI PERMULAAN
+        try {
+            $accurateService = new \App\Services\AccurateService($website);
+            $accurateService->registerWebhook(); // Panggil fungsi pendaftaran
+        } catch (\Exception $e) {
+            \Illuminate\Log::error("Gagal mendaftar webhook awal: " . $e->getMessage());
         }
         \App\Models\UserActivity::log(
             'update_accurate_config', 

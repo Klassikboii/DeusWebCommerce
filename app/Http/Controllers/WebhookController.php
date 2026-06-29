@@ -183,152 +183,51 @@ class WebhookController extends Controller
 
         return response()->json(['status' => 'success', 'message' => 'Webhook Processed'], 200);
     }
-//    public function handlePaymentWebhook(Request $request)
-//     {
-//         $payload = $request->all();
-//         \Illuminate\Support\Facades\Log::info('Payment Webhook Masuk: ', $payload);
-
-//         // 1. Cari Order ID (Bisa dari Midtrans 'order_id' atau Pivot 'reference_no')
-//         $orderId = $request->order_id ?? $request->reference_no;
-
-//         if (!$orderId) {
-//             return response()->json(['message' => 'Invalid payload'], 400);
-//         }
-
-//         // Mempertahankan "🚨 UPDATE PENTING" dari kode Anda
-//         $order = Order::with(['items.product', 'items.variant'])->where('order_number', $orderId)->first();
-        
-//         if (!$order) {
-//             return response()->json(['message' => 'Order not found'], 404);
-//         }
-
-//         $website = $order->website;
-
-//         // 2. Panggil Factory & Service
-//         $paymentGateway = \App\Services\Payment\PaymentFactory::make($website);
-//         $result = $paymentGateway->handleWebhook($request);
-
-//         // Keamanan: Cek apakah validasi signature di dalam Service lolos
-//         if (!$result['is_valid']) {
-//             \Illuminate\Support\Facades\Log::error("Webhook Ditolak: " . ($result['message'] ?? 'Signature Error'));
-//             return response()->json(['message' => 'Forbidden'], 403);
-//         }
-
-//         // ==========================================
-//         // SKENARIO 1: PEMBAYARAN SUKSES
-//         // ==========================================
-//         if ($result['status'] === 'paid') {
-//             if ($order->status !== 'processing') {
-                
-//                 $order->update([
-//                     'status'         => 'processing',
-//                     'payment_status' => 'paid',            
-//                     'bank_name'      => $result['payment_method'], // Hasil terjemahan Service
-//                     'payment_proof'  => 'otomatis_gateway_verified', 
-//                 ]);
-                
-//                 OrderHistory::create([
-//                     'order_id' => $order->id,
-//                     'status' => 'processing',
-//                     'note' => "Pembayaran lunas ({$result['payment_method']}) diverifikasi otomatis oleh sistem."
-//                 ]);
-
-//                 // Integrasi Accurate Anda yang dipertahankan utuh
-//                 try {
-//                     if ($website->accurateIntegration && $website->accurateIntegration->access_token) {
-//                         $accurateService = new \App\Services\AccurateService($website);
-//                         $invoiceCreated = $accurateService->syncSalesInvoice($order);
-//                         if ($invoiceCreated) {
-//                             $accurateService->syncPaymentReceipt($order);
-//                             \Illuminate\Support\Facades\Log::info("Webhook Success: Faktur & Pembayaran Accurate berhasil dibuat untuk {$orderId}");
-//                         }
-//                     }
-//                 } catch (\Exception $e) {
-//                     \Illuminate\Support\Facades\Log::error("Accurate Webhook Trigger Error untuk {$orderId}: " . $e->getMessage());
-//                 }
-//             }
-//         }
-//         // ==========================================
-//         // SKENARIO 2: PEMBAYARAN GAGAL / EXPIRED
-//         // ==========================================
-//         elseif ($result['status'] === 'failed') {
-//             if ($order->status !== 'cancelled') {
-                
-//                 $order->update(['status' => 'cancelled']);
-                
-//                 OrderHistory::create([
-//                     'order_id' => $order->id,
-//                     'status' => 'cancelled',
-//                     'note' => "Pembayaran gagal/expired oleh sistem. Stok dikembalikan otomatis."
-//                 ]);
-                
-//                 // Logika Restock Ganda Anda yang dipertahankan utuh
-//                 foreach ($order->items as $item) {
-//                     if ($item->variant_id && $item->variant) {
-//                         $item->variant->increment('stock', $item->qty);
-//                         if ($item->product) {
-//                             $item->product->increment('stock', $item->qty);
-//                         }
-//                     } elseif ($item->product) {
-//                         $item->product->increment('stock', $item->qty);
-//                     }
-//                 }
-                
-//                 \Illuminate\Support\Facades\Log::info("Webhook Cancel: Stok untuk pesanan {$orderId} berhasil dikembalikan ke etalase.");
-//             }
-//         }
-
-//         return response()->json(['message' => 'OK'], 200);
-//     }
-    // App\Http\Controllers\WebhookController.php
-
-
 public function handleAccurateWebhook(Request $request)
     {
-        // 1. Tangkap semua data (Accurate mengirimnya dalam bentuk Array of Objects)
+        // 1. Tangkap semua data
         $payloads = $request->all();
-        Log::info('🤖 WEBHOOK ACCURATE DIPROSES:', $payloads);
+        \Illuminate\Support\Facades\Log::info('🤖 WEBHOOK ACCURATE MASUK', $payloads);
 
         foreach ($payloads as $payload) {
-            
-            // 2. Cari Website/Toko siapa yang terhubung dengan Database ID ini
             $databaseId = $payload['databaseId'] ?? null;
             if (!$databaseId) continue;
 
-            $integration = AccurateIntegration::where('accurate_database_id', $databaseId)->first();
+            // 🚨 FIX: Ambil SEMUA website yang terkoneksi ke Database ID ini
+            $integrations = \App\Models\AccurateIntegration::where('accurate_database_id', $databaseId)->get();
             
-            // Jika database ID tidak dikenali di sistem kita, abaikan.
-            if (!$integration) {
-                Log::warning("Webhook ditolak: Database ID {$databaseId} tidak ditemukan di sistem.");
+            if ($integrations->isEmpty()) {
+                \Illuminate\Support\Facades\Log::warning("Webhook ditolak: Database ID {$databaseId} tidak ditemukan.");
                 continue; 
             }
 
-            $website = $integration->website;
-            $accurateService = new AccurateService($website);
-
             // 3. Proses jika tipe event-nya adalah Perubahan Barang (ITEM)
             if (($payload['type'] ?? '') === 'ITEM' && isset($payload['data'])) {
-                
                 foreach ($payload['data'] as $itemData) {
                     $sku = $itemData['itemNo'] ?? null;
-                    $action = $itemData['action'] ?? ''; // Biasanya "WRITE" (Tambah/Update) atau "DELETE"
+                    $action = $itemData['action'] ?? '';
 
-                    // 🚨 TAMBAHKAN BLOKIRAN INI
-                    // Jika SKU-nya adalah ongkir, langsung lewati (jangan simpan ke DB)
                     if ($sku === 'ONGKIR-Deus' || $sku === 'ONGKIR') {
                         continue; 
                     }
 
                     if ($sku && $action === 'WRITE') {
-                        // 4. JALANKAN OPERASI UPDATE (Tarik detail tunggal dari Accurate)
-                        $this->updateSingleItemFromAccurate($sku, $accurateService, $website->id);
+                        
+                        // 🚨 Looping untuk mengeksekusi semua toko yang berhak
+                        foreach ($integrations as $integration) {
+                            $website = $integration->website;
+                            if (!$website) continue;
+                            
+                            // Lempar tugas ke Background Job agar WebhookController langsung selesai.
+                            \App\Jobs\SyncAccurateItemJob::dispatch($website->id, $sku);
+                        }
                     }
                 }
             }
         }
 
-        // Wajib balas 200 OK dengan cepat
-        return response()->json(['status' => 'success']);
+        // 🚨 KUNCI UTAMA: Membalas Accurate dalam hitungan milidetik
+        return response()->json(['status' => 'success'], 200);
     }
 
     /**

@@ -17,9 +17,11 @@ Schedule::command('orders:cancel-unpaid')->hourly();
 // (Agar jika ada transaksi besar siang hari, status stok cepat terupdate)
 Schedule::command('stock:analyze')->everyThreeHours();
 
-Schedule::command('accurate:renew-webhooks')->cron('0 2 */3 * *');
+// Schedule::command('accurate:renew-webhooks')->cron('0 2 */3 * *');b
 Schedule::command('accurate:sync-shadow')->hourly();
 
 Schedule::command('rfm:calculate')->daily();
 
 Schedule::command('recommend:generate')->daily();
+
+Schedule::command('accurate:renew-webhooks')->dailyAt('02:00');
