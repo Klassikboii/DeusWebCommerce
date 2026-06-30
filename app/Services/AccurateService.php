@@ -967,7 +967,7 @@ class AccurateService
     /**
      * 11. Memperpanjang Masa Aktif Webhook (Auto-Renew)
      */
-    public function renewWebhook($isRetry = false)
+   public function renewWebhook($isRetry = false)
     {
         $sessionData = $this->openDatabaseSession();
         
@@ -977,11 +977,13 @@ class AccurateService
             return false;
         }
 
+        // 🚨 FIX UTAMA: Tembak ke account.accurate.id dan gunakan metode GET (Sesuai Dokumentasi)
         $response = \Illuminate\Support\Facades\Http::timeout(30)
             ->withHeaders([
-                'Authorization' => 'Bearer ' . $sessionData['token'],
-                'X-Session-ID'  => $sessionData['session_id']
-                ])->get($sessionData['host'] . '/accurate/api/webhook-renew.do'); // <-- INI YANG BENAR!
+                'Authorization' => 'Bearer ' . $sessionData['token']
+                // HAPUS X-Session-ID karena tidak relevan untuk API di account.accurate.id
+            ])->get('https://account.accurate.id/api/webhook-renew.do'); // <-- URL STATIS
+
         // AUTO-HEAL
         if ($response->status() === 401 && !$isRetry) {
             $newToken = $this->getValidAccessToken(true);
