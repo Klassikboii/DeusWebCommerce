@@ -3,16 +3,34 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
-class UserController extends Controller
+class TicketController extends Controller
 {
-    /**
-     * Fitur Killer: Login sebagai User lain tanpa password
-     */
-   // 🚨 Tambahkan Request $request di dalam parameternya
+    public function index()
+    {
+        // Ambil semua tiket beserta data user dan websitenya
+        $tickets = Ticket::with(['user', 'website'])->latest()->paginate(15);
+        
+        return view('admin.tickets.index', compact('tickets'));
+    }
+
+    public function update(Request $request, Ticket $ticket)
+    {
+        $request->validate([
+            'status' => 'required|in:pending,in_progress,resolved',
+            'admin_reply' => 'nullable|string'
+        ]);
+
+        $ticket->update([
+            'status' => $request->status,
+            'admin_reply' => $request->admin_reply
+        ]);
+
+        return redirect()->back()->with('success', 'Tiket berhasil di-update dan balasan terkirim ke klien.');
+    }
+    // 🚨 Tambahkan Request $request di dalam parameternya
     public function impersonate(\Illuminate\Http\Request $request, $id)
     {
         $user = \App\Models\User::findOrFail($id);
@@ -32,25 +50,5 @@ class UserController extends Controller
 
         // Redirect default ke dashboard client (Halaman pilih website)
         return redirect()->route('client.websites')->with('success', "Halo Bos! Anda sedang login sebagai user: {$user->name}");
-    }
-
-    /**
-     * Hapus User (Beserta Website & Datanya)
-     */
-    public function destroy($id)
-    {
-        $user = User::findOrFail($id);
-
-        // SECURITY: Cegah menghapus diri sendiri atau sesama Admin
-        if ($user->role === 'admin') {
-            return redirect()->back()->with('error', 'DILARANG MENGHAPUS AKUN SUPER ADMIN!');
-        }
-
-        // Hapus User
-        // Pastikan di Migration database Anda sudah set 'onDelete cascade' pada foreign key
-        // agar website dan order milik user ini ikut terhapus otomatis.
-        $user->delete();
-
-        return redirect()->back()->with('success', 'User dan seluruh data websitenya berhasil dihapus.');
     }
 }

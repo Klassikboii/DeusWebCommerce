@@ -142,6 +142,12 @@
 </head>
 <body>
   <div class="d-flex" id="wrapper">
+    @php
+        // Hitung tiket milik user yang sedang login yang statusnya sedang diproses atau baru saja selesai di-update oleh admin
+        $clientActiveTickets = \App\Models\Ticket::where('user_id', auth()->id())
+            ->whereIn('status', ['in_progress', 'resolved'])
+            ->count();
+    @endphp
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-brand" onclick="window.location='{{ route('client.websites') }}'" style="cursor: pointer;">
                 <i class="bi bi-shop me-2"></i> CMS Admin
@@ -295,6 +301,16 @@
                 class="nav-link {{ request()->routeIs('client.billing.*') ? 'active' : '' }}">
                     <i class="bi bi-credit-card"></i> Langganan (Billing)
                 </a>
+                <a href="{{ route('client.tickets.index', $website->id) }}" 
+                class="nav-link {{ request()->routeIs('client.tickets.*') ? 'active' : '' }}">
+                    <i class="bi bi-headset me-2"></i> Pusat Bantuan
+
+                    @if($clientActiveTickets > 0)
+                        {{-- Menggunakan badge warna hijau/biru lembut untuk menandakan ada pembaruan status dari tim Deus --}}
+                        <span class="badge bg-success rounded-pill ms-auto shadow-sm" style="font-size: 0.7rem;">{{ $clientActiveTickets }} Update(s)</span>
+                    @endif
+                </a>
+                
                 
                 @if($subscription && $subscription->ends_at)
             <div class="mt-auto p-3">

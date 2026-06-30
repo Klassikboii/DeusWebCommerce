@@ -21,6 +21,12 @@
             <h5 class="fw-bold m-0">SUPER ADMIN</h5>
             <small class="text-white-50">WebCommerce Panel</small>
         </div>
+        {{-- Opsional: Badge notifikasi tiket baru (pending) --}}
+                @php
+                    $pendingTickets = \App\Models\Ticket::where('status', 'pending')->orWhere('status', 'in_progress')->count();
+                    $countPendingTransactions = \App\Models\Transaction::where('status', 'pending')->count();
+                    $countPendingKyb = \App\Models\MerchantKybDetail::where('status', 'pending')->count(); // Sesuaikan nama model & kolom status Anda
+                @endphp
         
         <nav class="nav flex-column mt-3 flex-grow-1">
             <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
@@ -35,9 +41,23 @@
                 <i class="bi bi-people"></i> Users & Website
             </a>
 
-            <a href="{{ route('admin.transactions.index') }}" class="nav-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
-                <i class="bi bi-cash-stack"></i> Transaksi Langgangan
+            <a href="{{ route('admin.tickets.index') }}" class="nav-link {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
+                <i class="bi bi-headset me-2"></i>
+                <span>Pusat Bantuan</span>
+                
+                
+                @if($pendingTickets > 0)
+                    <span class="badge bg-danger rounded-pill ms-auto">{{ $pendingTickets }}</span>
+                @endif
             </a>
+
+            <a href="{{ route('admin.transactions.index') }}" class="nav-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
+                <i class="bi bi-cash-stack"></i> Langgangan Klien
+                 @if($countPendingTransactions > 0)
+                <span class="badge bg-danger rounded-pill ms-auto shadow-sm">{{ $countPendingTransactions }}</span>
+            @endif
+            </a>
+           
             
 
             {{-- <a href="{{ route('admin.withdrawals.index') }}" class="nav-link {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
@@ -47,7 +67,11 @@
             
             <a href="{{ route('admin.kyb.index') }}" class="nav-link {{ request()->routeIs('admin.kyb.*') ? 'active' : '' }}">
                 <i class="bi bi-person-lines-fill"></i> Pengajuan Pivot
+                @if($countPendingKyb > 0)
+                <span class="badge bg-danger rounded-pill ms-auto shadow-sm">{{ $countPendingKyb }}</span>
+            @endif
             </a>
+            
             
             <a class="nav-link {{ request()->routeIs('admin.audit_logs.*') ? 'active' : '' }}" href="{{ route('admin.audit_logs.index') }}">
                 <i class="bi bi-shield-check"></i>

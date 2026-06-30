@@ -81,12 +81,15 @@
                     </td>
                     <td class="text-end">
                         <div class="d-flex gap-2 justify-content-end">
-                            {{-- TOMBOL LOGIN AS --}}
-                            <a href="{{ route('admin.users.impersonate', $web->user->id) }}" 
-                            class="btn btn-sm btn-outline-primary"
-                            onclick="return confirm('Anda akan login sebagai {{ $web->user->name }}. Lanjutkan?')">
-                                <i class="bi bi-person-fill-gear"></i> Masuk
-                            </a>
+                            {{-- 🚨 FIX: UBAH DARI TAG <a> MENJADI <form> DENGAN POST --}}
+                            <form action="{{ route('admin.users.impersonate', $web->user->id) }}" method="POST" class="m-0"
+                                  onsubmit="return confirm('Anda akan login sebagai {{ $web->user->name }}. Lanjutkan?')">
+                                @csrf
+                                {{-- Kita tidak butuh redirect_to di sini, biarkan default ke dashboard klien --}}
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-person-fill-gear"></i> Masuk
+                                </button>
+                            </form>
 
                             {{-- TOMBOL HAPUS --}}
                             <form action="{{ route('admin.users.destroy', $web->user->id) }}" method="POST">

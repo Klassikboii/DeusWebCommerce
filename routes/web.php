@@ -225,6 +225,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'index'])->name('client.shipping_markups.index')->middleware('feature:has_shipping_markup');;
         Route::post('/shipping-markups', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'store'])->name('client.shipping_markups.store');
         Route::delete('shipping-markups/{id}', [\App\Http\Controllers\Client\ShippingMarkupController::class, 'destroy'])->name('client.shipping_markups.destroy');
+
+        Route::get('/support-tickets', [\App\Http\Controllers\Client\TicketController::class, 'index'])->name('client.tickets.index');
+        Route::post('/support-tickets', [\App\Http\Controllers\Client\TicketController::class, 'store'])->name('client.tickets.store');
         // ... (Rute Shipping Markups) ...
 
         // Accurate Integration Routes (Pindah ke dalam grup)
@@ -268,7 +271,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
         // Manajemen Website
         Route::get('/websites', [App\Http\Controllers\Admin\WebsiteController::class, 'index'])->name('websites.index');
         Route::delete('/websites/{website}', [App\Http\Controllers\Admin\WebsiteController::class, 'destroy'])->name('websites.destroy');
-        Route::get('/users/{id}/impersonate', [App\Http\Controllers\Admin\UserController::class, 'impersonate'])->name('users.impersonate');
+        // Route::get('/users/{id}/impersonate', [App\Http\Controllers\Admin\UserController::class, 'impersonate'])->name('users.impersonate');
+        // 🚨 UBAH DARI get MENJADI post
+        Route::post('/users/{id}/impersonate', [\App\Http\Controllers\Admin\UserController::class, 'impersonate'])->name('users.impersonate');
         Route::delete('/users/{id}', [App\Http\Controllers\Admin\UserController::class, 'destroy'])->name('users.destroy');
         // --- MANAJEMEN VERIFIKASI PIVOT (KYB) ---
         Route::get('/kyb-submissions', [\App\Http\Controllers\Admin\KybController::class, 'index'])->name('kyb.index');
@@ -284,6 +289,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin']) // <--- IN
         // ... route admin lainnya ...
         Route::get('/audit-logs', [\App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit_logs.index');
         
+        Route::get('/tickets', [\App\Http\Controllers\Admin\TicketController::class, 'index'])->name('tickets.index');
+        Route::put('/tickets/{ticket}', [\App\Http\Controllers\Admin\TicketController::class, 'update'])->name('tickets.update');
     });
 
 });

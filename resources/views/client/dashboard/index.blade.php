@@ -102,7 +102,7 @@
             </div>
         </div>
         @endif
-        {{-- ==================================================== --}}
+        
 <div class="container-fluid py-4">
 @php
     $mainDomain = parse_url(config('app.url'), PHP_URL_HOST);
@@ -776,7 +776,7 @@
             textArea.remove();
         }
     }
-</script> --}}
+</script> 
 <div class="modal fade" id="modalPanduanAccurate" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
