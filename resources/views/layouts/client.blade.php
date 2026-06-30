@@ -143,11 +143,46 @@
 <body>
   <div class="d-flex" id="wrapper">
     @php
-        // Hitung tiket milik user yang sedang login yang statusnya sedang diproses atau baru saja selesai di-update oleh admin
-        $clientActiveTickets = \App\Models\Ticket::where('user_id', auth()->id())
-            ->whereIn('status', ['in_progress', 'resolved'])
+       // Pastikan kita tahu ini website yang mana
+    $currentWebsiteId = $website->id ?? session('website_id');
+
+    if($currentWebsiteId) {
+        // 1. Tiket yang dibalas Admin tapi belum dibaca Klien
+        $unreadTickets = \App\Models\Ticket::where('user_id', auth()->id())
+            ->where('is_read_by_client', false)
             ->count();
+
+        // 2. Order Masuk (Hanya hitung yang butuh aksi: processing/sudah dibayar)
+        $pendingOrders = \App\Models\Order::where('website_id', $currentWebsiteId)
+            ->where('status', 'pending') // Atau tambahkan 'pending' jika Anda ingin Klien mengecek pembayaran manual
+            ->count();
+
+         $processingOrders = \App\Models\Order::where('website_id', $currentWebsiteId)
+            ->where('status', 'processing')
+            ->count();
+
+
+        // 3. Produk Kritis (Hanya yang Empty dan Critical, Overstock abaikan karena tidak butuh aksi instan)
+        $criticalProducts = \App\Models\Product::where('website_id', $currentWebsiteId)
+            ->where('stock_status', 'Critical')
+            ->count();
+            $emptyProducts = \App\Models\Product::where('website_id', $currentWebsiteId)
+            ->where('stock_status', 'Empty')
+            ->count();
+            $warningProducts = \App\Models\Product::where('website_id', $currentWebsiteId)
+            ->where('stock_status', 'Warning')
+            ->count();
+            $overstockProducts = \App\Models\Product::where('website_id', $currentWebsiteId)
+            ->where('stock_status', 'Overstock')
+            ->count();
+            $deadProducts = \App\Models\Product::where('website_id', $currentWebsiteId)
+            ->where('stock_status', 'Dead')
+            ->count();
+    } else {
+        $unreadTickets = $pendingOrders = $criticalProducts = $emptyProducts = $warningProducts = $overstockProducts = $deadProducts = 0;
+    }
     @endphp
+    
         <nav class="sidebar" id="sidebar">
             <div class="sidebar-brand" onclick="window.location='{{ route('client.websites') }}'" style="cursor: pointer;">
                 <i class="bi bi-shop me-2"></i> CMS Admin
@@ -216,7 +251,23 @@
                 <div class="nav-group-label">Produk & Konten</div>
                 <a href="{{ route('client.products.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.products.*') ? 'active' : '' }}">
-                    <i class="bi bi-box-seam"></i> Semua Produk
+                    <i class="bi bi-box-seam"></i> Produk
+                    @if($criticalProducts > 0)
+                        <span class="badge bg-danger text-dark rounded-pill ms-auto" title="Stok Kritis / Habis">{{ $criticalProducts }}</span>
+                    @endif
+                    @if($emptyProducts > 0)
+                        <span class="badge bg-secondary text-white rounded-pill ms-auto" title="Stok Habis">{{ $emptyProducts }}</span>
+                    @endif
+                    @if($warningProducts > 0)
+                        <span class="badge bg-warning text-dark rounded-pill ms-auto" title="Stok Warning">{{ $warningProducts }}</span>
+                    @endif
+                    @if($overstockProducts > 0)
+                        <span class="badge bg-warning text-dark rounded-pill ms-auto border" title="Stok Overstock">{{ $overstockProducts }}</span>
+                    @endif
+                    @if($deadProducts > 0)
+                        <span class="badge bg-dark text-white rounded-pill ms-auto" title="Stok Dead">{{ $deadProducts }}</span>
+                    @endif
+
                 </a>
                 <a href="{{ route('client.categories.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.categories.*') ? 'active' : '' }}">
@@ -256,6 +307,13 @@
                 <a href="{{ route('client.orders.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.orders.*') ? 'active' : '' }}">
                     <i class="bi bi-cart"></i> Order Masuk
+
+                    @if($pendingOrders > 0)
+                        <span class="badge bg-danger rounded-pill ms-auto" title="Order Pending">{{ $pendingOrders }}</span>
+                    @endif
+                    @if($processingOrders > 0)
+                        <span class="badge bg-info rounded-pill ms-auto" title="Order Processing">{{ $processingOrders }}</span>
+                    @endif
                 </a>
                 <a href="{{ route('client.customers.index', $website->id) }}" 
                 class="nav-link {{ request()->routeIs('client.customers.*') ? 'active' : '' }}">
@@ -305,9 +363,8 @@
                 class="nav-link {{ request()->routeIs('client.tickets.*') ? 'active' : '' }}">
                     <i class="bi bi-headset me-2"></i> Pusat Bantuan
 
-                    @if($clientActiveTickets > 0)
-                        {{-- Menggunakan badge warna hijau/biru lembut untuk menandakan ada pembaruan status dari tim Deus --}}
-                        <span class="badge bg-success rounded-pill ms-auto shadow-sm" style="font-size: 0.7rem;">{{ $clientActiveTickets }} Update(s)</span>
+                    @if($unreadTickets > 0)
+                        <span class="badge bg-success rounded-pill ms-auto" title="Update Tersedia">{{ $unreadTickets }} Update</span>
                     @endif
                 </a>
                 
@@ -321,11 +378,11 @@
                         <div class="d-flex justify-content-between align-items-center mt-1">
                             <span class="fw-bold">{{ $subscription->package->name }}</span>
                             @if($daysLeft > 3)
-                                <span class="badge bg-success rounded-pill">{{ $daysLeftvisual }} Hari</span>
+                                <span class="badge bg-success rounded-pill" title="Sisa Hari">{{ $daysLeftvisual }} Hari</span>
                             @elseif($daysLeft >= 0)
-                                <span class="badge bg-danger rounded-pill animate-pulse">{{ $daysLeftvisual }} Hari</span>
+                                <span class="badge bg-danger rounded-pill animate-pulse" title="Sisa Hari">{{ $daysLeftvisual }} Hari</span>
                             @else
-                                <span class="badge bg-secondary">Expired</span>
+                                <span class="badge bg-secondary" title="Status">Expired</span>
                             @endif
                         </div>
 

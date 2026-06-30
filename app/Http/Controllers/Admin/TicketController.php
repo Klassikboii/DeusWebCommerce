@@ -25,7 +25,8 @@ class TicketController extends Controller
 
         $ticket->update([
             'status' => $request->status,
-            'admin_reply' => $request->admin_reply
+            'admin_reply' => $request->admin_reply,
+            'is_read_by_client' => false 
         ]);
 
         return redirect()->back()->with('success', 'Tiket berhasil di-update dan balasan terkirim ke klien.');

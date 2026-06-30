@@ -11,6 +11,120 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
+    <div class="accordion mb-4 shadow-sm" id="orderStatusAccordion">
+    <div class="accordion-item border-info">
+
+        <h2 class="accordion-header" id="headingStatusInfo">
+            <button class="accordion-button collapsed bg-info bg-opacity-10 text-info-emphasis fw-bold"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#collapseStatusInfo"
+                    aria-expanded="false"
+                    aria-controls="collapseStatusInfo">
+
+                <i class="bi bi-info-circle-fill me-2"></i>
+                Penjelasan Status Pesanan
+            </button>
+        </h2>
+
+        <div id="collapseStatusInfo"
+             class="accordion-collapse collapse"
+             aria-labelledby="headingStatusInfo"
+             data-bs-parent="#orderStatusAccordion">
+
+            <div class="accordion-body">
+
+                <p class="text-muted mb-4">
+                    Berikut adalah arti dari setiap status pesanan yang muncul pada halaman ini.
+                </p>
+
+                <div class="row g-3">
+
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="badge bg-warning text-dark mb-2">
+                                Awaiting Confirmation
+                            </span>
+
+                            <p class="mb-0 small text-muted">
+                                Khusus pembayaran manual. Customer telah melakukan pembayaran
+                                dan mengunggah bukti pembayaran, namun masih menunggu
+                                konfirmasi dari pemilik toko.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="badge bg-secondary mb-2">
+                                Pending
+                            </span>
+
+                            <p class="mb-0 small text-muted">
+                                Pesanan telah dibuat oleh customer, namun pembayaran
+                                belum dilakukan.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="badge bg-info text-white mb-2">
+                                Processing
+                            </span>
+
+                            <p class="mb-0 small text-muted">
+                                Pembayaran telah diterima, baik melalui upload bukti
+                                pembayaran maupun payment gateway. Pesanan sedang diproses.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="badge bg-primary mb-2">
+                                Shipped
+                            </span>
+
+                            <p class="mb-0 small text-muted">
+                                Pesanan telah dikirim kepada customer. Detail kurir dan
+                                nomor resi dapat diberikan pada tahap ini.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="badge bg-success mb-2">
+                                Completed
+                            </span>
+
+                            <p class="mb-0 small text-muted">
+                                Pesanan telah selesai diproses dan berhasil diterima oleh
+                                customer.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 h-100">
+                            <span class="badge bg-danger mb-2">
+                                Cancelled
+                            </span>
+
+                            <p class="mb-0 small text-muted">
+                                Pesanan dibatalkan sehingga tidak akan diproses lebih lanjut.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
     {{-- TABS FILTER STATUS --}}
     <div class="card border-0 shadow-sm mb-4 position-relative" style="z-index: 10;">
         <div class="card-body p-0">

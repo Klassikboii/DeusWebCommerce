@@ -16,6 +16,10 @@ class TicketController extends Controller
     {
         // FIX: Tampilkan SEMUA tiket milik user ini tanpa memandang dari toko mana ia dibuat.
         // Agar jika klien pindah ke dashboard toko B, ia tetap bisa melihat riwayat tiket toko A.
+        \App\Models\Ticket::where('user_id', \Illuminate\Support\Facades\Auth::id())
+            ->where('is_read_by_client', false)
+            ->update(['is_read_by_client' => true]);
+            
         $tickets = Ticket::where('user_id', Auth::id())->latest()->paginate(10);
         
         return view('client.tickets.index', compact('tickets', 'website'));
